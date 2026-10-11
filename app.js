@@ -4,8 +4,8 @@
 
   // ================= Estado =================
   const KEY = 'planoLean.v1';
-  const DEFAULT_PROFILE = { idade: 23, altura: 162, peso: 60, atividade: 1.375, defice: 12, treinoDias: [0, 2, 4] };
-  const blank = () => ({ profile: { ...DEFAULT_PROFILE }, days: {}, weights: [], shop: {} });
+  const DEFAULT_PROFILE = { idade: 23, altura: 162, peso: 60, atividade: 1.375, defice: 12, treinoDias: [0, 2, 4], autoSobras: true, shifts: {} };
+  const blank = () => ({ profile: { ...DEFAULT_PROFILE }, days: {}, weights: [], shop: {}, links: {} });
   let S = load();
 
   function load() {
@@ -36,6 +36,9 @@
     x: '<path d="M6 6l12 12M18 6L6 18"/>',
     share: '<path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>',
     swap: '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
+    pot: '<path d="M4 10h16v5.5A4.5 4.5 0 0 1 15.5 20h-7A4.5 4.5 0 0 1 4 15.5zM2 10h2M20 10h2M9.5 7c0-1.2 1-1.6 1-2.8M14 7c0-1.2 1-1.6 1-2.8"/>',
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2.5 10v4M21.5 10v4M8 12h8"/>',
     drop: '<path d="M12 3.5c3.5 4.2 6 7.6 6 10.5a6 6 0 0 1-12 0c0-2.9 2.5-6.3 6-10.5z"/>',
     flame: '<path d="M12 21c-3.9 0-6.5-2.6-6.5-6.2 0-3.4 2.3-5.4 3.9-7.6.4 1.6 1.3 2.7 2.4 3.2-.2-3 1.3-5.9 3.4-7.4.1 3.3 3.3 5.6 3.3 9.8 0 4.4-2.6 8.2-6.5 8.2z"/>',
     info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>',
@@ -95,15 +98,59 @@
   }
   const roundG = (f, g) => f === 'bolachaArroz' ? Math.max(8, Math.round(g / 8) * 8) : Math.max(5, Math.round(g / 5) * 5);
 
+  // ---- Turnos ----
+  const shiftOf = k => peekDay(k).turno || 'F';
+  function shiftCfg(id) {
+    const o = (S.profile.shifts || {})[id] || {};
+    return { ...SHIFTS[id], h: o.h || SHIFTS[id].h, t: { ...SHIFTS[id].t, ...(o.t || {}) } };
+  }
+  const sortTime = t => (t < '05:00' ? '2' : '1') + t; // depois da meia-noite vai para o fim
+  function slotInfo(k, slot, isT) {
+    const c = shiftCfg(shiftOf(k)), s = SLOTS.find(x => x.id === slot);
+    return { n: c.l[slot] || (isT && s.nt ? s.nt : s.n), t: c.t[slot] };
+  }
+
+  // ---- Sobras (cozinhar a dobrar) ----
+  // S.links['dia|refeição destino'] = 'dia|refeição origem' (manual) ou 'none' (desligar a regra automática)
+  const LK = (k, s) => `${k}|${s}`;
+  function autoSource(k, slot) {
+    if (S.profile.autoSobras === false) return null;
+    const sh = shiftOf(k);
+    if (slot === 'almoco' && sh === 'M') return LK(addDays(k, -1), 'jantar');
+    if (slot === 'jantar' && sh === 'T') return LK(k, 'almoco');
+    return null;
+  }
+  function sourceOf(k, slot) {
+    const man = (S.links || {})[LK(k, slot)];
+    if (man === 'none') return null;
+    return man || autoSource(k, slot);
+  }
+  const destCandidates = (k, slot) => slot === 'jantar' ? [[addDays(k, 1), 'almoco'], [addDays(k, 1), 'jantar']]
+    : slot === 'almoco' ? [[k, 'jantar'], [addDays(k, 1), 'almoco']] : [];
+  const directDests = (k, slot) => destCandidates(k, slot).filter(([k2, s2]) => sourceOf(k2, s2) === LK(k, slot));
+  // Inclui cadeias (ex.: almoço → jantar → almoço de amanhã): tudo o que sai da mesma panela
+  const destsOf = (k, slot, depth = 0) => depth > 3 ? [] : directDests(k, slot).flatMap(d => [d, ...destsOf(d[0], d[1], depth + 1)]);
+  const baseMealId = (k, slot) => peekDay(k).swaps[slot] || WEEK[dowIdx(k)][slot];
+  function mealIdAt(k, slot, depth = 0) {
+    const src = depth < 3 && sourceOf(k, slot);
+    if (src) { const [k2, s2] = src.split('|'); return mealIdAt(k2, s2, depth + 1); }
+    return baseMealId(k, slot);
+  }
+  function whenTxt(fromK, k, slot) {
+    const d = Math.round((fromKey(k) - fromKey(fromK)) / 864e5);
+    const day = d === 0 ? 'de hoje' : d === 1 ? 'de amanhã' : d === -1 ? 'de ontem' : `de ${DOW[dowIdx(k)].toLowerCase()}`;
+    return `${slot === 'almoco' ? 'almoço' : 'jantar'} ${day}`;
+  }
+
   function dayPlan(k) {
-    const st = peekDay(k), type = dayType(k), t = type === 'T' ? 1 : 0, idx = dowIdx(k);
+    const st = peekDay(k), type = dayType(k), t = type === 'T' ? 1 : 0;
     const T = targets();
     const goal = t ? T.train : T.rest;
     const meals = SLOTS.map(s => {
-      const m = mealById(st.swaps[s.id] || WEEK[idx][s.id]);
+      const m = mealById(mealIdAt(k, s.id));
       const items = m.i.map(it => ({ f: it.f, r: it.r, g: Array.isArray(it.g) ? it.g[t] : it.g })).filter(it => it.g > 0);
-      return { slot: s, meal: m, items };
-    });
+      return { slot: { ...s, ...slotInfo(k, s.id, t) }, meal: m, items, src: sourceOf(k, s.id), dests: destsOf(k, s.id), fora: (st.fora || {})[s.id] };
+    }).sort((a, b) => sortTime(a.slot.t).localeCompare(sortTime(b.slot.t)));
     // Ajusta os hidratos (role c) para bater nas calorias alvo do dia
     const all = meals.flatMap(m => m.items);
     const base = sumItems(all).kcal;
@@ -112,9 +159,11 @@
     for (const it of all) if (it.r === 'c') it.g = roundG(it.f, it.g * factor);
     for (const m of meals) m.tot = sumItems(m.items);
     const tot = sumItems(all);
-    const doneMeals = meals.filter(m => st.done[m.slot.id]);
+    const doneMeals = meals.filter(m => st.done[m.slot.id] && !m.fora);
     const done = sumItems(doneMeals.flatMap(m => m.items));
-    return { k, type, goal, meals, tot, done, nDone: doneMeals.length, st, T };
+    const foraK = meals.reduce((a, m) => a + (m.fora || 0), 0);
+    done.kcal += foraK;
+    return { k, type, shift: shiftOf(k), goal, meals, tot, done, foraK, nDone: doneMeals.length + meals.filter(m => m.fora).length, st, T };
   }
 
   // ================= Formatação =================
@@ -216,19 +265,25 @@
     const diff = Math.round((fromKey(k) - fromKey(todayKey())) / 864e5);
     return diff === 0 ? 'Hoje' : diff === 1 ? 'Amanhã' : diff === -1 ? 'Ontem' : DOW[dowIdx(k)];
   }
+  function shiftPhrase(id) {
+    const c = shiftCfg(id);
+    return id === 'S' ? 'Saída de noite' : id === 'F' ? 'Folga' : `Turno da ${c.n.toLowerCase()}`;
+  }
   function renderHoje() {
     const P = dayPlan(curDay), T = P.T, isT = P.type === 'T';
     const isToday = curDay === todayKey();
+    const sc = shiftCfg(P.shift);
     header(`${DOW[dowIdx(curDay)]}, ${niceDate(curDay)}`, dayTitle(curDay),
-      isToday ? '' : `<button class="pill-btn press" data-act="today">Hoje</button>`);
+      (isToday ? '' : `<button class="pill-btn press" data-act="today">Hoje</button>`) +
+      `<button class="pill-btn press shift-pill" style="--sc:${sc.col}" data-act="dayset" aria-label="Turno e treino do dia"><i></i>${sc.n}</button>`);
 
     const mon = mondayOf(curDay);
     let strip = '<div class="strip" id="strip">';
     for (let i = 0; i < 7; i++) {
-      const k = addDays(mon, i), st = peekDay(k);
-      const pct = (Object.values(st.done || {}).filter(Boolean).length / SLOTS.length) * 100;
-      strip += `<button class="${k === curDay ? 'sel' : ''} ${k === todayKey() ? 'today' : ''} ${dayType(k) === 'T' ? 'train' : ''}" data-act="day" data-k="${k}" aria-label="${DOW[i]} ${niceDate(k)}">
-        <span class="wd">${DOW_S[i]}</span><span class="ring" style="--pct:${pct}"><span class="dn num">${dayNum(k)}</span></span><span class="mk"></span></button>`;
+      const k = addDays(mon, i), st = peekDay(k), sh = shiftOf(k);
+      const nDone = SLOTS.filter(s => (st.done || {})[s.id] || (st.fora || {})[s.id]).length;
+      strip += `<button class="${k === curDay ? 'sel' : ''} ${k === todayKey() ? 'today' : ''} ${dayType(k) === 'T' ? 'train' : ''}" data-act="day" data-k="${k}" aria-label="${DOW[i]} ${niceDate(k)}, ${SHIFTS[sh].n}">
+        <span class="wd">${DOW_S[i]}</span><span class="ring" style="--pct:${(nDone / SLOTS.length) * 100}"><span class="dn num">${dayNum(k)}</span></span><span class="mk" style="color:${SHIFTS[sh].col}">${sh === 'F' ? '' : sh}</span></button>`;
     }
     strip += '</div>';
 
@@ -251,20 +306,26 @@
         <div class="meta num"><span>Comido <b>${n0(P.done.kcal)}</b></span><span>Meta <b>${n0(P.goal)}</b> kcal</span></div>
         <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
       </section>`;
-    if (isT) h += `<div class="note train">${ic('flame')}<div>Dia de treino — mais hidratos ao almoço e no lanche. Treina 1–3 h depois do lanche, ou come-o logo a seguir ao treino.</div></div>`;
+    if (sc.tip) h += `<div class="note shiftnote" style="--sc:${sc.col}">${ic('clock')}<div><b>${shiftPhrase(P.shift)} · ${sc.h}</b><br>${sc.tip}</div></div>`;
+    if (isT) h += `<div class="note train">${ic('flame')}<div>Dia de treino — mais hidratos ao almoço e no lanche. Treina 1–3 h depois de uma refeição, ou come logo a seguir ao treino.</div></div>`;
 
     h += `<h2 class="sec-h">Refeições <small class="num">${P.nDone} de ${P.meals.length}</small></h2><div class="list">`;
     for (const m of P.meals) {
-      const done = !!P.st.done[m.slot.id];
-      h += `<div class="row tap meal-row ${done ? 'done' : ''}" data-act="meal" data-slot="${m.slot.id}">
-        <button class="check ${done ? 'on' : ''}" data-act="done" data-slot="${m.slot.id}" aria-pressed="${done}" aria-label="Marcar ${m.slot.n} como comido">${ic('check')}</button>
+      const id = m.slot.id, done = !!P.st.done[id] || !!m.fora;
+      let extra = '';
+      if (!m.fora && m.src) { const [k2, s2] = m.src.split('|'); extra = `<span class="lo">${ic('box')}Sobras do ${whenTxt(curDay, k2, s2)}</span>`; }
+      else if (!m.fora && m.dests.length) extra = `<span class="lo">${ic('pot')}Fazer ×${m.dests.length + 1} · ${m.dests.map(([k2, s2]) => whenTxt(curDay, k2, s2)).join(' e ')}</span>`;
+      h += `<div class="row tap meal-row ${done ? 'done' : ''}" data-act="meal" data-slot="${id}">
+        <button class="check ${done ? 'on' : ''}" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="Marcar ${m.slot.n} como comido">${ic('check')}</button>
         <div class="row-main">
-          <div class="over">${isT && m.slot.nt ? m.slot.nt : m.slot.n} · ${m.slot.t}</div>
-          <div class="ttl">${esc(m.meal.n)}</div>
-          <div class="sub num">${n0(m.tot.kcal)} kcal &nbsp;${macroLine(m.tot)}</div>
+          <div class="over">${m.slot.n} · ${m.slot.t}</div>
+          <div class="ttl">${m.fora ? 'Outra refeição' : esc(m.meal.n)}</div>
+          <div class="sub num">${m.fora ? `Fora do plano · ~${m.fora} kcal` : `${n0(m.tot.kcal)} kcal &nbsp;${macroLine(m.tot)}`}</div>
+          ${extra}
         </div>${ic('chevR', 'chev')}</div>`;
     }
     h += `</div>`;
+    if (P.foraK) h += `<p class="cap">Refeições fora do plano contam só nas calorias (estimativa). Não faz mal — o que conta é a média da semana.</p>`;
 
     const agua = P.st.agua || 0;
     h += `<h2 class="sec-h">Hidratação</h2>
@@ -274,63 +335,142 @@
           <div class="track"><i style="width:${Math.min(100, agua * 10)}%"></i></div></div>
         <div class="stepper"><button class="press" data-act="agua" data-d="-1" aria-label="Menos um copo">${ic('minus')}</button><button class="press" data-act="agua" data-d="1" aria-label="Mais um copo">${ic('plus')}</button></div>
       </section>
-      <p class="cap">1 copo = 250 ml. As quantidades de hidratos ajustam-se sozinhas à meta do dia (${n0(P.tot.kcal)} kcal planeadas).</p>`;
+      <p class="cap">1 copo = 250 ml. Num turno, deixa uma garrafa de 1 L no posto. As quantidades de hidratos ajustam-se sozinhas à meta do dia (${n0(P.tot.kcal)} kcal planeadas).</p>`;
     $view.innerHTML = h;
   }
 
   function mealSheet(slotId) {
     return () => {
       const P = dayPlan(curDay), m = P.meals.find(x => x.slot.id === slotId), isT = P.type === 'T';
-      const done = !!P.st.done[slotId];
-      const showAlts = sheetEl && sheetEl.dataset.alts === slotId;
-      let h = `<div class="over">${isT && m.slot.nt ? m.slot.nt : m.slot.n} · ${m.slot.t}</div><h2>${esc(m.meal.n)}</h2>
-        <div class="stat4 num"><div><b>${n0(m.tot.kcal)}</b><span>kcal</span></div><div><b style="color:var(--p)">${n0(m.tot.p)}</b><span>proteína</span></div>
+      const done = !!P.st.done[slotId] || !!m.fora;
+      const mode = sheetEl.dataset.mode;
+      let h = `<div class="over">${m.slot.n} · ${m.slot.t}</div><h2>${esc(m.meal.n)}</h2>`;
+      if (m.fora) h += `<div class="note" style="margin:0 0 12px">${ic('info')}<div>Registaste outra refeição (~${m.fora} kcal). <button class="link" data-act="unfora" data-slot="${slotId}">Desfazer</button></div></div>`;
+      h += `<div class="stat4 num"><div><b>${n0(m.tot.kcal)}</b><span>kcal</span></div><div><b style="color:var(--p)">${n0(m.tot.p)}</b><span>proteína</span></div>
         <div><b style="color:var(--c)">${n0(m.tot.c)}</b><span>hidratos</span></div><div><b style="color:var(--f)">${n0(m.tot.f)}</b><span>gordura</span></div></div>`;
-      if (isT && m.meal.treino) h += `<div class="note train">${ic('flame')}<div>${esc(m.meal.treino)}</div></div>`;
-      h += `<div class="group-label">Ingredientes</div><div class="list">${m.items.map(it => `<div class="row ing"><div class="row-main">${esc(FOODS[it.f].n)}</div><div class="q num">${qty(it.f, it.g)}${unitHint(it.f, it.g) ? `<small>${unitHint(it.f, it.g)}</small>` : ''}</div></div>`).join('')}</div>
-        <div class="group-label">Preparação</div><div class="list"><ol class="steps">${steps(m.meal.prep)}</ol></div>`;
-      if (showAlts) {
+
+      // Totais a cozinhar quando esta refeição também serve outras
+      const cook = {};
+      if (!m.src && m.dests.length) {
+        for (const it of m.items) cook[it.f] = it.g;
+        for (const [k2, s2] of m.dests) for (const it of dayPlan(k2).meals.find(x => x.slot.id === s2).items) cook[it.f] = (cook[it.f] || 0) + it.g;
+      }
+      if (m.src) {
+        const [k2, s2] = m.src.split('|');
+        h += `<div class="note good">${ic('box')}<div><b>Sobras do ${whenTxt(curDay, k2, s2)}</b><br>Já está feito — é só aquecer. <button class="link" data-act="unlink" data-slot="${slotId}">Cozinhar outra coisa</button></div></div>`;
+      } else if (m.dests.length) {
+        h += `<div class="note good">${ic('pot')}<div><b>Cozinhar ×${m.dests.length + 1}</b><br>Esta dose + ${m.dests.map(([k2, s2]) => whenTxt(curDay, k2, s2)).join(' e ')}. Por baixo de cada ingrediente está o total a cozinhar.</div></div>`;
+      }
+      if (isT && m.meal.treino && !m.src) h += `<div class="note train">${ic('flame')}<div>${esc(m.meal.treino)}</div></div>`;
+
+      h += `<div class="group-label">${m.src ? 'A tua dose' : 'Ingredientes · 1 dose'}</div><div class="list">${m.items.map(it => {
+        const hint = cook[it.f] ? `cozinhar ${qty(it.f, cook[it.f])}` : unitHint(it.f, it.g);
+        return `<div class="row ing"><div class="row-main">${esc(FOODS[it.f].n)}</div><div class="q num">${qty(it.f, it.g)}${hint ? `<small>${hint}</small>` : ''}</div></div>`;
+      }).join('')}</div>`;
+      if (!m.src) h += `<div class="group-label">Preparação</div><div class="list"><ol class="steps">${steps(m.meal.prep)}</ol></div>`;
+
+      // Cozinhar a dobrar
+      if (!m.src && !m.fora && (slotId === 'almoco' || slotId === 'jantar')) {
+        h += `<div class="group-label">Cozinhar a dobrar</div><div class="list">${destCandidates(curDay, slotId).map(([k2, s2]) => {
+          const on = sourceOf(k2, s2) === LK(curDay, slotId);
+          const sh = shiftOf(k2), info = slotInfo(k2, s2, false);
+          return `<button class="row tap" data-act="link" data-slot="${slotId}" data-dk="${k2}" data-ds="${s2}" aria-pressed="${on}">
+            <div class="row-main"><div class="ttl" style="font-weight:500">Para o ${whenTxt(curDay, k2, s2)}</div>
+            <div class="sub">${info.n} · ${info.t}${sh !== 'F' ? ` · ${shiftPhrase(sh).toLowerCase()}` : ''}</div></div>
+            <span class="switch ${on ? 'on' : ''}"></span></button>`;
+        }).join('')}</div><p class="cap">A refeição de destino passa a ser a mesma e a lista de compras conta as duas doses.</p>`;
+      }
+
+      if (mode === 'alts') {
         h += `<div class="group-label">Escolher outra opção</div><div class="list">${MEALS[slotId].map(o => {
           const sel = o.id === m.meal.id;
           return `<button class="row tap alt ${sel ? 'sel' : ''}" data-act="pick" data-slot="${slotId}" data-id="${o.id}"><div class="row-main"><div class="ttl">${esc(o.n)}</div></div>${sel ? ic('check', 'ok') : ''}</button>`;
         }).join('')}</div>`;
       }
+      if (mode === 'fora') {
+        h += `<div class="group-label">Comi outra coisa — quanto, mais ou menos?</div><div class="list">${FORA.map(o => `
+          <button class="row tap" data-act="fora" data-slot="${slotId}" data-kcal="${o.kcal}"><div class="row-main"><div class="ttl">${o.n} <span class="num" style="color:var(--ink-3);font-weight:500">· ~${o.kcal} kcal</span></div><div class="sub">${o.d}</div></div></button>`).join('')}</div>
+          <p class="cap">Não precisa de ser exato. Se puderes, escolhe algo com proteína (carne, peixe, ovos, iogurte).</p>`;
+      }
       h += `<div class="btn-stack">
-        <button class="btn primary press" data-act="done" data-slot="${slotId}">${done ? 'Desmarcar' : ic('check') + ' Marcar como comido'}</button>
-        ${showAlts ? '' : `<button class="btn secondary press" data-act="alts" data-slot="${slotId}">${ic('swap')} Trocar refeição</button>`}
+        ${m.fora ? '' : `<button class="btn primary press" data-act="done" data-slot="${slotId}">${done ? 'Desmarcar' : ic('check') + ' Marcar como comido'}</button>`}
+        ${mode === 'alts' ? '' : `<button class="btn secondary press" data-act="mode" data-v="alts">${ic('swap')} Trocar refeição</button>`}
+        ${m.fora || mode === 'fora' ? '' : `<button class="btn secondary press" data-act="mode" data-v="fora">${ic('plate')} Comi outra coisa</button>`}
       </div>`;
       return h;
     };
   }
 
-  function toggleDone(slot) { const st = dayState(curDay); st.done[slot] = !st.done[slot]; save(); }
+  function daySheet(k) {
+    return () => {
+      const cur = shiftOf(k), isT = dayType(k) === 'T';
+      return `<div class="over">${DOW[dowIdx(k)]}, ${niceDate(k)}</div><h2>Turno e treino</h2>
+        <div class="list">${SHIFT_ORDER.map(id => {
+          const c = shiftCfg(id);
+          return `<button class="row tap" data-act="setshift" data-k="${k}" data-v="${id}"><span class="sdot" style="--sc:${c.col}"></span>
+            <div class="row-main"><div class="ttl" style="font-weight:500">${c.n}</div><div class="sub">${c.h}</div></div>${cur === id ? ic('check', 'ok') : ''}</button>`;
+        }).join('')}</div>
+        <div class="list" style="margin-top:12px"><button class="row tap" data-act="settrain" data-k="${k}" aria-pressed="${isT}"><div class="row-main"><div class="ttl" style="font-weight:500">Dia de treino</div><div class="sub">+200 kcal, sobretudo hidratos</div></div><span class="switch ${isT ? 'on' : ''}"></span></button></div>
+        <p class="cap">Os horários das refeições mudam com o turno. Podes ajustá-los em Perfil → Turnos e horários.</p>
+        <div class="btn-stack"><button class="btn primary press" data-act="close">Feito</button></div>`;
+    };
+  }
+
+  function toggleDone(slot) {
+    const st = dayState(curDay);
+    if (st.fora && st.fora[slot]) { delete st.fora[slot]; st.done[slot] = false; }
+    else st.done[slot] = !st.done[slot];
+    save();
+  }
+  function setShift(k, v) { const st = dayState(k); if (v === 'F') delete st.turno; else st.turno = v; save(); }
+  function toggleTrain(k) {
+    const st = dayState(k), def = S.profile.treinoDias.includes(dowIdx(k)) ? 'T' : 'D';
+    const nxt = dayType(k) === 'T' ? 'D' : 'T';
+    if (nxt === def) delete st.type; else st.type = nxt;
+    save();
+  }
 
   // ================= SEMANA =================
+  const weekMon = () => addDays(mondayOf(todayKey()), weekOffset * 7);
   function renderSemana() {
-    const mon = addDays(mondayOf(todayKey()), weekOffset * 7);
+    const mon = weekMon();
     const lbl = weekOffset === 0 ? 'Esta semana' : weekOffset === 1 ? 'Próxima semana' : weekOffset === -1 ? 'Semana passada' : `${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`;
-    header(`${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`, 'Semana');
+    header(`${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`, 'Semana', `<button class="pill-btn press" data-act="escala">Escala</button>`);
     const plans = Array.from({ length: 7 }, (_, i) => dayPlan(addDays(mon, i)));
     const avg = plans.reduce((a, p) => a + p.tot.kcal, 0) / 7;
-    const avgP = plans.reduce((a, p) => a + p.tot.p, 0) / 7;
     const nT = plans.filter(p => p.type === 'T').length;
+    const nTurnos = plans.filter(p => ['M', 'T', 'N'].includes(p.shift)).length;
     let h = `<div class="weeknav">
         <button class="circle-btn press" data-act="wk" data-d="-1" aria-label="Semana anterior">${ic('chevL', 'sm')}</button>
         <span class="lbl">${lbl}</span>
         <button class="circle-btn press" data-act="wk" data-d="1" aria-label="Semana seguinte">${ic('chevR', 'sm')}</button></div>
-      <section class="card kpis num"><div><b>${n0(avg)}</b><span>kcal / dia</span></div><div><b>${n0(avgP)} g</b><span>proteína / dia</span></div><div><b>${nT}</b><span>treinos</span></div></section>
+      <section class="card kpis num"><div><b>${n0(avg)}</b><span>kcal / dia</span></div><div><b>${nTurnos}</b><span>turnos</span></div><div><b>${nT}</b><span>treinos</span></div></section>
       <div class="list">`;
     plans.forEach((P, i) => {
-      const isT = P.type === 'T';
+      const isT = P.type === 'T', c = shiftCfg(P.shift);
       h += `<div class="row tap ${P.k === todayKey() ? 'is-today' : ''}" data-act="open" data-k="${P.k}">
         <div class="day-date"><div class="wd">${DOW_S[i]}</div><div class="dn num">${dayNum(P.k)}</div></div>
         <div class="row-main">
-          <div class="tag ${isT ? 'train' : 'rest'}">${isT ? ic('flame', 'sm') + 'Treino' : 'Descanso'} <span style="color:var(--ink-3);font-weight:500" class="num">· ${n0(P.tot.kcal)} kcal</span></div>
-          <div class="sub clamp">${P.meals.map(m => esc(m.meal.n)).join(' · ')}</div>
+          <div class="tagline"><span class="shift" style="--sc:${c.col}"><i></i>${c.n}</span>${isT ? `<span class="tag train">${ic('flame', 'sm')}Treino</span>` : ''}<span class="num" style="color:var(--ink-3);font-size:12.5px">${n0(P.tot.kcal)} kcal</span></div>
+          <div class="sub clamp">${P.meals.map(m => esc(m.meal.n) + (m.src ? ' <em>(sobras)</em>' : '')).join(' · ')}</div>
         </div>${ic('chevR', 'chev')}</div>`;
     });
-    h += `</div><p class="cap">Os dias de treino escolhem-se em Perfil → Ajustes. Toca num dia para ver as quantidades.</p>`;
+    h += `</div><p class="cap">Marca os turnos e os treinos em <b>Escala</b>. Os horários e as sobras para a marmita ajustam-se sozinhos.</p>`;
     $view.innerHTML = h;
+  }
+  function escalaSheet() {
+    return () => {
+      const mon = weekMon();
+      let h = `<div class="over">${niceDate(mon)} – ${niceDate(addDays(mon, 6))}</div><h2>Escala da semana</h2><div class="list">`;
+      for (let i = 0; i < 7; i++) {
+        const k = addDays(mon, i), cur = shiftOf(k), isT = dayType(k) === 'T';
+        h += `<div class="row esc"><div class="day-date"><div class="wd">${DOW_S[i]}</div><div class="dn num">${dayNum(k)}</div></div>
+          <div class="seg esc-seg" role="group" aria-label="Turno de ${DOW[i]}">${SHIFT_ORDER.map(id => `<button class="${cur === id ? 'on' : ''}" style="--sc:${SHIFTS[id].col}" data-act="setshift" data-k="${k}" data-v="${id}" aria-label="${SHIFTS[id].n}" aria-pressed="${cur === id}">${id}</button>`).join('')}</div>
+          <button class="train-tg ${isT ? 'on' : ''}" data-act="settrain" data-k="${k}" aria-label="Treino em ${DOW[i]}" aria-pressed="${isT}">${ic('dumbbell')}</button></div>`;
+      }
+      return h + `</div><p class="cap"><b>M</b> manhã · <b>T</b> tarde · <b>N</b> noite · <b>S</b> saída de noite · <b>F</b> folga. O haltere marca os dias de treino.</p>
+        <div class="btn-stack"><button class="btn primary press" data-act="close">Feito</button></div>`;
+    };
   }
 
   // ================= COMPRAS =================
@@ -466,6 +606,7 @@
 
   // ================= PERFIL =================
   const GUIDE = [
+    ['turnos', 'Turnos e dias caóticos', 'clock', '#3b5bdb'],
     ['numeros', 'Os teus números', 'gauge', '#1d5c45'],
     ['sexo', 'Homem vs mulher', 'users', '#d6336c'],
     ['ciclo', 'Ciclo menstrual', 'cycle', '#ae3ec9'],
@@ -473,7 +614,7 @@
     ['regras', 'Regras para ficar lean', 'target', '#e2590f'],
     ['trocas', 'Tabela de trocas', 'swap', '#1c7ed6'],
   ];
-  const SETTINGS = [['ajustes', 'Ajustes do plano', 'sliders', '#5c636a'], ['dados', 'Cópia de segurança', 'box', '#5c636a'], ['fontes', 'Fontes científicas', 'doc', '#5c636a']];
+  const SETTINGS = [['ajustes', 'Ajustes do plano', 'sliders', '#5c636a'], ['horarios', 'Turnos e horários', 'clock', '#5c636a'], ['dados', 'Cópia de segurança', 'box', '#5c636a'], ['fontes', 'Fontes científicas', 'doc', '#5c636a']];
   const navRow = ([id, l, i, col]) => `<button class="row tap" data-act="sub" data-id="${id}"><span class="tile" style="background:${col}">${ic(i)}</span><span class="row-main ttl" style="font-weight:500">${l}</span>${ic('chevR', 'chev')}</button>`;
 
   function renderPerfil() {
@@ -502,7 +643,28 @@
     const vs = (t, w, m) => `<div class="item"><h4>${t}</h4><div class="vs">${m == null ? `<div class="both">${w}</div>` : `<div><span>Mulher</span>${w}</div><div><span>Homem</span>${m}</div>`}</div></div>`;
     const kv = (l, v) => `<div class="row kv-row"><div class="row-main" style="font-size:15px">${l}</div><div class="val num"><b>${v}</b></div></div>`;
     let h = '';
-    if (id === 'numeros') {
+    if (id === 'turnos') {
+      h = `<div class="prose">
+        ${item('Não tem de ser perfeito', 'Se acertares na proteína e mais ou menos nas calorias na maioria dos dias, resulta. Um dia fora do plano não estraga nada — conta a média da semana. Quando comes outra coisa, regista em “Comi outra coisa” e segue.')}
+        ${item('Marmitas a partir das sobras', 'Turno da manhã: faz o dobro ao jantar e leva no dia seguinte. Turno da tarde: faz o dobro ao almoço e leva para o jantar. A app organiza isto sozinha a partir da escala.')}
+        ${item('Cozinhar de uma vez', 'Na folga, prepara 2–3 bases para a semana: uma proteína (frango, carne picada, grão), um hidrato (arroz, batata, massa) e legumes assados. Dura 3–4 dias no frigorífico; o resto congela.')}
+        ${item('Turno da noite', 'A refeição principal é o jantar antes de entrar. Durante a noite, refeições pequenas com proteína (iogurte, ovos, atum, fruta) em vez de doces e bolachas do serviço. Ao sair, algo leve antes de dormir.')}
+        ${item('Café com hora', 'A cafeína dura 5–6 h no corpo. Nas noites, só na primeira metade do turno; nos turnos de manhã e tarde, evita nas 6 h antes de dormir.')}
+        ${item('Kit de emergência na mala', 'Para os dias sem pausa: iogurte proteico ou skyr, uma lata de atum, 30 g de frutos secos, fruta, bolachas de arroz. Evita a máquina de vending.')}
+        ${item('Cantina do hospital', 'Regra do prato: metade legumes ou sopa, um quarto proteína (do tamanho da palma da mão), um quarto hidratos (um punho). Fruta como sobremesa.')}
+        ${item('Água no posto', 'Deixa uma garrafa de 1 L à vista. A sede durante o turno confunde-se com fome e cansaço.')}
+      </div>`;
+    } else if (id === 'horarios') {
+      h = `<form id="turnos">${SHIFT_ORDER.map(sid => {
+        const c = shiftCfg(sid);
+        return `<div class="group-label"><span class="sdot" style="--sc:${c.col};margin-right:6px"></span>${c.n}</div><div class="list">
+          <div class="form-row"><label for="h_${sid}">Horário</label><input id="h_${sid}" name="h_${sid}" type="text" value="${esc(c.h)}"></div>
+          ${SLOTS.map(sl => `<div class="form-row"><label for="t_${sid}_${sl.id}">${c.l[sl.id] || sl.n}</label><input id="t_${sid}_${sl.id}" name="t_${sid}_${sl.id}" type="time" value="${c.t[sl.id]}"></div>`).join('')}
+        </div>`;
+      }).join('')}</form>
+      <div class="btn-stack"><button class="btn secondary press" data-act="resetturnos">Repor horários originais</button></div>
+      <p class="cap">As refeições aparecem por esta ordem no ecrã Hoje. Horas antes das 05:00 contam como depois da meia-noite.</p>`;
+    } else if (id === 'numeros') {
       const ea = Math.round((T.train - 300) / (p.peso * 0.73));
       h = `<div class="list">${kv('Metabolismo basal', `${n0(T.bmr)} kcal`)}${kv(`Gasto diário (× ${String(p.atividade).replace('.', ',')})`, `${n0(T.tdee)} kcal`)}${kv(`Média com défice de ${p.defice}%`, `${n0(T.avg)} kcal`)}${kv('Dia de treino', `${n0(T.train)} kcal`)}${kv('Dia de descanso', `${n0(T.rest)} kcal`)}</div>
         <div class="group-label">Macronutrientes</div><div class="list">${kv('<i class="dot bg-p"></i>&nbsp; Proteína · 2,0 g/kg', `${T.prot} g`)}${kv('<i class="dot bg-f"></i>&nbsp; Gordura · 0,9 g/kg', `${T.fat} g`)}${kv('<i class="dot bg-c"></i>&nbsp; Hidratos treino / descanso', `${T.cT} / ${T.cD} g`)}${kv('IMC', n1(p.peso / (p.altura / 100) ** 2))}</div>
@@ -561,10 +723,14 @@
           <div class="form-row"><label for="defice">Défice</label><select id="defice" name="defice">${opt([[0, 'Manutenção'], [8, '8% · muito suave'], [12, '12% · suave'], [15, '15% · moderado'], [20, '20% · máximo']], p.defice)}</select></div>
           <div class="form-row"><label for="atividade">Atividade</label><select id="atividade" name="atividade">${opt([[1.2, 'Sedentária'], [1.375, 'Ligeira · 3 treinos'], [1.465, 'Moderada · 3–4 treinos + passos'], [1.55, 'Ativa · 5 treinos']], p.atividade)}</select></div>
         </div>
-        <div class="group-label">Dias de treino</div><div class="list"><div class="days">
+        <div class="group-label">Sobras</div><div class="list">
+          <label class="form-row" style="cursor:pointer"><span>Sobras automáticas</span><input type="checkbox" name="autoSobras" class="sw-in" ${p.autoSobras !== false ? 'checked' : ''}><span class="switch"></span></label>
+        </div>
+        <p class="cap">Turno da manhã: o almoço é a sobra do jantar da véspera. Turno da tarde: o jantar é a sobra do almoço. Podes mudar refeição a refeição.</p>
+        <div class="group-label">Dias de treino habituais</div><div class="list"><div class="days">
           ${DOW_S.map((d, i) => `<label><input type="checkbox" name="td" value="${i}" ${p.treinoDias.includes(i) ? 'checked' : ''}><span>${d}</span></label>`).join('')}
         </div></div>
-        <p class="cap">Recomendado: défice de 12% e atividade ligeira. Se ao fim de 3 semanas a média de peso e a cintura não descerem, sobe o défice um nível.</p>
+        <p class="cap">Ponto de partida para semanas novas — muda dia a dia em Semana → Escala. Recomendado: défice de 12% e atividade ligeira. Se ao fim de 3 semanas a média de peso e a cintura não descerem, sobe o défice um nível.</p>
       </form>`;
     } else if (id === 'dados') {
       h = `<div class="prose"><p>Tudo fica guardado apenas neste telemóvel, sem contas nem servidores. Exporta uma cópia de vez em quando — por exemplo, antes de mudar de telemóvel.</p></div>
@@ -579,6 +745,7 @@
         <li>Jäger R et al. (2017). ISSN position stand: protein and exercise. <i>J Int Soc Sports Nutr</i> 14:20.</li>
         <li>Aragon AA et al. (2017). ISSN position stand: diets and body composition. <i>J Int Soc Sports Nutr</i> 14:16.</li>
         <li>EFSA — valores de referência: <a href="https://www.efsa.europa.eu/en/efsajournal/pub/4254" target="_blank" rel="noopener">ferro</a> (2015), cálcio (2015), folato (2014), fibra (2010).</li>
+        <li>Souza RV et al. (2019). Association between night shift work and nutrition patterns among nurses: a literature review. <i>Med Pr</i> 70(3):363–76. <a href="https://medpr.imp.lodz.pl/Association-between-night-shift-work-and-nutrition-pattern-among-nurses-literature,99931,0,2.html" target="_blank" rel="noopener">artigo</a></li>
         <li>Mifflin MD, St Jeor ST et al. (1990). A new predictive equation for resting energy expenditure. <i>Am J Clin Nutr</i> 51:241–7.</li>
       </ol><p style="color:var(--ink-2);font-size:14px">Valores nutricionais aproximados (tabelas INSA/USDA).</p></div>`;
     }
@@ -591,7 +758,18 @@
     for (const k of ['idade', 'altura', 'peso']) if (num(k) > 0) p[k] = num(k);
     p.defice = num('defice'); p.atividade = num('atividade');
     p.treinoDias = [...f.querySelectorAll('input[name=td]:checked')].map(i => +i.value);
+    p.autoSobras = f.elements.autoSobras.checked;
     save(); toast('Plano recalculado');
+  }
+  function saveShifts(f) {
+    const out = {};
+    for (const sid of SHIFT_ORDER) {
+      const o = { t: {} }, h = f.elements['h_' + sid].value.trim();
+      if (h && h !== SHIFTS[sid].h) o.h = h;
+      for (const sl of SLOTS) { const v = f.elements[`t_${sid}_${sl.id}`].value; if (v && v !== SHIFTS[sid].t[sl.id]) o.t[sl.id] = v; }
+      if (o.h || Object.keys(o.t).length) out[sid] = o;
+    }
+    S.profile.shifts = out; save(); toast('Horários guardados');
   }
   function exportData() {
     const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' });
@@ -615,13 +793,11 @@
       // Hoje
       case 'today': curDay = todayKey(); break;
       case 'day': curDay = b.dataset.k; break;
-      case 'type': {
-        const st = dayState(curDay), def = S.profile.treinoDias.includes(dowIdx(curDay)) ? 'T' : 'D';
-        if (b.dataset.v === def) delete st.type; else st.type = b.dataset.v;
-        save(); break;
-      }
+      case 'type': if (b.dataset.v !== dayType(curDay)) toggleTrain(curDay); break;
+      case 'dayset': openSheet(daySheet(curDay)); return;
+      case 'escala': openSheet(escalaSheet()); return;
       case 'done': toggleDone(b.dataset.slot); if (sheetEl && sheetEl.classList.contains('open')) closeSheet(); break;
-      case 'meal': if (sheetEl) delete sheetEl.dataset.alts; openSheet(mealSheet(b.dataset.slot)); return;
+      case 'meal': if (sheetEl) delete sheetEl.dataset.mode; openSheet(mealSheet(b.dataset.slot)); return;
       case 'agua': { const st = dayState(curDay); st.agua = Math.max(0, Math.min(20, (st.agua || 0) + +b.dataset.d)); save(); break; }
       // Semana
       case 'wk': weekOffset += +b.dataset.d; break;
@@ -640,6 +816,7 @@
       case 'sub': sub = b.dataset.id; render(true); window.scrollTo(0, 0); return;
       case 'back': sub = null; render(true); window.scrollTo(0, 0); return;
       case 'export': exportData(); return;
+      case 'resetturnos': S.profile.shifts = {}; save(); toast('Horários repostos'); break;
       case 'reset':
         if (confirm('Apagar todos os registos (pesos, refeições marcadas, trocas e ajustes)? Não pode ser desfeito.')) { S = blank(); save(); toast('Dados apagados'); }
         break;
@@ -652,6 +829,7 @@
   $view.addEventListener('change', e => {
     const el = e.target;
     if (el.form && el.form.id === 'perfil') saveProfile(el.form);
+    if (el.form && el.form.id === 'turnos') saveShifts(el.form);
     if (el.id === 'importFile') importData(el.files[0]);
   });
 
@@ -659,14 +837,28 @@
     const b = e.target.closest('[data-act]'); if (!b) return;
     const a = b.dataset.act;
     if (a === 'close') return closeSheet();
-    if (a === 'alts') { sheetEl.dataset.alts = b.dataset.slot; paintSheet(); return; }
-    if (a === 'pick') {
-      const st = dayState(curDay), slot = b.dataset.slot;
-      if (b.dataset.id === WEEK[dowIdx(curDay)][slot]) delete st.swaps[slot]; else st.swaps[slot] = b.dataset.id;
-      delete sheetEl.dataset.alts; save(); render(); paintSheet(); sheetEl.scrollTop = 0; toast('Refeição trocada');
-      return;
+    const slot = b.dataset.slot;
+    const refresh = () => { save(); render(); paintSheet(); };
+    switch (a) {
+      case 'mode': sheetEl.dataset.mode = b.dataset.v; paintSheet(); sheetEl.scrollTo({ top: sheetEl.scrollHeight, behavior: 'smooth' }); return;
+      case 'pick': {
+        const st = dayState(curDay);
+        if (sourceOf(curDay, slot)) S.links[LK(curDay, slot)] = 'none';
+        if (b.dataset.id === WEEK[dowIdx(curDay)][slot]) delete st.swaps[slot]; else st.swaps[slot] = b.dataset.id;
+        delete sheetEl.dataset.mode; refresh(); sheetEl.scrollTop = 0; toast('Refeição trocada'); return;
+      }
+      case 'done': toggleDone(slot); render(); closeSheet(); return;
+      case 'fora': { const st = dayState(curDay); (st.fora ||= {})[slot] = +b.dataset.kcal; st.done[slot] = false; save(); render(); closeSheet(); toast('Registado'); return; }
+      case 'unfora': { const st = dayState(curDay); delete st.fora[slot]; refresh(); return; }
+      case 'unlink': S.links[LK(curDay, slot)] = 'none'; refresh(); toast('Sem sobras nesta refeição'); return;
+      case 'link': {
+        const dest = LK(b.dataset.dk, b.dataset.ds), on = sourceOf(b.dataset.dk, b.dataset.ds) === LK(curDay, slot);
+        S.links[dest] = on ? 'none' : LK(curDay, slot);
+        refresh(); return;
+      }
+      case 'setshift': setShift(b.dataset.k, b.dataset.v); render(); paintSheet(); return;
+      case 'settrain': toggleTrain(b.dataset.k); render(); paintSheet(); return;
     }
-    if (a === 'done') { toggleDone(b.dataset.slot); render(); closeSheet(); }
   }
   function onSheetSubmit(e) {
     if (e.target.id !== 'wform') return;

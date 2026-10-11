@@ -135,8 +135,9 @@ main { max-width: 600px; margin: 0 auto; padding: 0 16px 24px; outline: none; }
 .strip .dn { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--bg); font-size: 15px; font-weight: 600; }
 .strip .today .dn { color: var(--accent); }
 .strip .sel .dn { background: var(--ink); color: var(--bg); }
-.strip .mk { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
-.strip .train .mk { background: var(--train); }
+.strip .ring { position: relative; }
+.strip .mk { height: 12px; font-size: 10.5px; font-weight: 800; line-height: 12px; }
+.strip .train .ring::after { content: ""; position: absolute; top: 1px; right: 1px; width: 9px; height: 9px; border-radius: 50%; background: var(--train); box-shadow: 0 0 0 2px var(--bg); }
 
 /* ============ Energy card ============ */
 .energy-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
@@ -310,6 +311,35 @@ a { color: var(--accent); text-decoration: none; }
   transition: opacity .25s, transform .3s var(--ease); white-space: nowrap;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ============ Turnos, sobras ============ */
+.shift-pill { display: inline-flex; align-items: center; gap: 7px; }
+.shift-pill i, .shift i { width: 8px; height: 8px; border-radius: 50%; background: var(--sc); display: inline-block; flex: none; }
+.sdot { width: 12px; height: 12px; border-radius: 50%; background: var(--sc); display: inline-block; flex: none; }
+.shift { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 650; color: var(--ink); }
+.tagline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tagline .tag .ic { width: 15px; height: 15px; }
+.sub em { font-style: normal; color: var(--accent); font-weight: 600; }
+.lo { display: inline-flex; align-items: center; gap: 5px; margin-top: 7px; font-size: 12.5px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 3px 9px 3px 7px; border-radius: 999px; }
+.lo .ic { width: 14px; height: 14px; stroke-width: 2; }
+.note.shiftnote .ic { color: var(--sc); }
+.note b { color: var(--ink); font-weight: 650; }
+.link { color: var(--accent); font-weight: 600; font-size: inherit; }
+.switch { width: 51px; height: 31px; border-radius: 99px; background: var(--fill); position: relative; flex: none; transition: background .2s; box-shadow: inset 0 0 0 1px var(--sep); }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0, 0, 0, .22); transition: transform .25s var(--ease); }
+.switch.on, .sw-in:checked + .switch { background: var(--accent); box-shadow: none; }
+.switch.on::after, .sw-in:checked + .switch::after { transform: translateX(20px); }
+.sw-in { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.sw-in:focus-visible + .switch { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row.esc { gap: 10px; padding: 9px 12px; }
+.esc .day-date { width: 32px; }
+.esc .day-date .dn { font-size: 18px; }
+.esc-seg { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); }
+.esc-seg button { padding: 8px 0; font-weight: 700; font-size: 14px; }
+.esc-seg button.on { color: var(--sc); }
+.train-tg { width: 38px; height: 38px; border-radius: 10px; background: var(--fill); color: var(--ink-3); display: grid; place-items: center; flex: none; transition: background .2s, color .2s; }
+.train-tg.on { background: var(--train); color: #fff; }
+.train-tg .ic { width: 20px; height: 20px; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

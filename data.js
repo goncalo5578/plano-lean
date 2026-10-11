@@ -63,6 +63,40 @@ const SLOTS = [
   { id: 'jantar', n: 'Jantar', t: '20:30' },
 ];
 
+// Turnos: hora e nome de cada refeição. Horas antes das 05:00 contam como fim do dia (depois da meia-noite).
+// Horários editáveis na app (Perfil → Turnos e horários).
+const SHIFT_ORDER = ['M', 'T', 'N', 'S', 'F'];
+const SHIFTS = {
+  M: { n: 'Manhã', h: '08–16h', col: '#e09a00',
+       t: { pa: '06:45', almoco: '12:30', lanche: '16:30', jantar: '20:00' },
+       l: { almoco: 'Almoço no turno', lanche: 'Lanche ao sair' },
+       tip: 'Pequeno-almoço antes de sair, mesmo que pequeno. O almoço vai na marmita: sobras do jantar de ontem.' },
+  T: { n: 'Tarde', h: '16–24h', col: '#7048e8',
+       t: { pa: '09:30', almoco: '13:30', lanche: '18:30', jantar: '21:00' },
+       l: { lanche: 'Lanche no turno', jantar: 'Jantar no turno' },
+       tip: 'Almoço completo antes de sair; o jantar vai na marmita (cozinha o dobro ao almoço). Ao chegar a casa, só algo leve se tiveres fome.' },
+  N: { n: 'Noite', h: '24–08h', col: '#3b5bdb',
+       t: { pa: '10:30', almoco: '14:30', jantar: '20:30', lanche: '02:00' },
+       l: { jantar: 'Jantar antes do turno', lanche: 'Refeição no turno' },
+       tip: 'O jantar antes do turno é a refeição principal. Durante a noite, pouco e leve (proteína + fruta), sem doces. Café só na primeira metade do turno.' },
+  S: { n: 'Saída de noite', h: 'Depois da noite', col: '#868e96',
+       t: { pa: '08:30', almoco: '15:00', lanche: '18:00', jantar: '21:00' },
+       l: { pa: 'Pequeno-almoço leve', almoco: 'Almoço ao acordar' },
+       tip: 'Ao sair, come algo leve antes de dormir para não acordares com fome. Quarto escuro, 4–6 h de sono; o resto do dia segue normal.' },
+  F: { n: 'Folga', h: 'Dia livre', col: '#2f9e44',
+       t: { pa: '09:00', almoco: '13:00', lanche: '17:00', jantar: '20:30' },
+       l: {},
+       tip: '' },
+};
+
+// Refeições "fora do plano" (cantina, restaurante, imprevistos) — estimativa rápida.
+const FORA = [
+  { kcal: 300, n: 'Leve', d: 'sandes, sopa + fruta, iogurte' },
+  { kcal: 500, n: 'Média', d: 'prato da cantina, marmita de outra pessoa' },
+  { kcal: 750, n: 'Grande', d: 'restaurante, prato + sobremesa' },
+  { kcal: 1000, n: 'Muito grande', d: 'fast food, jantar de grupo' },
+];
+
 const MEALS = {
   pa: [
     { id: 'pa1', n: 'Papas de aveia proteicas com frutos vermelhos',
@@ -151,4 +185,4 @@ const SWAPS = [
   { t: 'Fruta (≈ 15–20 g de hidratos)', l: ['1 maçã ou pêra', '1 laranja', '2 kiwis', '1 banana pequena', '150 g frutos vermelhos', '1 fatia grossa de melão/melancia', '150 g de ananás'] },
 ];
 
-if (typeof module !== 'undefined') module.exports = { FOODS, SLOTS, MEALS, WEEK, SWAPS };
+if (typeof module !== 'undefined') module.exports = { FOODS, SLOTS, SHIFTS, SHIFT_ORDER, FORA, MEALS, WEEK, SWAPS };
