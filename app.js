@@ -5,7 +5,7 @@
   // ================= Estado =================
   const KEY = 'planoLean.v1';
   const DEFAULT_PROFILE = { idade: 23, altura: 162, peso: 60, atividade: 1.375, defice: 12, treinoDias: [0, 2, 4], autoSobras: true, shifts: {}, tema: 'light' };
-  const blank = () => ({ profile: { ...DEFAULT_PROFILE }, days: {}, weights: [], shop: {}, links: {}, cal: { shifts: {}, autoS: true } });
+  const blank = () => ({ profile: { ...DEFAULT_PROFILE }, days: {}, weights: [], shop: {}, links: {}, cal: { shifts: {}, autoS: true }, prefs: { fav: {}, hide: {} } });
   let S = load();
 
   function load() {
@@ -37,6 +37,8 @@
     share: '<path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>',
     swap: '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
     pot: '<path d="M4 10h16v5.5A4.5 4.5 0 0 1 15.5 20h-7A4.5 4.5 0 0 1 4 15.5zM2 10h2M20 10h2M9.5 7c0-1.2 1-1.6 1-2.8M14 7c0-1.2 1-1.6 1-2.8"/>',
+    heart: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.1a4.3 4.3 0 0 1 7.5 2.7C19.5 15.4 12 20 12 20z"/>',
+    thumbsDown: '<path d="M7.5 13.5V4M7.5 13.5l3.8 6.5c1.4 0 2.3-1.2 2-2.5l-.8-4h5.4a2 2 0 0 0 2-2.4l-1.3-5.7A2.5 2.5 0 0 0 16.2 4H7.5M7.5 4h-3v9.5h3"/>',
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
     dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2.5 10v4M21.5 10v4M8 12h8"/>',
     drop: '<path d="M12 3.5c3.5 4.2 6 7.6 6 10.5a6 6 0 0 1-12 0c0-2.9 2.5-6.3 6-10.5z"/>',
@@ -131,7 +133,33 @@
   const directDests = (k, slot) => destCandidates(k, slot).filter(([k2, s2]) => sourceOf(k2, s2) === LK(k, slot));
   // Inclui cadeias (ex.: almoço → jantar → almoço de amanhã): tudo o que sai da mesma panela
   const destsOf = (k, slot, depth = 0) => depth > 3 ? [] : directDests(k, slot).flatMap(d => [d, ...destsOf(d[0], d[1], depth + 1)]);
-  const baseMealId = (k, slot) => peekDay(k).swaps[slot] || WEEK[dowIdx(k)][slot];
+  const prefs = () => (S.prefs ||= { fav: {}, hide: {} });
+  function baseMealId(k, slot) {
+    const hide = prefs().hide, sw = peekDay(k).swaps[slot];
+    if (sw && !hide[sw]) return sw;
+    const def = WEEK[dowIdx(k)][slot];
+    if (!hide[def]) return def;
+    const list = MEALS[slot], i0 = list.findIndex(m => m.id === def);
+    const next = [...list.slice(i0 + 1), ...list.slice(0, i0)].find(m => !hide[m.id]);
+    return (next || list[i0]).id;
+  }
+  function togglePref(kind, id) {
+    const p = prefs(), other = kind === 'fav' ? 'hide' : 'fav';
+    if (p[kind][id]) delete p[kind][id]; else { p[kind][id] = true; delete p[other][id]; }
+    save();
+  }
+  const baseKcal = o => Math.round(sumItems(o.i.map(it => ({ f: it.f, g: Array.isArray(it.g) ? it.g[0] : it.g }))).kcal);
+  function prefRow(o, slotId, { pick = false, sel = false } = {}) {
+    const p = prefs(), fav = !!p.fav[o.id], hid = !!p.hide[o.id];
+    const tags = [`~${baseKcal(o)} kcal`, o.m ? '<span class="mk-m">Marmita</span>' : '', hid ? 'fora da rotação' : ''].filter(Boolean).join(' · ');
+    const inner = `<div class="ttl">${esc(o.n)}</div><div class="sub">${tags}</div>`;
+    return `<div class="row alt ${sel ? 'sel' : ''} ${hid ? 'hid' : ''}">
+      ${pick ? `<button class="row-main pick" data-act="pick" data-slot="${slotId}" data-id="${o.id}">${inner}</button>` : `<div class="row-main">${inner}</div>`}
+      ${sel ? ic('check', 'ok') : ''}
+      <button class="mini ${fav ? 'fav' : ''}" data-act="fav" data-id="${o.id}" aria-pressed="${fav}" aria-label="Preferida">${ic('heart')}</button>
+      <button class="mini ${hid ? 'hide' : ''}" data-act="hide" data-id="${o.id}" aria-pressed="${hid}" aria-label="Não gosto">${ic('thumbsDown')}</button>
+    </div>`;
+  }
   function mealIdAt(k, slot, depth = 0) {
     const src = depth < 3 && sourceOf(k, slot);
     if (src) { const [k2, s2] = src.split('|'); return mealIdAt(k2, s2, depth + 1); }
@@ -357,6 +385,7 @@
       const done = !!P.st.done[slotId] || !!m.fora;
       const mode = sheetEl.dataset.mode;
       let h = `<div class="over">${m.slot.n} · ${m.slot.t}</div><h2>${esc(m.meal.n)}</h2>`;
+      if (m.meal.m || prefs().fav[m.meal.id]) h += `<div>${m.meal.m ? `<span class="tag-pill">${ic('box')}Marmita</span>` : ''}${prefs().fav[m.meal.id] ? `<span class="tag-pill fav">${ic('heart')}Preferida</span>` : ''}</div>`;
       if (m.fora) h += `<div class="note" style="margin:0 0 12px">${ic('info')}<div>Registaste outra refeição (~${m.fora} kcal). <button class="link" data-act="unfora" data-slot="${slotId}">Desfazer</button></div></div>`;
       h += `<div class="stat4 num"><div><b>${n0(m.tot.kcal)}</b><span>kcal</span></div><div><b style="color:var(--p)">${n0(m.tot.p)}</b><span>proteína</span></div>
         <div><b style="color:var(--c)">${n0(m.tot.c)}</b><span>hidratos</span></div><div><b style="color:var(--f)">${n0(m.tot.f)}</b><span>gordura</span></div></div>`;
@@ -394,10 +423,11 @@
       }
 
       if (mode === 'alts') {
-        h += `<div class="group-label">Escolher outra opção</div><div class="list">${MEALS[slotId].map(o => {
-          const sel = o.id === m.meal.id;
-          return `<button class="row tap alt ${sel ? 'sel' : ''}" data-act="pick" data-slot="${slotId}" data-id="${o.id}"><div class="row-main"><div class="ttl">${esc(o.n)}</div></div>${sel ? ic('check', 'ok') : ''}</button>`;
-        }).join('')}</div>`;
+        const p = prefs(), noTurno = /turno/i.test(m.slot.n);
+        const score = o => (p.hide[o.id] ? 0 : 4) + (p.fav[o.id] ? 2 : 0) + (noTurno && o.m ? 1 : 0);
+        const opts = MEALS[slotId].map((o, i) => ({ o, i })).sort((a, b) => score(b.o) - score(a.o) || a.i - b.i).map(x => x.o);
+        h += `<div class="group-label">Escolher outra opção${noTurno ? ' · marmitas primeiro' : ''}</div><div class="list">${opts.map(o => prefRow(o, slotId, { pick: true, sel: o.id === m.meal.id })).join('')}</div>
+          <p class="cap">♥ preferida (aparece primeiro) · 👎 não gosto (sai da rotação).</p>`;
       }
       if (mode === 'fora') {
         h += `<div class="group-label">Comi outra coisa — quanto, mais ou menos?</div><div class="list">${FORA.map(o => `
@@ -637,6 +667,7 @@
     ['regras', 'Regras para ficar lean', 'target', '#e2590f'],
     ['trocas', 'Tabela de trocas', 'swap', '#1c7ed6'],
   ];
+  const PLANO = [['refeicoes', 'As minhas refeições', 'heart', '#d6336c']];
   const SETTINGS = [['calendario', 'Calendário dos turnos', 'cal', '#e2590f'], ['ajustes', 'Ajustes do plano', 'sliders', '#5c636a'], ['horarios', 'Turnos e horários', 'clock', '#5c636a'], ['dados', 'Cópia de segurança', 'box', '#5c636a'], ['fontes', 'Fontes científicas', 'doc', '#5c636a']];
   const navRow = ([id, l, i, col]) => `<button class="row tap" data-act="sub" data-id="${id}"><span class="tile" style="background:${col}">${ic(i)}</span><span class="row-main ttl" style="font-weight:500">${l}</span>${ic('chevR', 'chev')}</button>`;
 
@@ -655,13 +686,14 @@
       <div class="group-label">Aparência</div>
       <div class="seg full" role="group" aria-label="Tema">${[['light', 'Claro'], ['dark', 'Escuro'], ['auto', 'Automático']].map(([v, l]) => `<button class="${(p.tema || 'light') === v ? 'on' : ''}" data-act="tema" data-v="${v}" aria-pressed="${(p.tema || 'light') === v}">${l}</button>`).join('')}</div>
       <p class="cap">Automático segue o modo claro/escuro do telemóvel.</p>
+      <div class="group-label">Plano</div><div class="list">${PLANO.map(navRow).join('')}</div>
       <div class="group-label">Guia</div><div class="list">${GUIDE.map(navRow).join('')}</div>
       <div class="group-label">Definições</div><div class="list">${SETTINGS.map(navRow).join('')}</div>
       <p class="cap" style="margin-top:20px">Informativo — não substitui um nutricionista. Com historial de distúrbios alimentares, gravidez ou doença, procura acompanhamento profissional.</p>`;
   }
 
   function renderSub(id) {
-    const all = [...GUIDE, ...SETTINGS], meta = all.find(x => x[0] === id);
+    const all = [...PLANO, ...GUIDE, ...SETTINGS], meta = all.find(x => x[0] === id);
     $hdr.innerHTML = `<div><button class="back over" data-act="back" style="font-size:16px">${ic('chevL', 'sm')}Perfil</button><h1>${meta[1]}</h1></div>`;
     $top.textContent = meta[1];
     const p = S.profile, T = targets();
@@ -758,6 +790,12 @@
         </div></div>
         <p class="cap">Ponto de partida para semanas novas — muda dia a dia em Semana → Escala. Recomendado: défice de 12% e atividade ligeira. Se ao fim de 3 semanas a média de peso e a cintura não descerem, sobe o défice um nível.</p>
       </form>`;
+    } else if (id === 'refeicoes') {
+      const p = prefs(), nF = Object.keys(p.fav).length, nH = Object.keys(p.hide).length;
+      h = `<div class="prose"><p>Marca com <b>♥</b> as que gostas — aparecem primeiro quando trocas uma refeição. As que marcares com <b>👎</b> saem da rotação e a app escolhe outra sozinha.</p>
+          <p style="color:var(--ink-2);font-size:14px">${nF} preferidas · ${nH} fora da rotação · <span class="mk-m">Marmita</span> = aguenta bem numa caixa.</p></div>` +
+        SLOTS.map(s => `<div class="group-label">${s.n}</div><div class="list">${MEALS[s.id].map(o => prefRow(o, s.id)).join('')}</div>`).join('') +
+        `<p class="cap">Calorias aproximadas num dia de descanso; a app ajusta as quantidades de hidratos à meta de cada dia.</p>`;
     } else if (id === 'calendario') {
       const c = S.cal || {};
       if (!c.url) {
@@ -873,6 +911,7 @@
       case 'caloff':
         if (confirm('Desligar o calendário? Os turnos que mudaste à mão ficam; os do calendário deixam de aparecer.')) { S.cal = { shifts: {}, autoS: true }; save(); toast('Calendário desligado'); }
         break;
+      case 'fav': case 'hide': togglePref(a, b.dataset.id); if (a === 'hide' && prefs().hide[b.dataset.id]) toast('Fora da rotação'); break;
       case 'resetturnos': S.profile.shifts = {}; save(); toast('Horários repostos'); break;
       case 'reset':
         if (confirm('Apagar todos os registos (pesos, refeições marcadas, trocas e ajustes)? Não pode ser desfeito.')) { S = blank(); save(); applyTheme(); toast('Dados apagados'); }
@@ -910,6 +949,7 @@
       case 'mode': sheetEl.dataset.mode = b.dataset.v; paintSheet(); sheetEl.scrollTo({ top: sheetEl.scrollHeight, behavior: 'smooth' }); return;
       case 'pick': {
         const st = dayState(curDay);
+        delete prefs().hide[b.dataset.id];
         if (sourceOf(curDay, slot)) S.links[LK(curDay, slot)] = 'none';
         if (b.dataset.id === WEEK[dowIdx(curDay)][slot]) delete st.swaps[slot]; else st.swaps[slot] = b.dataset.id;
         delete sheetEl.dataset.mode; refresh(); sheetEl.scrollTop = 0; toast('Refeição trocada'); return;
@@ -924,6 +964,7 @@
         refresh(); return;
       }
       case 'calreset': delete dayState(b.dataset.k).turno; save(); render(); paintSheet(); toast('A seguir o calendário'); return;
+      case 'fav': case 'hide': togglePref(a, b.dataset.id); render(); paintSheet(); if (a === 'hide' && prefs().hide[b.dataset.id]) toast('Fora da rotação'); return;
       case 'setshift': setShift(b.dataset.k, b.dataset.v); render(); paintSheet(); return;
       case 'settrain': toggleTrain(b.dataset.k); render(); paintSheet(); return;
     }

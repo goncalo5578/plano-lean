@@ -364,6 +364,23 @@ a { color: var(--accent); text-decoration: none; }
 .train-tg.on { background: var(--train); color: #fff; }
 .train-tg .ic { width: 20px; height: 20px; }
 
+/* ============ Preferências ============ */
+.row.alt { gap: 2px; padding-right: 8px; }
+.row.alt .pick { text-align: left; padding: 0; cursor: pointer; }
+.row.alt.hid .ttl { color: var(--ink-3); text-decoration: line-through; }
+.row.alt .ok { margin-right: 4px; }
+.mini { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-3); flex: none; transition: color .2s, background .2s; }
+.mini:active { background: var(--fill); }
+.mini .ic { width: 19px; height: 19px; }
+.mini.fav { color: var(--f); }
+.mini.fav .ic { fill: currentColor; }
+.mini.hide { color: var(--danger); }
+.mk-m { color: var(--accent); font-weight: 600; }
+.tag-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 650; padding: 4px 10px 4px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin: -6px 6px 14px 0; }
+.tag-pill .ic { width: 14px; height: 14px; stroke-width: 2; }
+.tag-pill.fav { background: color-mix(in srgb, var(--f) 12%, transparent); color: var(--f); }
+.tag-pill.fav .ic { fill: currentColor; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

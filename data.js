@@ -1,6 +1,6 @@
 // Base de dados do plano. Valores nutricionais por 100 g (aprox., tabelas INSA/USDA).
 // Pesos de arroz, massa, quinoa, aveia e carnes/peixes são em CRU.
-// g: número fixo, ou [descanso, treino].
+// g: número fixo, ou [descanso, treino]. m: 1 = aguenta bem numa marmita.
 // role: p = proteína, c = hidratos (ajustados automaticamente às calorias alvo), f = gordura, v = legumes/fruta.
 
 const FOODS = {
@@ -111,41 +111,48 @@ const MEALS = {
     { id: 'pa4', n: 'Panquecas de aveia e banana',
       prep: 'Triturar aveia, ovo, claras e metade da banana. Cozinhar em frigideira antiaderente. Servir com skyr e o resto da banana.',
       i: [{ f: 'aveia', g: 35, r: 'c' }, { f: 'ovo', g: 55 }, { f: 'claras', g: 100, r: 'p' }, { f: 'banana', g: 80 }, { f: 'skyr', g: 100, r: 'p' }] },
+    { id: 'pa5', n: 'Overnight oats de skyr e frutos vermelhos', m: 1, prep: 'Na véspera, misturar num frasco a aveia, o skyr, o leite e a chia. Pôr os frutos vermelhos por cima e guardar no frigorífico. De manhã é só levar.', i: [{ f: 'aveia', g: 35, r: 'c' }, { f: 'skyr', g: 170, r: 'p' }, { f: 'leite', g: 80 }, { f: 'frutosVerm', g: 100 }, { f: 'chia', g: 10 }] },
+    { id: 'pa6', n: 'Ovos cozidos, pão integral com queijo fresco e laranja', m: 1, prep: 'Cozer os ovos 10 min (podem ficar feitos para 3 dias). Pão com queijo fresco. Laranja à parte. Tudo se leva numa caixa.', i: [{ f: 'ovo', g: 110, r: 'p' }, { f: 'pao', g: 50, r: 'c' }, { f: 'queijoFresco', g: 50, r: 'p' }, { f: 'laranja', g: 150 }] },
   ],
   almoco: [
-    { id: 'al1', n: 'Frango grelhado com arroz e legumes salteados',
+    { id: 'al1', n: 'Frango grelhado com arroz e legumes salteados', m: 1,
       prep: 'Temperar o frango com alho, limão e ervas. Grelhar. Saltear os legumes com o azeite.',
       i: [{ f: 'frango', g: 130, r: 'p' }, { f: 'arroz', g: [50, 70], r: 'c' }, { f: 'legumes', g: 200 }, { f: 'azeite', g: 10 }] },
     { id: 'al2', n: 'Salmão no forno com batata-doce e brócolos',
       prep: 'Salmão e batata-doce às rodelas no forno a 200 °C ~20 min. Brócolos a vapor. (O salmão já traz gordura — não precisa de azeite.)',
       i: [{ f: 'salmao', g: 130, r: 'p' }, { f: 'batataDoce', g: [150, 220], r: 'c' }, { f: 'legumes', g: 200 }] },
-    { id: 'al3', n: 'Salada de grão com atum e ovo',
+    { id: 'al3', n: 'Salada de grão com atum e ovo', m: 1,
       prep: 'Misturar grão, atum, ovo cozido picado e salada. Temperar com azeite, vinagre, salsa e cebola roxa.',
       i: [{ f: 'atum', g: 100, r: 'p' }, { f: 'grao', g: [130, 190], r: 'c' }, { f: 'ovo', g: 55 }, { f: 'salada', g: 200 }, { f: 'azeite', g: 5 }] },
-    { id: 'al4', n: 'Massa integral à bolonhesa',
+    { id: 'al4', n: 'Massa integral à bolonhesa', m: 1,
       prep: 'Refogar cebola e alho com o azeite, juntar a carne, tomate pelado e cenoura/curgete ralada. Servir com a massa.',
       i: [{ f: 'vaca', g: 120, r: 'p' }, { f: 'massa', g: [50, 70], r: 'c' }, { f: 'legumes', g: 200 }, { f: 'azeite', g: 10 }] },
-    { id: 'al5', n: 'Bacalhau com grão, ovo e legumes',
+    { id: 'al5', n: 'Bacalhau com grão, ovo e legumes', m: 1,
       prep: 'Bacalhau cozido com o grão e os legumes. Ovo cozido. Regar com o azeite e alho picado.',
       i: [{ f: 'bacalhau', g: 150, r: 'p' }, { f: 'grao', g: [120, 180], r: 'c' }, { f: 'ovo', g: 55 }, { f: 'legumes', g: 150 }, { f: 'azeite', g: 8 }] },
-    { id: 'al6', n: 'Bowl de lombo com feijão-preto, arroz e abacate',
+    { id: 'al6', n: 'Bowl de lombo com feijão-preto, arroz e abacate', m: 1,
       prep: 'Lombo grelhado às tiras. Montar a taça com arroz, feijão, salada e abacate. Lima e coentros.',
       i: [{ f: 'lombo', g: 120, r: 'p' }, { f: 'arroz', g: [30, 45], r: 'c' }, { f: 'feijao', g: [80, 110], r: 'c' }, { f: 'salada', g: 150 }, { f: 'abacate', g: 40 }] },
+    { id: 'al7', n: 'Arroz de frango no forno', m: 1, prep: 'Alourar o frango aos cubos com cebola e alho no azeite. Juntar o arroz, os legumes picados e o dobro de água. Forno a 200 °C ~25 min. Dá para 2–3 marmitas.', i: [{ f: 'frango', g: 130, r: 'p' }, { f: 'arroz', g: [50, 70], r: 'c' }, { f: 'legumes', g: 150 }, { f: 'azeite', g: 8 }] },
+    { id: 'al8', n: 'Caril de grão com frango e arroz', m: 1, prep: 'Refogar cebola, alho e caril em pó no azeite. Juntar o frango, o tomate pelado e os legumes; cozinhar 15 min. Juntar o grão e, fora do lume, o skyr. Servir com o arroz.', i: [{ f: 'frango', g: 110, r: 'p' }, { f: 'grao', g: [90, 130], r: 'c' }, { f: 'arroz', g: [20, 30], r: 'c' }, { f: 'legumes', g: 150 }, { f: 'skyr', g: 40 }, { f: 'azeite', g: 8 }] },
+    { id: 'al9', n: 'Empadão de batata-doce e carne picada', m: 1, prep: 'Refogar a carne com cebola, alho, cenoura e tomate. Cozer e esmagar a batata-doce. Carne no fundo do pirex, puré por cima, forno a 200 °C 15 min. Aguenta 3 dias e congela bem.', i: [{ f: 'vaca', g: 130, r: 'p' }, { f: 'batataDoce', g: [170, 240], r: 'c' }, { f: 'legumes', g: 150 }, { f: 'azeite', g: 8 }] },
   ],
   lanche: [
     { id: 'la1', n: 'Skyr com maçã e nozes',
       treino: '+ bolachas de arroz nos dias de treino (1–2 h antes)',
       prep: 'Maçã às fatias com canela por cima do skyr. Nozes partidas.',
       i: [{ f: 'skyr', g: 170, r: 'p' }, { f: 'maca', g: 150 }, { f: 'nozes', g: 10 }, { f: 'bolachaArroz', g: [0, 25], r: 'c' }] },
-    { id: 'la2', n: 'Tosta de fiambre de peru e queijo fresco + laranja',
+    { id: 'la2', n: 'Tosta de fiambre de peru e queijo fresco + laranja', m: 1,
       prep: 'Pão integral com fiambre, queijo fresco e tomate. Laranja à parte.',
       i: [{ f: 'pao', g: [40, 70], r: 'c' }, { f: 'fiambre', g: 50, r: 'p' }, { f: 'queijoFresco', g: 60, r: 'p' }, { f: 'laranja', g: 150 }] },
     { id: 'la3', n: 'Batido de proteína com banana',
       prep: 'Bater leite, whey e banana. Sem whey: trocar por 200 g de skyr e bater na mesma.',
       i: [{ f: 'whey', g: 25, r: 'p' }, { f: 'leite', g: 250 }, { f: 'banana', g: [80, 120], r: 'c' }, { f: 'aveia', g: [0, 15], r: 'c' }] },
-    { id: 'la4', n: 'Cottage com pêra e bolachas de arroz',
+    { id: 'la4', n: 'Cottage com pêra e bolachas de arroz', m: 1,
       prep: 'Cottage com a pêra aos cubos e canela. Bolachas de arroz à parte.',
       i: [{ f: 'cottage', g: 150, r: 'p' }, { f: 'pera', g: 150 }, { f: 'bolachaArroz', g: [8, 32], r: 'c' }] },
+    { id: 'la5', n: 'Atum com tomate, bolachas de arroz e maçã', m: 1, prep: 'Atum escorrido com tomate cherry e orégãos numa caixa. Bolachas de arroz e maçã à parte.', i: [{ f: 'atum', g: 80, r: 'p' }, { f: 'bolachaArroz', g: [16, 40], r: 'c' }, { f: 'salada', g: 100 }, { f: 'maca', g: 150 }] },
+    { id: 'la6', n: 'Ovos cozidos com queijo fresco e pêra', m: 1, prep: 'Ovos cozidos (feitos na véspera) com queijo fresco, sal e orégãos. Uma pêra à parte.', i: [{ f: 'ovo', g: 110, r: 'p' }, { f: 'queijoFresco', g: 50, r: 'p' }, { f: 'pera', g: 150 }, { f: 'bolachaArroz', g: [0, 24], r: 'c' }] },
   ],
   jantar: [
     { id: 'ja1', n: 'Sopa + pescada no forno com batata e legumes',
@@ -154,15 +161,18 @@ const MEALS = {
     { id: 'ja2', n: 'Omelete de legumes com queijo fresco e pão',
       prep: 'Bater ovos e claras, juntar espinafres/cogumelos/tomate salteados no azeite e o queijo fresco. Pão à parte.',
       i: [{ f: 'ovo', g: 110 }, { f: 'claras', g: 120, r: 'p' }, { f: 'legumes', g: 150 }, { f: 'queijoFresco', g: 50, r: 'p' }, { f: 'pao', g: [40, 50], r: 'c' }, { f: 'azeite', g: 3 }] },
-    { id: 'ja3', n: 'Wrap de peru com abacate e molho de iogurte',
+    { id: 'ja3', n: 'Wrap de peru com abacate e molho de iogurte', m: 1,
       prep: 'Peru grelhado às tiras, salada e abacate dentro do wrap. Molho: skyr + limão + alho + oregãos.',
       i: [{ f: 'tortilha', g: 60, r: 'c' }, { f: 'peru', g: 120, r: 'p' }, { f: 'abacate', g: 50 }, { f: 'salada', g: 100 }, { f: 'skyr', g: 60 }] },
-    { id: 'ja4', n: 'Tofu salteado com legumes e quinoa',
+    { id: 'ja4', n: 'Tofu salteado com legumes e quinoa', m: 1,
       prep: 'Tofu aos cubos bem seco, dourado no azeite. Juntar os legumes, molho de soja, gengibre e alho. Servir com a quinoa.',
       i: [{ f: 'tofu', g: 150, r: 'p' }, { f: 'quinoa', g: [40, 50], r: 'c' }, { f: 'legumes', g: 250 }, { f: 'azeite', g: 5 }] },
     { id: 'ja5', n: 'Sopa + camarão salteado com massa e curgete',
       prep: 'Saltear alho no azeite, juntar camarão e curgete às tiras, envolver na massa. Salsa e limão. Começar pela sopa.',
       i: [{ f: 'sopa', g: 300 }, { f: 'camarao', g: 150, r: 'p' }, { f: 'massa', g: [35, 45], r: 'c' }, { f: 'legumes', g: 150 }, { f: 'azeite', g: 8 }] },
+    { id: 'ja6', n: 'Bifinhos de peru com cogumelos e puré de batata', prep: 'Bifinhos de peru grelhados. Cogumelos e espinafres salteados no azeite com alho. Puré: batata cozida esmagada com o leite.', i: [{ f: 'peru', g: 140, r: 'p' }, { f: 'batata', g: [170, 230], r: 'c' }, { f: 'leite', g: 40 }, { f: 'legumes', g: 150 }, { f: 'azeite', g: 8 }] },
+    { id: 'ja7', n: 'Sopa + tosta de atum e queijo fresco', prep: 'Atum misturado com o queijo fresco, cebola picada e pimenta. Por cima do pão torrado com tomate e alface. Começar pela sopa.', i: [{ f: 'sopa', g: 300 }, { f: 'pao', g: [50, 70], r: 'c' }, { f: 'atum', g: 80, r: 'p' }, { f: 'queijoFresco', g: 60, r: 'p' }, { f: 'salada', g: 80 }] },
+    { id: 'ja8', n: 'Frango assado com batata e legumes no forno', m: 1, prep: 'Tudo no mesmo tabuleiro: frango temperado com alho, limão e colorau, batata e legumes aos pedaços, o azeite. Forno a 200 °C ~35 min. Faz-se a dobrar sem esforço.', i: [{ f: 'frango', g: 150, r: 'p' }, { f: 'batata', g: [150, 200], r: 'c' }, { f: 'legumes', g: 250 }, { f: 'azeite', g: 10 }] },
   ],
 };
 
@@ -170,11 +180,11 @@ const MEALS = {
 const WEEK = [
   { pa: 'pa1', almoco: 'al1', lanche: 'la3', jantar: 'ja1' },
   { pa: 'pa2', almoco: 'al3', lanche: 'la1', jantar: 'ja2' },
-  { pa: 'pa3', almoco: 'al4', lanche: 'la2', jantar: 'ja3' },
-  { pa: 'pa4', almoco: 'al2', lanche: 'la4', jantar: 'ja4' },
-  { pa: 'pa1', almoco: 'al5', lanche: 'la3', jantar: 'ja5' },
-  { pa: 'pa2', almoco: 'al6', lanche: 'la1', jantar: 'ja1' },
-  { pa: 'pa3', almoco: 'al1', lanche: 'la4', jantar: 'ja2' },
+  { pa: 'pa5', almoco: 'al4', lanche: 'la5', jantar: 'ja3' },
+  { pa: 'pa4', almoco: 'al7', lanche: 'la4', jantar: 'ja6' },
+  { pa: 'pa3', almoco: 'al5', lanche: 'la2', jantar: 'ja5' },
+  { pa: 'pa6', almoco: 'al9', lanche: 'la6', jantar: 'ja8' },
+  { pa: 'pa1', almoco: 'al8', lanche: 'la1', jantar: 'ja7' },
 ];
 
 // Equivalências para trocas livres (mesma quantidade de hidratos/proteína/gordura aprox.)
