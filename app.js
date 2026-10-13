@@ -376,8 +376,7 @@
         <div class="row-main"><div class="num"><b style="font-size:18px">${n1(agua * 0.25)} L</b> <span style="color:var(--ink-3);font-size:14px">de 2,5 L</span></div>
           <div class="track"><i style="width:${Math.min(100, agua * 10)}%"></i></div></div>
         <div class="stepper"><button class="press" data-act="agua" data-d="-1" aria-label="Menos um copo">${ic('minus')}</button><button class="press" data-act="agua" data-d="1" aria-label="Mais um copo">${ic('plus')}</button></div>
-      </section>
-      <p class="cap">1 copo = 250 ml. Num turno, deixa uma garrafa de 1 L no posto. As quantidades de hidratos ajustam-se sozinhas à meta do dia (${n0(P.tot.kcal)} kcal planeadas).</p>`;
+      </section>`;
     $view.innerHTML = h;
   }
 
