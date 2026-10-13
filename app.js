@@ -301,6 +301,14 @@
   function paintSheet() {
     sheetEl.innerHTML = `<div class="grabber"></div><button class="sheet-close press" data-act="close" aria-label="Fechar">${ic('x')}</button>${sheetRender()}`;
   }
+  let pendingConfirm = null;
+  function askConfirm({ title, text, ok, onOk }) {
+    pendingConfirm = onOk;
+    openSheet(() => `<div class="over">Confirmar</div><h2>${title}</h2>
+      <div class="prose"><p>${text}</p></div>
+      <div class="btn-stack"><button class="btn danger-fill press" data-act="confirm-ok">${ok}</button>
+      <button class="btn secondary press" data-act="close">Cancelar</button></div>`);
+  }
   function closeSheet() {
     if (!sheetEl) return;
     backEl.classList.remove('open'); sheetEl.classList.remove('open');
@@ -624,7 +632,7 @@
     const lastW = W[W.length - 1];
     h += `<details class="hist" id="hist" ${histOpen ? 'open' : ''}><summary class="row tap"><div class="row-main"><div class="ttl" style="font-weight:500">Histórico</div><div class="sub num">${W.length} ${W.length === 1 ? 'registo' : 'registos'} · último ${DOW_S[dowIdx(lastW.d)].toLowerCase()}, ${niceDate(lastW.d)}</div></div>${ic('chevR', 'chev')}</summary><div class="hist-list">${W.map((w, i) => ({ w, i })).reverse().slice(0, 60).map(({ w, i }) => `
       <div class="row"><div class="row-main"><div class="ttl num">${n1(w.kg)} kg${w.cint ? ` <span style="color:var(--ink-3);font-weight:500">· ${n1(w.cint)} cm</span>` : ''}</div><div class="sub">${DOW[dowIdx(w.d)]}, ${niceDate(w.d)}</div></div>
-      <button class="circle-btn press" style="box-shadow:none;background:var(--fill);color:var(--ink-3);width:32px;height:32px" data-act="delw" data-i="${i}" aria-label="Apagar registo">${ic('trash', 'sm')}</button></div>`).join('')}</div></details>
+      <button class="circle-btn press" style="box-shadow:none;background:var(--fill);color:var(--ink-3);width:32px;height:32px" data-act="delw" data-d="${w.d}" aria-label="Apagar registo de ${niceDate(w.d)}">${ic('trash', 'sm')}</button></div>`).join('')}</div></details>
       <p class="cap">A cintura (ao nível do umbigo) e fotos mensais dizem mais do que a balança quando se treina força. Compara sempre na mesma fase do ciclo.</p>`;
     $view.innerHTML = h;
   }
@@ -957,7 +965,13 @@
       // Progresso
       case 'addw': openSheet(weightSheet()); return;
       case 'range': range = +b.dataset.v; break;
-      case 'delw': if (confirm('Apagar este registo?')) { S.weights.splice(+b.dataset.i, 1); save(); } break;
+      case 'delw': {
+        const w = S.weights.find(x => x.d === b.dataset.d); if (!w) return;
+        askConfirm({ title: 'Apagar registo?', ok: 'Apagar registo',
+          text: `<b class="num">${n1(w.kg)} kg${w.cint ? ` · ${n1(w.cint)} cm` : ''}</b> de ${DOW[dowIdx(w.d)].toLowerCase()}, ${niceDate(w.d)}. Isto não pode ser desfeito.`,
+          onOk: () => { S.weights = S.weights.filter(x => x.d !== w.d); save(); render(); toast('Registo apagado'); } });
+        return;
+      }
       case 'usepeso': S.profile.peso = +b.dataset.kg; save(); toast(`Plano recalculado para ${n1(+b.dataset.kg)} kg`); break;
       // Perfil
       case 'sub': sub = b.dataset.id; render(true); window.scrollTo(0, 0); return;
@@ -968,14 +982,16 @@
       case 'calsync': syncCal(true).then(n => toast(`${n} turnos lidos`)).catch(e => toast(e.message)); return;
       case 'calautoS': S.cal.autoS = S.cal.autoS === false; S.cal.shifts = buildShifts(S.cal.events || []); save(); break;
       case 'caloff':
-        if (confirm('Desligar o calendário? Os turnos que mudaste à mão ficam; os do calendário deixam de aparecer.')) { S.cal = { shifts: {}, autoS: true }; save(); toast('Calendário desligado'); }
-        break;
+        askConfirm({ title: 'Desligar o calendário?', ok: 'Desligar', text: 'Os turnos que mudaste à mão ficam; os do calendário deixam de aparecer.',
+          onOk: () => { S.cal = { shifts: {}, autoS: true }; save(); render(); toast('Calendário desligado'); } });
+        return;
       case 'fav': case 'hide': togglePref(a, b.dataset.id); if (a === 'hide' && prefs().hide[b.dataset.id]) toast('Fora da rotação'); break;
       case 'lmadd': dayState(curDay).lm = true; save(); toast('Lanche da manhã adicionado'); break;
       case 'resetturnos': S.profile.shifts = {}; save(); toast('Horários repostos'); break;
       case 'reset':
-        if (confirm('Apagar todos os registos (pesos, refeições marcadas, trocas e ajustes)? Não pode ser desfeito.')) { S = blank(); save(); applyTheme(); toast('Dados apagados'); }
-        break;
+        askConfirm({ title: 'Apagar todos os dados?', ok: 'Apagar tudo', text: 'Pesos, refeições marcadas, trocas, preferências e ajustes. Isto não pode ser desfeito — se quiseres, exporta antes uma cópia.',
+          onOk: () => { S = blank(); save(); applyTheme(); render(); toast('Dados apagados'); } });
+        return;
       default: return;
     }
     render();
@@ -1005,7 +1021,8 @@
     if (stp) { if (e.detail === 0) stepWeight(+stp.dataset.step); return; } // teclado
     const b = e.target.closest('[data-act]'); if (!b) return;
     const a = b.dataset.act;
-    if (a === 'close') return closeSheet();
+    if (a === 'close') { pendingConfirm = null; return closeSheet(); }
+    if (a === 'confirm-ok') { const f = pendingConfirm; pendingConfirm = null; closeSheet(); if (f) f(); return; }
     if (a === 'wdate') return selectWDate(b.dataset.k);
     const slot = b.dataset.slot;
     const refresh = () => { save(); render(); paintSheet(); };

@@ -431,6 +431,8 @@ details.hist .hist-list .row { box-shadow: inset 0 .5px 0 var(--sep); }
 .reg-btn.secondary .ic { color: var(--accent); }
 .reg-btn .reg-sub { margin-left: auto; color: var(--accent); font-weight: 600; font-size: 15px; }
 
+.btn.danger-fill { background: var(--danger); color: #fff; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
