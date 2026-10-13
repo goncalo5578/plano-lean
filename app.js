@@ -597,7 +597,7 @@
     return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
   }
   function renderProgresso() {
-    header('Peso e medidas', 'Progresso', `<button class="circle-btn press" data-act="addw" aria-label="Novo registo">${ic('plus', 'sm')}</button>`);
+    header('Peso e medidas', 'Progresso');
     S.weights.sort((a, b) => a.d.localeCompare(b.d));
     const W = S.weights, tk = todayKey();
     if (!W.length) {
@@ -608,7 +608,11 @@
     const nowAvg = weeklyAvg(last.d), prevAvg = weeklyAvg(addDays(last.d, -7));
     const delta = nowAvg != null && prevAvg != null ? nowAvg - prevAvg : null;
     const cint = [...W].reverse().find(w => w.cint);
-    let h = `<section class="card">
+    const todayRec = W.find(w => w.d === tk);
+    let h = todayRec
+      ? `<button class="btn secondary press reg-btn" data-act="addw">${ic('check')}<span>Hoje: <b class="num">${n1(todayRec.kg)} kg</b></span><span class="reg-sub">Alterar</span></button>`
+      : `<button class="btn primary press reg-btn" data-act="addw">${ic('plus')}Registar peso de hoje</button>`;
+    h += `<section class="card">
       <div class="energy-top"><div><div class="big-lbl" style="margin:0 0 6px">Média de 7 dias</div><div class="big num">${n1(nowAvg)}<span style="font-size:20px;color:var(--ink-3);font-weight:600"> kg</span></div></div>
         ${delta != null ? `<span class="delta ${delta < 0 ? 'down' : ''} num">${delta > 0 ? '+' : delta < 0 ? '−' : ''}${n1(Math.abs(delta))} kg/sem</span>` : ''}</div>
       ${chart(W)}

@@ -425,6 +425,12 @@ details.hist .chev { transition: transform .2s var(--ease); }
 details.hist[open] > summary .chev { transform: rotate(90deg); }
 details.hist .hist-list .row { box-shadow: inset 0 .5px 0 var(--sep); }
 
+.reg-btn { margin: 4px 0 12px; min-height: 54px; font-size: 16.5px; }
+.reg-btn .ic { width: 20px; height: 20px; stroke-width: 2.4; }
+.reg-btn.secondary { justify-content: flex-start; padding: 0 16px; gap: 10px; color: var(--ink); font-weight: 500; }
+.reg-btn.secondary .ic { color: var(--accent); }
+.reg-btn .reg-sub { margin-left: auto; color: var(--accent); font-weight: 600; font-size: 15px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
