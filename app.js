@@ -272,6 +272,13 @@
       backEl.addEventListener('click', closeSheet);
       sheetEl.addEventListener('click', onSheetClick);
       sheetEl.addEventListener('submit', onSheetSubmit);
+      sheetEl.addEventListener('pointerdown', e => {
+        const b = e.target.closest('[data-step]'); if (!b) return;
+        e.preventDefault(); stopHold();
+        const d = +b.dataset.step; stepWeight(d);
+        holdT = setTimeout(() => { holdT = setInterval(() => stepWeight(d), 70); }, 450);
+      });
+      sheetEl.addEventListener('change', e => { if (e.target.id === 'wdOther') selectWDate(e.target.value); });
       let y0 = null;
       sheetEl.addEventListener('touchstart', e => { y0 = sheetEl.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
       sheetEl.addEventListener('touchmove', e => {
@@ -610,9 +617,10 @@
     <section class="card kpis num"><div><b>${n1(W[0].kg)}</b><span>início · ${niceDate(W[0].d)}</span></div><div><b>${(nowAvg - W[0].kg) > 0 ? '+' : ''}${n1(nowAvg - W[0].kg)}</b><span>kg no total</span></div><div><b>${cint ? n1(cint.cint) : '—'}</b><span>cintura (cm)</span></div></section>
     ${guideNote(delta != null ? (delta / prevAvg) * 100 : null)}`;
     if (Math.abs(nowAvg - S.profile.peso) >= 1) h += `<div class="btn-stack" style="margin-top:12px"><button class="btn secondary press" data-act="usepeso" data-kg="${Math.round(nowAvg * 10) / 10}">Recalcular plano para ${n1(nowAvg)} kg</button></div>`;
-    h += `<div class="group-label">Histórico</div><div class="list">${W.map((w, i) => ({ w, i })).reverse().slice(0, 60).map(({ w, i }) => `
+    const lastW = W[W.length - 1];
+    h += `<details class="hist" id="hist" ${histOpen ? 'open' : ''}><summary class="row tap"><div class="row-main"><div class="ttl" style="font-weight:500">Histórico</div><div class="sub num">${W.length} ${W.length === 1 ? 'registo' : 'registos'} · último ${DOW_S[dowIdx(lastW.d)].toLowerCase()}, ${niceDate(lastW.d)}</div></div>${ic('chevR', 'chev')}</summary><div class="hist-list">${W.map((w, i) => ({ w, i })).reverse().slice(0, 60).map(({ w, i }) => `
       <div class="row"><div class="row-main"><div class="ttl num">${n1(w.kg)} kg${w.cint ? ` <span style="color:var(--ink-3);font-weight:500">· ${n1(w.cint)} cm</span>` : ''}</div><div class="sub">${DOW[dowIdx(w.d)]}, ${niceDate(w.d)}</div></div>
-      <button class="circle-btn press" style="box-shadow:none;background:var(--fill);color:var(--ink-3);width:32px;height:32px" data-act="delw" data-i="${i}" aria-label="Apagar registo">${ic('trash', 'sm')}</button></div>`).join('')}</div>
+      <button class="circle-btn press" style="box-shadow:none;background:var(--fill);color:var(--ink-3);width:32px;height:32px" data-act="delw" data-i="${i}" aria-label="Apagar registo">${ic('trash', 'sm')}</button></div>`).join('')}</div></details>
       <p class="cap">A cintura (ao nível do umbigo) e fotos mensais dizem mais do que a balança quando se treina força. Compara sempre na mesma fase do ciclo.</p>`;
     $view.innerHTML = h;
   }
@@ -648,16 +656,59 @@
       <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".22"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
       ${g}<path d="${area}" fill="url(#ga)"/>${dots}<path class="avg" d="${path}"/></svg>`;
   }
+  let histOpen = false, wSel = null, holdT = null;
+  const lastWeight = () => (S.weights.length ? S.weights[S.weights.length - 1] : null);
+  const lastHint = () => { const l = lastWeight(); return l ? `Último registo: ${n1(l.kg)} kg · ${DOW_S[dowIdx(l.d)].toLowerCase()}, ${niceDate(l.d)}` : 'O primeiro registo começa no peso do teu perfil.'; };
   function weightSheet() {
-    return () => `<div class="over">Novo registo</div><h2>Registar peso</h2>
-      <form id="wform"><div class="list">
-        <div class="form-row"><label for="wd">Data</label><input id="wd" type="date" value="${todayKey()}" max="${todayKey()}" required></div>
-        <div class="form-row"><label for="wk">Peso (kg)</label><input id="wk" type="number" step="0.1" min="30" max="200" inputmode="decimal" placeholder="${n1(S.weights.length ? S.weights[S.weights.length - 1].kg : S.profile.peso)}" required></div>
-        <div class="form-row"><label for="wc">Cintura (cm)</label><input id="wc" type="number" step="0.5" min="40" max="200" inputmode="decimal" placeholder="opcional"></div>
-      </div>
-      <p class="cap">De manhã, em jejum, depois da casa de banho.</p>
-      <div class="btn-stack"><button class="btn primary press" type="submit">Guardar</button></div></form>`;
+    wSel = todayKey();
+    return () => {
+      const last = lastWeight(), lastCint = [...S.weights].reverse().find(w => w.cint);
+      const has = new Set(S.weights.map(w => w.d));
+      let chips = '';
+      for (let i = 5; i >= 0; i--) {
+        const k = addDays(todayKey(), -i), d = fromKey(k);
+        chips += `<button type="button" class="dchip press ${k === wSel ? 'sel' : ''} ${i === 0 ? 'today' : ''}" data-act="wdate" data-k="${k}" aria-label="${DOW[dowIdx(k)]}, ${niceDate(k)}">${has.has(k) ? '<i class="has"></i>' : ''}<span class="wd">${i === 0 ? 'Hoje' : DOW_S[dowIdx(k)]}</span><span class="dn num">${d.getDate()}</span><span class="mo">${MON[d.getMonth()]}</span></button>`;
+      }
+      chips += `<label class="dchip other press">${ic('cal')}<span class="mo" id="wdOtherLbl">Outra</span><input type="date" id="wdOther" max="${todayKey()}" aria-label="Escolher outra data"></label>`;
+      return `<div class="over">Novo registo</div><h2>Registar peso</h2>
+      <form id="wform">
+        <div class="date-strip" id="dstrip">${chips}</div>
+        <input type="hidden" id="wd" value="${wSel}">
+        <section class="card weigh">
+          <button type="button" class="step" data-step="-0.1" aria-label="Menos 100 gramas">${ic('minus')}</button>
+          <div class="wval"><input id="wk" type="text" inputmode="decimal" autocomplete="off" value="${n1(last ? last.kg : S.profile.peso)}" aria-label="Peso em kg" onfocus="this.select()"><span>kg</span></div>
+          <button type="button" class="step" data-step="0.1" aria-label="Mais 100 gramas">${ic('plus')}</button>
+        </section>
+        <p class="cap" id="wHint" style="text-align:center">${lastHint()}</p>
+        <div class="list" style="margin-top:14px"><div class="form-row"><label for="wc">Cintura (cm)</label><input id="wc" type="text" inputmode="decimal" autocomplete="off" placeholder="${lastCint ? n1(lastCint.cint) + ' da última vez' : 'opcional'}"></div></div>
+        <p class="cap">De manhã, em jejum, depois da casa de banho.</p>
+        <div class="btn-stack"><button class="btn primary press" type="submit">Guardar</button></div></form>`;
+    };
   }
+  function selectWDate(k) {
+    if (!k || k > todayKey()) return;
+    wSel = k;
+    sheetEl.querySelector('#wd').value = k;
+    let inStrip = false;
+    sheetEl.querySelectorAll('.dchip[data-k]').forEach(c => { const on = c.dataset.k === k; c.classList.toggle('sel', on); inStrip ||= on; });
+    sheetEl.querySelector('.dchip.other').classList.toggle('sel', !inStrip);
+    sheetEl.querySelector('#wdOtherLbl').textContent = inStrip ? 'Outra' : niceDate(k);
+    const rec = S.weights.find(w => w.d === k), hint = sheetEl.querySelector('#wHint');
+    if (rec) {
+      sheetEl.querySelector('#wk').value = n1(rec.kg);
+      sheetEl.querySelector('#wc').value = rec.cint ? n1(rec.cint) : '';
+      hint.textContent = `Já registaste ${n1(rec.kg)} kg neste dia — guardar substitui.`;
+    } else hint.textContent = lastHint();
+  }
+  function stepWeight(d) {
+    const el = sheetEl.querySelector('#wk');
+    let v = parseFloat(el.value.replace(',', '.'));
+    if (!(v > 0)) v = lastWeight() ? lastWeight().kg : S.profile.peso;
+    el.value = n1(Math.min(200, Math.max(30, Math.round((v + d) * 10) / 10)));
+  }
+  const stopHold = () => { clearTimeout(holdT); clearInterval(holdT); holdT = null; };
+  window.addEventListener('pointerup', stopHold);
+  window.addEventListener('pointercancel', stopHold);
 
   // ================= PERFIL =================
   const GUIDE = [
@@ -937,6 +988,7 @@
     syncCal(true).then(n => { toast(`Ligado — ${n} turnos lidos`); render(); })
       .catch(err => { toast(err.message); render(); });
   });
+  $view.addEventListener('toggle', e => { if (e.target.id === 'hist') histOpen = e.target.open; }, true);
   $view.addEventListener('change', e => {
     const el = e.target;
     if (el.form && el.form.id === 'perfil') saveProfile(el.form);
@@ -945,9 +997,12 @@
   });
 
   function onSheetClick(e) {
+    const stp = e.target.closest('[data-step]');
+    if (stp) { if (e.detail === 0) stepWeight(+stp.dataset.step); return; } // teclado
     const b = e.target.closest('[data-act]'); if (!b) return;
     const a = b.dataset.act;
     if (a === 'close') return closeSheet();
+    if (a === 'wdate') return selectWDate(b.dataset.k);
     const slot = b.dataset.slot;
     const refresh = () => { save(); render(); paintSheet(); };
     switch (a) {
