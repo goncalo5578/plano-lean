@@ -339,10 +339,10 @@
       <section class="card">
         <div class="energy-top">
           <div><div class="big num">${n0(Math.abs(left))}</div><div class="big-lbl">${left >= 0 ? 'kcal por comer' : 'kcal acima da meta'}</div></div>
-          <button class="daytype press ${isT ? 'is-train' : 'is-rest'}" data-act="dayset" aria-label="${isT ? 'Dia de treino' : 'Dia de descanso'} — mudar">
+          <div class="daytype ${isT ? 'is-train' : 'is-rest'}">
             <span class="dt-ic">${ic(isT ? 'dumbbell' : 'moon')}</span>
-            <span><b>${isT ? 'Treino' : 'Descanso'}</b><small>${isT ? `+${T.train - T.rest} kcal` : 'Recuperação'}</small></span>
-          </button>
+            <span><b>${isT ? 'Dia de treino' : 'Dia de descanso'}</b><small>${isT ? `+${T.train - T.rest} kcal` : 'Recuperação'}</small></span>
+          </div>
         </div>
         <div class="track"><i style="width:${pct}%"></i></div>
         <div class="meta num"><span>Comido <b>${n0(P.done.kcal)}</b></span><span>Meta <b>${n0(P.goal)}</b> kcal</span></div>
