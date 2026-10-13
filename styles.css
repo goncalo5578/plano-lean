@@ -410,7 +410,6 @@ a { color: var(--accent); text-decoration: none; }
 .dchip.other { justify-content: center; }
 .dchip.other .ic { width: 20px; height: 20px; margin: 3px 0 4px; color: var(--ink-2); }
 .dchip.other.sel .ic { color: var(--bg); }
-.dchip input[type=date] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .weigh { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 18px 16px; margin: 14px 0 0; }
 .weigh .step { width: 52px; height: 52px; border-radius: 50%; background: var(--fill); color: var(--ink); display: grid; place-items: center; flex: none; touch-action: manipulation; user-select: none; -webkit-user-select: none; transition: transform .12s, background .2s; }
 .weigh .step:active { transform: scale(.92); background: var(--accent-soft); color: var(--accent); }
@@ -432,6 +431,23 @@ details.hist .hist-list .row { box-shadow: inset 0 .5px 0 var(--sep); }
 .reg-btn .reg-sub { margin-left: auto; color: var(--accent); font-weight: 600; font-size: 15px; }
 
 .btn.danger-fill { background: var(--danger); color: #fff; }
+
+/* Calendário mensal (Registar peso → Outra) */
+.mcal { background: var(--surface); border-radius: var(--r-lg); padding: 12px 8px 10px; margin-top: 10px; animation: fade .2s ease-out; }
+.mcal-h { display: flex; align-items: center; justify-content: space-between; padding: 0 6px 10px; }
+.mcal-h b { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.mcal-h .circle-btn { width: 36px; height: 36px; background: var(--fill); box-shadow: none; }
+.mcal-h .circle-btn:disabled { opacity: .3; cursor: default; }
+.mcal-wd, .mcal-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+.mcal-wd span { font-size: 11.5px; font-weight: 600; color: var(--ink-3); padding-bottom: 6px; }
+.mcal-grid button { position: relative; width: 42px; height: 42px; margin: 1px auto; border-radius: 50%; font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; transition: background .15s; }
+.mcal-grid button:not(:disabled):not(.sel):active { background: var(--fill); }
+.mcal-grid button:disabled { color: var(--ink-3); opacity: .4; cursor: default; }
+.mcal-grid button.today { color: var(--accent); font-weight: 700; }
+.mcal-grid button.sel { background: var(--ink); color: var(--bg); font-weight: 700; }
+.mcal-grid button i { position: absolute; bottom: 5px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--accent); }
+.mcal-grid button.sel i { background: var(--bg); }
+.dchip.other[aria-expanded="true"]:not(.sel) { box-shadow: inset 0 0 0 1.5px var(--ink-3); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

@@ -61,6 +61,7 @@
   // ================= Datas =================
   const DOW = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
   const DOW_S = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+  const MON_L = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
   const MON = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
   const pad = n => String(n).padStart(2, '0');
   const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -278,7 +279,6 @@
         const d = +b.dataset.step; stepWeight(d);
         holdT = setTimeout(() => { holdT = setInterval(() => stepWeight(d), 70); }, 450);
       });
-      sheetEl.addEventListener('change', e => { if (e.target.id === 'wdOther') selectWDate(e.target.value); });
       let y0 = null;
       sheetEl.addEventListener('touchstart', e => { y0 = sheetEl.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
       sheetEl.addEventListener('touchmove', e => {
@@ -681,10 +681,11 @@
         const k = addDays(todayKey(), -i), d = fromKey(k);
         chips += `<button type="button" class="dchip press ${k === wSel ? 'sel' : ''} ${i === 0 ? 'today' : ''}" data-act="wdate" data-k="${k}" aria-label="${DOW[dowIdx(k)]}, ${niceDate(k)}">${has.has(k) ? '<i class="has"></i>' : ''}<span class="wd">${i === 0 ? 'Hoje' : DOW_S[dowIdx(k)]}</span><span class="dn num">${d.getDate()}</span><span class="mo">${MON[d.getMonth()]}</span></button>`;
       }
-      chips += `<label class="dchip other press">${ic('cal')}<span class="mo" id="wdOtherLbl">Outra</span><input type="date" id="wdOther" max="${todayKey()}" aria-label="Escolher outra data"></label>`;
+      chips += `<button type="button" class="dchip other press" data-act="wother" aria-expanded="false" aria-controls="wcal">${ic('cal')}<span class="mo" id="wdOtherLbl">Outra</span></button>`;
       return `<div class="over">Novo registo</div><h2>Registar peso</h2>
       <form id="wform">
         <div class="date-strip" id="dstrip">${chips}</div>
+        <div class="mcal" id="wcal" hidden></div>
         <input type="hidden" id="wd" value="${wSel}">
         <section class="card weigh">
           <button type="button" class="step" data-step="-0.1" aria-label="Menos 100 gramas">${ic('minus')}</button>
@@ -696,6 +697,33 @@
         <p class="cap">De manhã, em jejum, depois da casa de banho.</p>
         <div class="btn-stack"><button class="btn primary press" type="submit">Guardar</button></div></form>`;
     };
+  }
+  let wcalMonth = null; // 1.º dia do mês mostrado
+  function renderWCal() {
+    const box = sheetEl.querySelector('#wcal'); if (!box) return;
+    const first = fromKey(wcalMonth), y = first.getFullYear(), m = first.getMonth(), tk = todayKey();
+    const lead = (first.getDay() + 6) % 7, days = new Date(y, m + 1, 0).getDate();
+    const has = new Set(S.weights.map(w => w.d));
+    let cells = '<span></span>'.repeat(lead);
+    for (let d = 1; d <= days; d++) {
+      const k = keyOf(new Date(y, m, d));
+      cells += `<button type="button" class="${k === wSel ? 'sel' : ''} ${k === tk ? 'today' : ''}" data-act="wcalday" data-k="${k}" ${k > tk ? 'disabled' : ''} aria-label="${d} de ${MON_L[m]}${has.has(k) ? ', com registo' : ''}">${d}${has.has(k) ? '<i></i>' : ''}</button>`;
+    }
+    const nextOff = keyOf(new Date(y, m + 1, 1)) > tk;
+    box.innerHTML = `<div class="mcal-h">
+        <button type="button" class="circle-btn press" data-act="wcalnav" data-d="-1" aria-label="Mês anterior">${ic('chevL', 'sm')}</button>
+        <b>${MON_L[m][0].toUpperCase() + MON_L[m].slice(1)} ${y}</b>
+        <button type="button" class="circle-btn press" data-act="wcalnav" data-d="1" aria-label="Mês seguinte" ${nextOff ? 'disabled' : ''}>${ic('chevR', 'sm')}</button>
+      </div>
+      <div class="mcal-wd">${DOW_S.map(x => `<span>${x}</span>`).join('')}</div>
+      <div class="mcal-grid">${cells}</div>`;
+  }
+  function toggleWCal(open) {
+    const box = sheetEl.querySelector('#wcal'), chip = sheetEl.querySelector('.dchip.other');
+    if (open === undefined) open = box.hidden;
+    if (open) { const d = fromKey(wSel); wcalMonth = keyOf(new Date(d.getFullYear(), d.getMonth(), 1)); renderWCal(); }
+    box.hidden = !open; chip.setAttribute('aria-expanded', open);
+    if (open) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
   function selectWDate(k) {
     if (!k || k > todayKey()) return;
@@ -1023,7 +1051,10 @@
     const a = b.dataset.act;
     if (a === 'close') { pendingConfirm = null; return closeSheet(); }
     if (a === 'confirm-ok') { const f = pendingConfirm; pendingConfirm = null; closeSheet(); if (f) f(); return; }
-    if (a === 'wdate') return selectWDate(b.dataset.k);
+    if (a === 'wdate') { toggleWCal(false); return selectWDate(b.dataset.k); }
+    if (a === 'wother') return toggleWCal();
+    if (a === 'wcalday') { selectWDate(b.dataset.k); return toggleWCal(false); }
+    if (a === 'wcalnav') { const d = fromKey(wcalMonth); wcalMonth = keyOf(new Date(d.getFullYear(), d.getMonth() + +b.dataset.d, 1)); return renderWCal(); }
     const slot = b.dataset.slot;
     const refresh = () => { save(); render(); paintSheet(); };
     switch (a) {
