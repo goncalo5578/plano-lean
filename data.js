@@ -58,6 +58,7 @@ const FOODS = {
 
 const SLOTS = [
   { id: 'pa', n: 'Pequeno-almoço', t: '08:00' },
+  { id: 'lm', n: 'Lanche da manhã', t: '11:00', opt: 1 }, // opcional: só nos dias em que se junta
   { id: 'almoco', n: 'Almoço', t: '13:00' },
   { id: 'lanche', n: 'Lanche', nt: 'Lanche pré/pós-treino', t: '17:00' },
   { id: 'jantar', n: 'Jantar', t: '20:30' },
@@ -68,23 +69,23 @@ const SLOTS = [
 const SHIFT_ORDER = ['M', 'T', 'N', 'S', 'F'];
 const SHIFTS = {
   M: { n: 'Manhã', h: '08–16h', col: '#e09a00',
-       t: { pa: '06:45', almoco: '12:30', lanche: '16:30', jantar: '20:00' },
-       l: { almoco: 'Almoço no turno', lanche: 'Lanche ao sair' },
+       t: { pa: '06:45', lm: '10:00', almoco: '12:30', lanche: '16:30', jantar: '20:00' },
+       l: { lm: 'Lanche da manhã no turno', almoco: 'Almoço no turno', lanche: 'Lanche ao sair' },
        tip: 'Pequeno-almoço antes de sair, mesmo que pequeno. O almoço vai na marmita: sobras do jantar de ontem.' },
   T: { n: 'Tarde', h: '16–24h', col: '#7048e8',
-       t: { pa: '09:30', almoco: '13:30', lanche: '18:30', jantar: '21:00' },
+       t: { pa: '09:30', lm: '11:30', almoco: '13:30', lanche: '18:30', jantar: '21:00' },
        l: { lanche: 'Lanche no turno', jantar: 'Jantar no turno' },
        tip: 'Almoço completo antes de sair; o jantar vai na marmita (cozinha o dobro ao almoço). Ao chegar a casa, só algo leve se tiveres fome.' },
   N: { n: 'Noite', h: '24–08h', col: '#3b5bdb',
-       t: { pa: '10:30', almoco: '14:30', jantar: '20:30', lanche: '02:00' },
+       t: { pa: '10:30', lm: '12:30', almoco: '14:30', jantar: '20:30', lanche: '02:00' },
        l: { jantar: 'Jantar antes do turno', lanche: 'Refeição no turno' },
        tip: 'O jantar antes do turno é a refeição principal. Durante a noite, pouco e leve (proteína + fruta), sem doces. Café só na primeira metade do turno.' },
   S: { n: 'Saída de noite', h: 'Depois da noite', col: '#868e96',
-       t: { pa: '08:30', almoco: '15:00', lanche: '18:00', jantar: '21:00' },
+       t: { pa: '08:30', lm: '12:00', almoco: '15:00', lanche: '18:00', jantar: '21:00' },
        l: { pa: 'Pequeno-almoço leve', almoco: 'Almoço ao acordar' },
        tip: 'Ao sair, come algo leve antes de dormir para não acordares com fome. Quarto escuro, 4–6 h de sono; o resto do dia segue normal.' },
   F: { n: 'Folga', h: 'Dia livre', col: '#2f9e44',
-       t: { pa: '09:00', almoco: '13:00', lanche: '17:00', jantar: '20:30' },
+       t: { pa: '09:00', lm: '11:00', almoco: '13:00', lanche: '17:00', jantar: '20:30' },
        l: {},
        tip: '' },
 };
@@ -98,6 +99,23 @@ const FORA = [
 ];
 
 const MEALS = {
+  lm: [
+    { id: 'lm1', n: 'Skyr com kiwi', m: 1,
+      prep: 'Skyr num frasco com o kiwi às rodelas. Aguenta a manhã na mala se estiver fresco.',
+      i: [{ f: 'skyr', g: 150, r: 'p' }, { f: 'kiwi', g: 100 }] },
+    { id: 'lm2', n: 'Queijo fresco com tomate e bolachas de arroz', m: 1,
+      prep: 'Queijo fresco às fatias com tomate, sal e orégãos. Bolachas de arroz à parte.',
+      i: [{ f: 'queijoFresco', g: 80, r: 'p' }, { f: 'bolachaArroz', g: 16, r: 'c' }, { f: 'salada', g: 60 }] },
+    { id: 'lm3', n: 'Ovo cozido e laranja', m: 1,
+      prep: 'Um ovo cozido (podem ficar feitos para 3 dias) e uma laranja.',
+      i: [{ f: 'ovo', g: 55, r: 'p' }, { f: 'laranja', g: 150 }] },
+    { id: 'lm4', n: 'Fiambre de peru, bolachas de arroz e pêra', m: 1,
+      prep: 'Fiambre enrolado ou por cima das bolachas de arroz. Pêra à parte.',
+      i: [{ f: 'fiambre', g: 40, r: 'p' }, { f: 'bolachaArroz', g: 16, r: 'c' }, { f: 'pera', g: 120 }] },
+    { id: 'lm5', n: 'Leite com banana', m: 0,
+      prep: 'Um copo de leite e uma banana pequena — ou batidos juntos.',
+      i: [{ f: 'leite', g: 200 }, { f: 'banana', g: 80, r: 'c' }] },
+  ],
   pa: [
     { id: 'pa1', n: 'Papas de aveia proteicas com frutos vermelhos',
       prep: 'Cozinhar a aveia no leite 3–4 min. Tirar do lume, juntar o skyr, os frutos vermelhos e as amêndoas picadas. Canela à vontade.',
@@ -178,13 +196,13 @@ const MEALS = {
 
 // Rotação base da semana (índices das opções em cada refeição). 0 = segunda-feira.
 const WEEK = [
-  { pa: 'pa1', almoco: 'al1', lanche: 'la3', jantar: 'ja1' },
-  { pa: 'pa2', almoco: 'al3', lanche: 'la1', jantar: 'ja2' },
-  { pa: 'pa5', almoco: 'al4', lanche: 'la5', jantar: 'ja3' },
-  { pa: 'pa4', almoco: 'al7', lanche: 'la4', jantar: 'ja6' },
-  { pa: 'pa3', almoco: 'al5', lanche: 'la2', jantar: 'ja5' },
-  { pa: 'pa6', almoco: 'al9', lanche: 'la6', jantar: 'ja8' },
-  { pa: 'pa1', almoco: 'al8', lanche: 'la1', jantar: 'ja7' },
+  { pa: 'pa1', lm: 'lm1', almoco: 'al1', lanche: 'la3', jantar: 'ja1' },
+  { pa: 'pa2', lm: 'lm3', almoco: 'al3', lanche: 'la1', jantar: 'ja2' },
+  { pa: 'pa5', lm: 'lm2', almoco: 'al4', lanche: 'la5', jantar: 'ja3' },
+  { pa: 'pa4', lm: 'lm4', almoco: 'al7', lanche: 'la4', jantar: 'ja6' },
+  { pa: 'pa3', lm: 'lm3', almoco: 'al5', lanche: 'la2', jantar: 'ja5' },
+  { pa: 'pa6', lm: 'lm1', almoco: 'al9', lanche: 'la6', jantar: 'ja8' },
+  { pa: 'pa1', lm: 'lm5', almoco: 'al8', lanche: 'la1', jantar: 'ja7' },
 ];
 
 // Equivalências para trocas livres (mesma quantidade de hidratos/proteína/gordura aprox.)

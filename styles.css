@@ -384,6 +384,10 @@ a { color: var(--accent); text-decoration: none; }
 .pill-train { display: inline-grid; place-items: center; color: var(--train); margin-left: -2px; }
 .pill-train .ic { width: 16px; height: 16px; stroke-width: 2; }
 
+.add-row { color: var(--accent); }
+.add-row > .ic { width: 28px; height: 28px; padding: 5px; border-radius: 50%; background: var(--accent-soft); stroke-width: 2.4; }
+.add-row .ttl { color: var(--accent); font-weight: 600; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

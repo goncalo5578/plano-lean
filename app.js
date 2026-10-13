@@ -91,6 +91,8 @@
   const mealById = id => ALL_MEALS.find(m => m.id === id);
   const dayState = k => (S.days[k] ||= { swaps: {}, done: {}, agua: 0 });
   const peekDay = k => S.days[k] || { swaps: {}, done: {}, agua: 0 };
+  const lmOn = k => { const v = peekDay(k).lm; return v === undefined ? S.profile.lmSempre === true : v; };
+  const activeSlots = k => SLOTS.filter(s => !s.opt || lmOn(k));
   const dayType = k => peekDay(k).type || (S.profile.treinoDias.includes(dowIdx(k)) ? 'T' : 'D');
 
   function sumItems(items) {
@@ -175,7 +177,7 @@
     const st = peekDay(k), type = dayType(k), t = type === 'T' ? 1 : 0;
     const T = targets();
     const goal = t ? T.train : T.rest;
-    const meals = SLOTS.map(s => {
+    const meals = activeSlots(k).map(s => {
       const m = mealById(mealIdAt(k, s.id));
       const items = m.i.map(it => ({ f: it.f, r: it.r, g: Array.isArray(it.g) ? it.g[t] : it.g })).filter(it => it.g > 0);
       return { slot: { ...s, ...slotInfo(k, s.id, t) }, meal: m, items, src: sourceOf(k, s.id), dests: destsOf(k, s.id), fora: (st.fora || {})[s.id] };
@@ -321,9 +323,9 @@
     let strip = '<div class="strip" id="strip">';
     for (let i = 0; i < 7; i++) {
       const k = addDays(mon, i), st = peekDay(k), sh = shiftOf(k);
-      const nDone = SLOTS.filter(s => (st.done || {})[s.id] || (st.fora || {})[s.id]).length;
+      const act = activeSlots(k), nDone = act.filter(s => (st.done || {})[s.id] || (st.fora || {})[s.id]).length;
       strip += `<button class="${k === curDay ? 'sel' : ''} ${k === todayKey() ? 'today' : ''} ${dayType(k) === 'T' ? 'train' : ''}" data-act="day" data-k="${k}" aria-label="${DOW[i]} ${niceDate(k)}, ${SHIFTS[sh].n}">
-        <span class="wd">${DOW_S[i]}</span><span class="ring" style="--pct:${(nDone / SLOTS.length) * 100}"><span class="dn num">${dayNum(k)}</span></span><span class="mk" style="color:${SHIFTS[sh].col}">${sh === 'F' ? '' : sh}</span></button>`;
+        <span class="wd">${DOW_S[i]}</span><span class="ring" style="--pct:${(nDone / act.length) * 100}"><span class="dn num">${dayNum(k)}</span></span><span class="mk" style="color:${SHIFTS[sh].col}">${sh === 'F' ? '' : sh}</span></button>`;
     }
     strip += '</div>';
 
@@ -360,6 +362,7 @@
           ${extra}
         </div>${ic('chevR', 'chev')}</div>`;
     }
+    if (!lmOn(curDay)) h += `<button class="row tap add-row" data-act="lmadd">${ic('plus')}<div class="row-main"><div class="ttl">Juntar lanche da manhã</div><div class="sub">Só hoje · as outras refeições ajustam-se</div></div></button>`;
     h += `</div>`;
     if (P.foraK) h += `<p class="cap">Refeições fora do plano contam só nas calorias (estimativa). Não faz mal — o que conta é a média da semana.</p>`;
 
@@ -434,6 +437,7 @@
         ${m.fora ? '' : `<button class="btn primary press" data-act="done" data-slot="${slotId}">${done ? 'Desmarcar' : ic('check') + ' Marcar como comido'}</button>`}
         ${mode === 'alts' ? '' : `<button class="btn secondary press" data-act="mode" data-v="alts">${ic('swap')} Trocar refeição</button>`}
         ${m.fora || mode === 'fora' ? '' : `<button class="btn secondary press" data-act="mode" data-v="fora">${ic('plate')} Comi outra coisa</button>`}
+        ${slotId === 'lm' ? `<button class="btn danger press" data-act="lmrem">Hoje não faço lanche da manhã</button>` : ''}
       </div>`;
       return h;
     };
@@ -777,10 +781,11 @@
           <div class="form-row"><label for="defice">Défice</label><select id="defice" name="defice">${opt([[0, 'Manutenção'], [8, '8% · muito suave'], [12, '12% · suave'], [15, '15% · moderado'], [20, '20% · máximo']], p.defice)}</select></div>
           <div class="form-row"><label for="atividade">Atividade</label><select id="atividade" name="atividade">${opt([[1.2, 'Sedentária'], [1.375, 'Ligeira · 3 treinos'], [1.465, 'Moderada · 3–4 treinos + passos'], [1.55, 'Ativa · 5 treinos']], p.atividade)}</select></div>
         </div>
-        <div class="group-label">Sobras</div><div class="list">
+        <div class="group-label">Refeições</div><div class="list">
+          <label class="form-row" style="cursor:pointer"><span>Lanche da manhã todos os dias</span><input type="checkbox" name="lmSempre" class="sw-in" ${p.lmSempre ? 'checked' : ''}><span class="switch"></span></label>
           <label class="form-row" style="cursor:pointer"><span>Sobras automáticas</span><input type="checkbox" name="autoSobras" class="sw-in" ${p.autoSobras !== false ? 'checked' : ''}><span class="switch"></span></label>
         </div>
-        <p class="cap">Turno da manhã: o almoço é a sobra do jantar da véspera. Turno da tarde: o jantar é a sobra do almoço. Podes mudar refeição a refeição.</p>
+        <p class="cap">Lanche da manhã: desligado, junta-se dia a dia no ecrã Hoje. Sobras — turno da manhã: o almoço é a sobra do jantar da véspera. Turno da tarde: o jantar é a sobra do almoço. Podes mudar refeição a refeição.</p>
         <div class="group-label">Dias de treino habituais</div><div class="list"><div class="days">
           ${DOW_S.map((d, i) => `<label><input type="checkbox" name="td" value="${i}" ${p.treinoDias.includes(i) ? 'checked' : ''}><span>${d}</span></label>`).join('')}
         </div></div>
@@ -843,6 +848,7 @@
     p.defice = num('defice'); p.atividade = num('atividade');
     p.treinoDias = [...f.querySelectorAll('input[name=td]:checked')].map(i => +i.value);
     p.autoSobras = f.elements.autoSobras.checked;
+    p.lmSempre = f.elements.lmSempre.checked;
     save(); toast('Plano recalculado');
   }
   function saveShifts(f) {
@@ -908,6 +914,7 @@
         if (confirm('Desligar o calendário? Os turnos que mudaste à mão ficam; os do calendário deixam de aparecer.')) { S.cal = { shifts: {}, autoS: true }; save(); toast('Calendário desligado'); }
         break;
       case 'fav': case 'hide': togglePref(a, b.dataset.id); if (a === 'hide' && prefs().hide[b.dataset.id]) toast('Fora da rotação'); break;
+      case 'lmadd': dayState(curDay).lm = true; save(); toast('Lanche da manhã adicionado'); break;
       case 'resetturnos': S.profile.shifts = {}; save(); toast('Horários repostos'); break;
       case 'reset':
         if (confirm('Apagar todos os registos (pesos, refeições marcadas, trocas e ajustes)? Não pode ser desfeito.')) { S = blank(); save(); applyTheme(); toast('Dados apagados'); }
@@ -960,6 +967,7 @@
         refresh(); return;
       }
       case 'calreset': delete dayState(b.dataset.k).turno; save(); render(); paintSheet(); toast('A seguir o calendário'); return;
+      case 'lmrem': { const st = dayState(curDay); st.lm = false; delete st.done.lm; if (st.fora) delete st.fora.lm; save(); render(); closeSheet(); toast('Lanche da manhã retirado'); return; }
       case 'fav': case 'hide': togglePref(a, b.dataset.id); render(); paintSheet(); if (a === 'hide' && prefs().hide[b.dataset.id]) toast('Fora da rotação'); return;
       case 'setshift': setShift(b.dataset.k, b.dataset.v); render(); paintSheet(); return;
       case 'settrain': toggleTrain(b.dataset.k); render(); paintSheet(); return;
