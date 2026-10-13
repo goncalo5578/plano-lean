@@ -325,7 +325,7 @@
       const k = addDays(mon, i), st = peekDay(k), sh = shiftOf(k);
       const act = activeSlots(k), nDone = act.filter(s => (st.done || {})[s.id] || (st.fora || {})[s.id]).length;
       strip += `<button class="${k === curDay ? 'sel' : ''} ${k === todayKey() ? 'today' : ''} ${dayType(k) === 'T' ? 'train' : ''}" data-act="day" data-k="${k}" aria-label="${DOW[i]} ${niceDate(k)}, ${SHIFTS[sh].n}">
-        <span class="wd">${DOW_S[i]}</span><span class="ring" style="--pct:${(nDone / act.length) * 100}"><span class="dn num">${dayNum(k)}</span></span><span class="mk" style="color:${SHIFTS[sh].col}">${sh === 'F' ? '' : sh}</span></button>`;
+        <span class="wd">${DOW_S[i]}</span><span class="ring" style="--pct:${(nDone / act.length) * 100}"><span class="dn num">${dayNum(k)}</span></span><span class="mk" style="color:${SHIFTS[sh].col}">${sh}</span></button>`;
     }
     strip += '</div>';
 
