@@ -315,7 +315,7 @@
     const sc = shiftCfg(P.shift);
     header(`${DOW[dowIdx(curDay)]}, ${niceDate(curDay)}`, dayTitle(curDay),
       (isToday ? '' : `<button class="pill-btn press" data-act="today">Hoje</button>`) +
-      `<button class="pill-btn press shift-pill" style="--sc:${sc.col}" data-act="dayset" aria-label="Turno e treino do dia"><i></i>${sc.n}</button>`);
+      `<button class="pill-btn press shift-pill" style="--sc:${sc.col}" data-act="dayset" aria-label="Turno e treino do dia"><i></i>${sc.n}${isT ? `<span class="pill-train">${ic('flame')}</span>` : ''}</button>`);
 
     const mon = mondayOf(curDay);
     let strip = '<div class="strip" id="strip">';
@@ -337,10 +337,6 @@
       <section class="card">
         <div class="energy-top">
           <div><div class="big num">${n0(Math.abs(left))}</div><div class="big-lbl">${left >= 0 ? 'kcal por comer' : 'kcal acima da meta'}</div></div>
-          <div class="seg" role="group" aria-label="Tipo de dia">
-            <button class="${isT ? 'on train' : ''}" data-act="type" data-v="T">Treino</button>
-            <button class="${!isT ? 'on' : ''}" data-act="type" data-v="D">Descanso</button>
-          </div>
         </div>
         <div class="track"><i style="width:${pct}%"></i></div>
         <div class="meta num"><span>Comido <b>${n0(P.done.kcal)}</b></span><span>Meta <b>${n0(P.goal)}</b> kcal</span></div>

@@ -381,6 +381,9 @@ a { color: var(--accent); text-decoration: none; }
 .tag-pill.fav { background: color-mix(in srgb, var(--f) 12%, transparent); color: var(--f); }
 .tag-pill.fav .ic { fill: currentColor; }
 
+.pill-train { display: inline-grid; place-items: center; color: var(--train); margin-left: -2px; }
+.pill-train .ic { width: 16px; height: 16px; stroke-width: 2; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
