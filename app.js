@@ -4,7 +4,7 @@
 
   // ================= Estado =================
   const KEY = 'planoLean.v1';
-  const DEFAULT_PROFILE = { idade: 23, altura: 162, peso: 60, atividade: 1.375, defice: 12, treinoDias: [0, 2, 4], autoSobras: true, shifts: {} };
+  const DEFAULT_PROFILE = { idade: 23, altura: 162, peso: 60, atividade: 1.375, defice: 12, treinoDias: [0, 2, 4], autoSobras: true, shifts: {}, tema: 'light' };
   const blank = () => ({ profile: { ...DEFAULT_PROFILE }, days: {}, weights: [], shop: {}, links: {} });
   let S = load();
 
@@ -182,6 +182,17 @@
   const n1 = n => n.toLocaleString('pt-PT', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
   const macroLine = t => `<span class="macro-inline num"><span><i class="dot bg-p"></i>${n0(t.p)}</span><span><i class="dot bg-c"></i>${n0(t.c)}</span><span><i class="dot bg-f"></i>${n0(t.f)}</span></span>`;
   const steps = txt => txt.split(/(?<=\.)\s+(?=[A-ZÀ-Ú(])/).map(s => `<li>${esc(s)}</li>`).join('');
+
+  // ================= Tema =================
+  const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+  function applyTheme() {
+    const t = S.profile.tema || 'light';
+    document.documentElement.dataset.theme = t;
+    const dark = t === 'dark' || (t === 'auto' && darkMQ.matches);
+    document.getElementById('themeColor').setAttribute('content', dark ? '#000000' : '#f2f2ef');
+  }
+  darkMQ.addEventListener('change', applyTheme);
+  applyTheme();
 
   // ================= Navegação =================
   const $view = document.getElementById('view');
@@ -628,7 +639,10 @@
         <div><span>Proteína</span><b>${T.prot}<small>g / dia</small></b></div>
         <div><span>Gordura mínima</span><b>${T.fat}<small>g / dia</small></b></div>
       </div>
-      <p class="cap">Défice de ${p.defice}% sobre um gasto estimado de ${n0(T.tdee)} kcal · ${p.treinoDias.length} treinos por semana.</p>
+      <p class="cap">Défice de ${p.defice}% sobre um gasto estimado de ${n0(T.tdee)} kcal.</p>
+      <div class="group-label">Aparência</div>
+      <div class="seg full" role="group" aria-label="Tema">${[['light', 'Claro'], ['dark', 'Escuro'], ['auto', 'Automático']].map(([v, l]) => `<button class="${(p.tema || 'light') === v ? 'on' : ''}" data-act="tema" data-v="${v}" aria-pressed="${(p.tema || 'light') === v}">${l}</button>`).join('')}</div>
+      <p class="cap">Automático segue o modo claro/escuro do telemóvel.</p>
       <div class="group-label">Guia</div><div class="list">${GUIDE.map(navRow).join('')}</div>
       <div class="group-label">Definições</div><div class="list">${SETTINGS.map(navRow).join('')}</div>
       <p class="cap" style="margin-top:20px">Informativo — não substitui um nutricionista. Com historial de distúrbios alimentares, gravidez ou doença, procura acompanhamento profissional.</p>`;
@@ -783,7 +797,7 @@
     file.text().then(t => {
       const d = JSON.parse(t);
       if (!d || !d.profile) throw new Error('formato');
-      S = { ...blank(), ...d, profile: { ...DEFAULT_PROFILE, ...d.profile } }; save(); toast('Dados importados');
+      S = { ...blank(), ...d, profile: { ...DEFAULT_PROFILE, ...d.profile } }; save(); applyTheme(); toast('Dados importados');
     }).catch(() => toast('Ficheiro inválido'));
   }
 
@@ -816,9 +830,10 @@
       case 'sub': sub = b.dataset.id; render(true); window.scrollTo(0, 0); return;
       case 'back': sub = null; render(true); window.scrollTo(0, 0); return;
       case 'export': exportData(); return;
+      case 'tema': S.profile.tema = b.dataset.v; save(); applyTheme(); break;
       case 'resetturnos': S.profile.shifts = {}; save(); toast('Horários repostos'); break;
       case 'reset':
-        if (confirm('Apagar todos os registos (pesos, refeições marcadas, trocas e ajustes)? Não pode ser desfeito.')) { S = blank(); save(); toast('Dados apagados'); }
+        if (confirm('Apagar todos os registos (pesos, refeições marcadas, trocas e ajustes)? Não pode ser desfeito.')) { S = blank(); save(); applyTheme(); toast('Dados apagados'); }
         break;
       default: return;
     }
