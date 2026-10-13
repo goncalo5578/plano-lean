@@ -381,12 +381,23 @@ a { color: var(--accent); text-decoration: none; }
 .tag-pill.fav { background: color-mix(in srgb, var(--f) 12%, transparent); color: var(--f); }
 .tag-pill.fav .ic { fill: currentColor; }
 
-.pill-train { display: inline-grid; place-items: center; color: var(--train); margin-left: -2px; }
-.pill-train .ic { width: 16px; height: 16px; stroke-width: 2; }
 
 .add-row { color: var(--accent); }
 .add-row > .ic { width: 28px; height: 28px; padding: 5px; border-radius: 50%; background: var(--accent-soft); stroke-width: 2.4; }
 .add-row .ttl { color: var(--accent); font-weight: 600; }
+
+/* Tipo de dia (ao lado das calorias) */
+.daytype { display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; border-radius: 16px; text-align: left; flex: none; }
+.daytype .dt-ic { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #fff; }
+.daytype .dt-ic .ic { width: 21px; height: 21px; stroke-width: 2; }
+.daytype b { display: block; font-size: 15px; font-weight: 700; line-height: 1.2; }
+.daytype small { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-3); margin-top: 1px; }
+.daytype.is-train { background: var(--train-soft); }
+.daytype.is-train .dt-ic { background: var(--train); }
+.daytype.is-train b { color: var(--train); }
+.daytype.is-rest { background: var(--accent-soft); }
+.daytype.is-rest .dt-ic { background: var(--accent); color: var(--accent-ink); }
+.daytype.is-rest b { color: var(--accent); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

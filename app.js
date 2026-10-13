@@ -317,7 +317,7 @@
     const sc = shiftCfg(P.shift);
     header(`${DOW[dowIdx(curDay)]}, ${niceDate(curDay)}`, dayTitle(curDay),
       (isToday ? '' : `<button class="pill-btn press" data-act="today">Hoje</button>`) +
-      `<button class="pill-btn press shift-pill" style="--sc:${sc.col}" data-act="dayset" aria-label="Turno e treino do dia"><i></i>${sc.n}${isT ? `<span class="pill-train">${ic('flame')}</span>` : ''}</button>`);
+      `<button class="pill-btn press shift-pill" style="--sc:${sc.col}" data-act="dayset" aria-label="Turno e treino do dia"><i></i>${sc.n}</button>`);
 
     const mon = mondayOf(curDay);
     let strip = '<div class="strip" id="strip">';
@@ -339,13 +339,16 @@
       <section class="card">
         <div class="energy-top">
           <div><div class="big num">${n0(Math.abs(left))}</div><div class="big-lbl">${left >= 0 ? 'kcal por comer' : 'kcal acima da meta'}</div></div>
+          <button class="daytype press ${isT ? 'is-train' : 'is-rest'}" data-act="dayset" aria-label="${isT ? 'Dia de treino' : 'Dia de descanso'} — mudar">
+            <span class="dt-ic">${ic(isT ? 'dumbbell' : 'moon')}</span>
+            <span><b>${isT ? 'Treino' : 'Descanso'}</b><small>${isT ? `+${T.train - T.rest} kcal` : 'Recuperação'}</small></span>
+          </button>
         </div>
         <div class="track"><i style="width:${pct}%"></i></div>
         <div class="meta num"><span>Comido <b>${n0(P.done.kcal)}</b></span><span>Meta <b>${n0(P.goal)}</b> kcal</span></div>
         <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
       </section>`;
     if (sc.tip) h += `<div class="note shiftnote" style="--sc:${sc.col}">${ic('clock')}<div><b>${shiftPhrase(P.shift)} · ${sc.h}</b><br>${sc.tip}</div></div>`;
-    if (isT) h += `<div class="note train">${ic('flame')}<div>Dia de treino — mais hidratos ao almoço e no lanche. Treina 1–3 h depois de uma refeição, ou come logo a seguir ao treino.</div></div>`;
 
     h += `<h2 class="sec-h">Refeições <small class="num">${P.nDone} de ${P.meals.length}</small></h2><div class="list">`;
     for (const m of P.meals) {
