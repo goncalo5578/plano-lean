@@ -264,8 +264,9 @@
 
   // ================= Folha (bottom sheet) =================
   let sheetEl = null, backEl = null, sheetRender = null;
-  function openSheet(renderFn) {
-    sheetRender = renderFn;
+  let sheetNoClose = false;
+  function openSheet(renderFn, { noClose = false } = {}) {
+    sheetRender = renderFn; sheetNoClose = noClose;
     if (!sheetEl) {
       backEl = document.createElement('div'); backEl.className = 'backdrop';
       sheetEl = document.createElement('div'); sheetEl.className = 'sheet'; sheetEl.setAttribute('role', 'dialog'); sheetEl.setAttribute('aria-modal', 'true');
@@ -299,7 +300,7 @@
     document.body.style.overflow = 'hidden';
   }
   function paintSheet() {
-    sheetEl.innerHTML = `<div class="grabber"></div><button class="sheet-close press" data-act="close" aria-label="Fechar">${ic('x')}</button>${sheetRender()}`;
+    sheetEl.innerHTML = `<div class="grabber"></div>${sheetNoClose ? '' : `<button class="sheet-close press" data-act="close" aria-label="Fechar">${ic('x')}</button>`}${sheetRender()}`;
   }
   let pendingConfirm = null;
   function askConfirm({ title, text, ok, onOk }) {
@@ -307,7 +308,7 @@
     openSheet(() => `<div class="over">Confirmar</div><h2>${title}</h2>
       <div class="prose"><p>${text}</p></div>
       <div class="btn-stack"><button class="btn danger-fill press" data-act="confirm-ok">${ok}</button>
-      <button class="btn secondary press" data-act="close">Cancelar</button></div>`);
+      <button class="btn secondary press" data-act="close">Cancelar</button></div>`, { noClose: true });
   }
   function closeSheet() {
     if (!sheetEl) return;
