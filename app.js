@@ -5,7 +5,7 @@
   // ================= Estado =================
   const KEY = 'planoLean.v1';
   const DEFAULT_PROFILE = { idade: 23, altura: 162, peso: 60, atividade: 1.375, defice: 12, treinoDias: [0, 2, 4], autoSobras: true, shifts: {}, tema: 'light' };
-  const blank = () => ({ profile: { ...DEFAULT_PROFILE }, days: {}, weights: [], shop: {}, links: {} });
+  const blank = () => ({ profile: { ...DEFAULT_PROFILE }, days: {}, weights: [], shop: {}, links: {}, cal: { shifts: {}, autoS: true } });
   let S = load();
 
   function load() {
@@ -99,7 +99,8 @@
   const roundG = (f, g) => f === 'bolachaArroz' ? Math.max(8, Math.round(g / 8) * 8) : Math.max(5, Math.round(g / 5) * 5);
 
   // ---- Turnos ----
-  const shiftOf = k => peekDay(k).turno || 'F';
+  const calShift = k => (S.cal && S.cal.url && S.cal.shifts && S.cal.shifts[k]) || null;
+  const shiftOf = k => peekDay(k).turno || calShift(k) || 'F';
   function shiftCfg(id) {
     const o = (S.profile.shifts || {})[id] || {};
     return { ...SHIFTS[id], h: o.h || SHIFTS[id].h, t: { ...SHIFTS[id].t, ...(o.t || {}) } };
@@ -412,6 +413,12 @@
     };
   }
 
+  function calNote(k) {
+    if (!S.cal || !S.cal.url) return '';
+    const c = calShift(k), man = peekDay(k).turno;
+    if (man && man !== (c || 'F')) return `<div class="note">${ic('cal')}<div>No calendário: <b>${c ? SHIFTS[c].n : 'sem turno'}</b>. Mudaste à mão. <button class="link" data-act="calreset" data-k="${k}">Voltar ao calendário</button></div></div>`;
+    return `<div class="note good">${ic('cal')}<div>${c ? "Turno lido do teu calendário." : "Sem turno no calendário para este dia."} Se mudares aqui, a tua escolha fica por cima.</div></div>`;
+  }
   function daySheet(k) {
     return () => {
       const cur = shiftOf(k), isT = dayType(k) === 'T';
@@ -422,6 +429,7 @@
             <div class="row-main"><div class="ttl" style="font-weight:500">${c.n}</div><div class="sub">${c.h}</div></div>${cur === id ? ic('check', 'ok') : ''}</button>`;
         }).join('')}</div>
         <div class="list" style="margin-top:12px"><button class="row tap" data-act="settrain" data-k="${k}" aria-pressed="${isT}"><div class="row-main"><div class="ttl" style="font-weight:500">Dia de treino</div><div class="sub">+200 kcal, sobretudo hidratos</div></div><span class="switch ${isT ? 'on' : ''}"></span></button></div>
+        ${calNote(k)}
         <p class="cap">Os horários das refeições mudam com o turno. Podes ajustá-los em Perfil → Turnos e horários.</p>
         <div class="btn-stack"><button class="btn primary press" data-act="close">Feito</button></div>`;
     };
@@ -433,7 +441,11 @@
     else st.done[slot] = !st.done[slot];
     save();
   }
-  function setShift(k, v) { const st = dayState(k); if (v === 'F') delete st.turno; else st.turno = v; save(); }
+  function setShift(k, v) {
+    const st = dayState(k);
+    if (v === (calShift(k) || 'F')) delete st.turno; else st.turno = v; // igual ao calendário → volta a seguir o calendário
+    save();
+  }
   function toggleTrain(k) {
     const st = dayState(k), def = S.profile.treinoDias.includes(dowIdx(k)) ? 'T' : 'D';
     const nxt = dayType(k) === 'T' ? 'D' : 'T';
@@ -466,7 +478,7 @@
           <div class="sub clamp">${P.meals.map(m => esc(m.meal.n) + (m.src ? ' <em>(sobras)</em>' : '')).join(' · ')}</div>
         </div>${ic('chevR', 'chev')}</div>`;
     });
-    h += `</div><p class="cap">Marca os turnos e os treinos em <b>Escala</b>. Os horários e as sobras para a marmita ajustam-se sozinhos.</p>`;
+    h += `</div>${calStatus()}<p class="cap">Marca os turnos e os treinos em <b>Escala</b>. Os horários e as sobras para a marmita ajustam-se sozinhos.</p>`;
     $view.innerHTML = h;
   }
   function escalaSheet() {
@@ -479,7 +491,7 @@
           <div class="seg esc-seg" role="group" aria-label="Turno de ${DOW[i]}">${SHIFT_ORDER.map(id => `<button class="${cur === id ? 'on' : ''}" style="--sc:${SHIFTS[id].col}" data-act="setshift" data-k="${k}" data-v="${id}" aria-label="${SHIFTS[id].n}" aria-pressed="${cur === id}">${id}</button>`).join('')}</div>
           <button class="train-tg ${isT ? 'on' : ''}" data-act="settrain" data-k="${k}" aria-label="Treino em ${DOW[i]}" aria-pressed="${isT}">${ic('dumbbell')}</button></div>`;
       }
-      return h + `</div><p class="cap"><b>M</b> manhã · <b>T</b> tarde · <b>N</b> noite · <b>S</b> saída de noite · <b>F</b> folga. O haltere marca os dias de treino.</p>
+      return h + `</div><p class="cap"><b>M</b> manhã · <b>T</b> tarde · <b>N</b> noite · <b>S</b> saída de noite · <b>F</b> folga. O haltere marca os dias de treino.${S.cal && S.cal.url ? ' Os turnos vêm do calendário; o que mudares aqui fica por cima.' : ''}</p>
         <div class="btn-stack"><button class="btn primary press" data-act="close">Feito</button></div>`;
     };
   }
@@ -625,7 +637,7 @@
     ['regras', 'Regras para ficar lean', 'target', '#e2590f'],
     ['trocas', 'Tabela de trocas', 'swap', '#1c7ed6'],
   ];
-  const SETTINGS = [['ajustes', 'Ajustes do plano', 'sliders', '#5c636a'], ['horarios', 'Turnos e horários', 'clock', '#5c636a'], ['dados', 'Cópia de segurança', 'box', '#5c636a'], ['fontes', 'Fontes científicas', 'doc', '#5c636a']];
+  const SETTINGS = [['calendario', 'Calendário dos turnos', 'cal', '#e2590f'], ['ajustes', 'Ajustes do plano', 'sliders', '#5c636a'], ['horarios', 'Turnos e horários', 'clock', '#5c636a'], ['dados', 'Cópia de segurança', 'box', '#5c636a'], ['fontes', 'Fontes científicas', 'doc', '#5c636a']];
   const navRow = ([id, l, i, col]) => `<button class="row tap" data-act="sub" data-id="${id}"><span class="tile" style="background:${col}">${ic(i)}</span><span class="row-main ttl" style="font-weight:500">${l}</span>${ic('chevR', 'chev')}</button>`;
 
   function renderPerfil() {
@@ -746,6 +758,30 @@
         </div></div>
         <p class="cap">Ponto de partida para semanas novas — muda dia a dia em Semana → Escala. Recomendado: défice de 12% e atividade ligeira. Se ao fim de 3 semanas a média de peso e a cintura não descerem, sobe o défice um nível.</p>
       </form>`;
+    } else if (id === 'calendario') {
+      const c = S.cal || {};
+      if (!c.url) {
+        h = `<div class="prose"><p>Liga o calendário onde tens os turnos e a escala preenche-se sozinha sempre que abres a app. Podes mudar qualquer dia à mão — a tua escolha fica por cima do calendário.</p></div>
+          <form id="calform"><div class="group-label">Ligação</div><div class="list">
+            <div class="form-row"><label for="cal_url">Endereço</label><input id="cal_url" name="url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…workers.dev" required></div>
+            <div class="form-row"><label for="cal_key">Chave</label><input id="cal_key" name="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" required></div>
+          </div>
+          <p class="cap">O endereço e a chave ficam guardados só neste telemóvel.</p>
+          <div class="btn-stack"><button class="btn primary press" type="submit">Ligar calendário</button></div></form>`;
+      } else {
+        const n = Object.keys(c.shifts || {}).filter(k => k >= todayKey()).length;
+        h = `<div class="list">
+            <div class="row kv-row"><div class="row-main" style="font-size:15px">Estado</div><div class="val"><b style="color:${c.err ? 'var(--danger)' : 'var(--accent)'}">${c.err ? esc(c.err) : 'Ligado'}</b></div></div>
+            <div class="row kv-row"><div class="row-main" style="font-size:15px">Última sincronização</div><div class="val"><b>${c.sync ? ago(c.sync) : '—'}</b></div></div>
+            <div class="row kv-row"><div class="row-main" style="font-size:15px">Turnos a partir de hoje</div><div class="val num"><b>${n}</b></div></div>
+          </div>
+          <div class="group-label">Opções</div><div class="list">
+            <button class="row tap" data-act="calautoS" aria-pressed="${c.autoS !== false}"><div class="row-main"><div class="ttl" style="font-weight:500">Saída de noite automática</div><div class="sub">O dia depois de uma noite fica como saída de noite</div></div><span class="switch ${c.autoS !== false ? 'on' : ''}"></span></button>
+          </div>
+          <div class="btn-stack"><button class="btn secondary press" data-act="calsync">Sincronizar agora</button>
+          <button class="btn danger press" data-act="caloff">Desligar calendário</button></div>
+          <p class="cap">A app lê o calendário ao abrir (no máximo de 10 em 10 minutos). Sem internet, usa a última escala lida.</p>`;
+      }
     } else if (id === 'dados') {
       h = `<div class="prose"><p>Tudo fica guardado apenas neste telemóvel, sem contas nem servidores. Exporta uma cópia de vez em quando — por exemplo, antes de mudar de telemóvel.</p></div>
         <div class="btn-stack"><button class="btn secondary press" data-act="export">Exportar cópia</button>
@@ -831,6 +867,12 @@
       case 'back': sub = null; render(true); window.scrollTo(0, 0); return;
       case 'export': exportData(); return;
       case 'tema': S.profile.tema = b.dataset.v; save(); applyTheme(); break;
+      case 'calreset': delete dayState(b.dataset.k).turno; save(); render(); if (sheetEl && sheetEl.classList.contains('open')) paintSheet(); return;
+      case 'calsync': syncCal(true).then(n => toast(`${n} turnos lidos`)).catch(e => toast(e.message)); return;
+      case 'calautoS': S.cal.autoS = S.cal.autoS === false; S.cal.shifts = buildShifts(S.cal.events || []); save(); break;
+      case 'caloff':
+        if (confirm('Desligar o calendário? Os turnos que mudaste à mão ficam; os do calendário deixam de aparecer.')) { S.cal = { shifts: {}, autoS: true }; save(); toast('Calendário desligado'); }
+        break;
       case 'resetturnos': S.profile.shifts = {}; save(); toast('Horários repostos'); break;
       case 'reset':
         if (confirm('Apagar todos os registos (pesos, refeições marcadas, trocas e ajustes)? Não pode ser desfeito.')) { S = blank(); save(); applyTheme(); toast('Dados apagados'); }
@@ -841,6 +883,16 @@
   }
   $view.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b) handle(b.dataset.act, b); });
   $hdr.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b) handle(b.dataset.act, b); });
+  $view.addEventListener('submit', e => {
+    if (e.target.id !== 'calform') return;
+    e.preventDefault();
+    const f = e.target, url = f.elements.url.value.trim(), key = f.elements.key.value.trim();
+    if (!/^(https:\/\/|http:\/\/localhost[:/])/.test(url)) { toast('O endereço tem de começar por https://'); return; }
+    S.cal = { ...(S.cal || {}), url, key, shifts: {}, autoS: true };
+    save();
+    syncCal(true).then(n => { toast(`Ligado — ${n} turnos lidos`); render(); })
+      .catch(err => { toast(err.message); render(); });
+  });
   $view.addEventListener('change', e => {
     const el = e.target;
     if (el.form && el.form.id === 'perfil') saveProfile(el.form);
@@ -871,6 +923,7 @@
         S.links[dest] = on ? 'none' : LK(curDay, slot);
         refresh(); return;
       }
+      case 'calreset': delete dayState(b.dataset.k).turno; save(); render(); paintSheet(); toast('A seguir o calendário'); return;
       case 'setshift': setShift(b.dataset.k, b.dataset.v); render(); paintSheet(); return;
       case 'settrain': toggleTrain(b.dataset.k); render(); paintSheet(); return;
     }
@@ -895,11 +948,63 @@
     if (Math.abs(dx) > 50) { curDay = addDays(curDay, dx < 0 ? 7 : -7); render(); }
   });
 
+  // ================= Calendário =================
+  // O intermediário (pasta worker/) devolve [{ d: 'AAAA-MM-DD', s: 'HH:MM' | null, dur: minutos, k: 'M'|'T'|'N'|'F'|null }]
+  function buildShifts(events) {
+    const rank = { N: 4, T: 3, M: 2, F: 1 }, map = {};
+    for (const ev of events) {
+      let L = ev.k;
+      if (!L && ev.s) { const h = +ev.s.slice(0, 2); L = h >= 5 && h < 11 ? 'M' : h >= 11 && h < 18 ? 'T' : 'N'; }
+      if (!L) continue;
+      const d = L === 'N' && ev.s && ev.s < '05:00' ? addDays(ev.d, -1) : ev.d; // noite que começa à meia-noite pertence ao dia anterior
+      if (!map[d] || rank[L] > rank[map[d]]) map[d] = L;
+    }
+    if (S.cal.autoS !== false) for (const d of Object.keys(map)) if (map[d] === 'N' && !map[addDays(d, 1)]) map[addDays(d, 1)] = 'S';
+    return map;
+  }
+  let syncing = null;
+  function syncCal(force) {
+    const c = S.cal;
+    if (!c || !c.url || !c.key) return Promise.resolve(0);
+    if (!force && c.sync && Date.now() - c.sync < 10 * 60e3) return Promise.resolve(Object.keys(c.shifts || {}).length);
+    if (syncing) return syncing;
+    syncing = fetch(c.url, { headers: { Authorization: `Bearer ${c.key}` }, cache: 'no-store' })
+      .then(r => {
+        if (r.status === 401) throw new Error('Chave errada');
+        if (!r.ok) throw new Error(r.status === 502 ? 'Não consegui ler o calendário' : `Erro ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        c.events = data.events || []; c.shifts = buildShifts(c.events); c.sync = Date.now(); c.err = null;
+        save(); render();
+        return Object.keys(c.shifts).length;
+      })
+      .catch(err => {
+        c.err = err instanceof TypeError ? 'Sem ligação' : err.message; save();
+        if (tab === 'semana' || (tab === 'perfil' && sub === 'calendario')) render();
+        throw new Error(c.err);
+      })
+      .finally(() => { syncing = null; });
+    return syncing;
+  }
+  function ago(ts) {
+    const m = Math.round((Date.now() - ts) / 60000);
+    return m < 1 ? 'agora mesmo' : m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.round(m / 60)} h` : `há ${Math.round(m / 1440)} dias`;
+  }
+  function calStatus() {
+    const c = S.cal;
+    if (!c || !c.url) return '';
+    return `<p class="cap" style="display:flex;align-items:center;gap:6px;margin-top:12px">${ic('cal', 'sm')}${c.err ? `Calendário: ${esc(c.err)} — a usar a escala de ${c.sync ? ago(c.sync) : 'antes'}` : `Calendário sincronizado ${c.sync ? ago(c.sync) : ''}`}</p>`;
+  }
+
   // ================= Arranque =================
   render();
   let lastToday = todayKey();
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && todayKey() !== lastToday) { lastToday = curDay = todayKey(); render(); }
+    if (document.visibilityState !== 'visible') return;
+    if (todayKey() !== lastToday) { lastToday = curDay = todayKey(); render(); }
+    syncCal().catch(() => {});
   });
+  syncCal().catch(() => {});
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
