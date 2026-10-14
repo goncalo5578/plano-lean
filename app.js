@@ -1,4 +1,4 @@
-/* Plano Lean — plano alimentar (sem servidor; os dados ficam guardados no próprio telemóvel). */
+/* Pulso — plano alimentar (sem servidor; os dados ficam guardados no próprio telemóvel). */
 (() => {
   'use strict';
 
@@ -1247,7 +1247,7 @@
   function exportData() {
     const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = `plano-lean-${todayKey()}.json`;
+    a.href = URL.createObjectURL(blob); a.download = `pulso-${todayKey()}.json`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }

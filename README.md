@@ -1,4 +1,4 @@
-# Plano Lean
+# Pulso
 
 App de plano alimentar (PWA) para Android e iPhone. Não precisa de loja de apps, servidor nem contas — são ficheiros estáticos alojados grátis no GitHub Pages. Funciona offline depois da primeira abertura, e os dados (pesos, refeições marcadas, lista de compras) ficam guardados no próprio telemóvel.
 

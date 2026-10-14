@@ -1,7 +1,7 @@
 {
-  "name": "Plano Lean",
-  "short_name": "Plano Lean",
-  "description": "Plano alimentar pessoal para ficar lean.",
+  "name": "Pulso",
+  "short_name": "Pulso",
+  "description": "Plano alimentar para turnos e treino.",
   "lang": "pt-PT",
   "start_url": "./",
   "scope": "./",
