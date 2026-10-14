@@ -266,10 +266,12 @@
       const key = el.dataset.count, to = +el.dataset.v, from = countPrev[key];
       countPrev[key] = to;
       if (still || from === undefined || from === to) return;
-      const t0 = performance.now(), dur = 520;
+      el.textContent = n0(from); // começa no valor anterior (sem mostrar o final por um instante)
+      const t0 = performance.now(), dur = 950;
       const step = now => {
         if (!el.isConnected || +el.dataset.v !== to) return;
-        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        // exponencial: arranca rápido e abranda cada vez mais até parar no valor certo
+        const k = Math.min(1, (now - t0) / dur), e = k === 1 ? 1 : 1 - Math.pow(2, -10 * k);
         el.textContent = n0(from + (to - from) * e);
         if (k < 1) requestAnimationFrame(step);
       };
