@@ -300,8 +300,8 @@
   const V_ANIM = ['v-fade', 'v-push', 'v-pop', 'v-next', 'v-prev'];
   function render(anim) {
     $tabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-    // Mudar de dia no Hoje: o dia atual sai por um lado enquanto o novo entra pelo outro (como um carrossel)
-    const slide = tab === 'hoje' && (anim === 'next' || anim === 'prev');
+    // Mudar de dia (Hoje) ou de semana (Semana): o atual sai por um lado enquanto o novo entra pelo outro (carrossel)
+    const slide = (tab === 'hoje' || tab === 'semana') && (anim === 'next' || anim === 'prev');
     const oldPane = slide ? $view.querySelector('.day-pane') : null;
     const ghost = oldPane ? oldPane.cloneNode(true) : null;
     morphNext = !anim;
@@ -317,8 +317,10 @@
         ghost.classList.add('ghost', anim === 'next' ? 'out-left' : 'out-right');
         ghost.setAttribute('aria-hidden', 'true');
         pane.classList.add(anim === 'next' ? 'in-right' : 'in-left');
+        const dx = oldPane.style.getPropertyValue('--dx'); // se veio de arrastar com o dedo, continua daí
+        if (dx) pane.style.setProperty('--dx', dx);
         stage.appendChild(ghost);
-        setTimeout(() => { ghost.remove(); pane.classList.remove('in-right', 'in-left'); }, 450);
+        setTimeout(() => { ghost.remove(); pane.classList.remove('in-right', 'in-left'); pane.style.removeProperty('--dx'); }, 450);
       }
     }
     animateCounts(!!anim); // só conta ao marcar refeições, água, etc. (no mesmo dia)
@@ -813,6 +815,7 @@
         <button class="circle-btn press" data-act="wk" data-d="-1" aria-label="Semana anterior">${ic('chevL', 'sm')}</button>
         <span class="lbl">${lbl}</span>
         <button class="circle-btn press" data-act="wk" data-d="1" aria-label="Semana seguinte">${ic('chevR', 'sm')}</button></div>
+      <div class="day-stage"><div class="day-pane week-pane">
       <section class="card kpis num"><div><b>${n0(avg)}</b><span>kcal / dia</span></div><div><b>${nTurnos}</b><span>turnos</span></div><div><b>${nT}</b><span>treinos</span></div></section>
       <div class="list">`;
     plans.forEach((P, i) => {
@@ -824,7 +827,7 @@
           <div class="sub clamp">${P.meals.map(m => esc(m.meal.n) + (m.src ? ' <em>(sobras)</em>' : '')).join(' · ')}</div>
         </div>${ic('chevR', 'chev')}</div>`;
     });
-    h += `</div>${calStatus()}<p class="cap">Marca os turnos e os treinos em <b>Escala</b>. Os horários e as sobras para a marmita ajustam-se sozinhos.</p>`;
+    h += `</div>${calStatus()}<p class="cap">Marca os turnos e os treinos em <b>Escala</b>. Os horários e as sobras para a marmita ajustam-se sozinhos. Arrasta para o lado para mudar de semana.</p></div></div>`;
     $view.innerHTML = h;
   }
   function escalaSheet() {
@@ -1419,6 +1422,34 @@
     S.weights.push({ d, kg, ...(c > 0 ? { cint: c } : {}) });
     save(); closeSheet(); render(); toast('Registo guardado');
   }
+
+  // Semana: arrastar o conteúdo para o lado muda de semana (o conteúdo acompanha o dedo)
+  let wx0 = null, wy0 = 0, wdx = 0, wDrag = false;
+  $view.addEventListener('touchstart', e => {
+    wx0 = tab === 'semana' && e.target.closest('.week-pane') ? e.touches[0].clientX : null;
+    wy0 = e.touches[0].clientY; wdx = 0; wDrag = false;
+  }, { passive: true });
+  $view.addEventListener('touchmove', e => {
+    if (wx0 === null) return;
+    const dx = e.touches[0].clientX - wx0, dy = e.touches[0].clientY - wy0;
+    if (!wDrag) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.3) wDrag = true; else if (Math.abs(dy) > 10) { wx0 = null; return; } else return; }
+    wdx = dx;
+    const pane = $view.querySelector('.week-pane');
+    if (pane) { pane.style.transition = 'none'; pane.style.transform = `translateX(${dx}px)`; }
+  }, { passive: true });
+  $view.addEventListener('touchend', () => {
+    if (wx0 === null) return;
+    wx0 = null;
+    const pane = $view.querySelector('.week-pane');
+    if (!wDrag || !pane) return;
+    if (Math.abs(wdx) > 70) {
+      pane.style.setProperty('--dx', `${wdx}px`);
+      weekOffset += wdx < 0 ? 1 : -1;
+      render(wdx < 0 ? 'next' : 'prev');
+    } else {
+      pane.style.transition = 'transform .32s var(--ease-out)'; pane.style.transform = '';
+    }
+  });
 
   // Deslizar a barra de dias para mudar de semana
   let sx = null;
