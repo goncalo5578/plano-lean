@@ -5,7 +5,7 @@
   // ================= Estado =================
   const KEY = 'planoLean.v1';
   const DEFAULT_PROFILE = { idade: 23, altura: 162, peso: 60, atividade: 1.375, defice: 12, treinoDias: [0, 2, 4], autoSobras: true, shifts: {}, tema: 'light' };
-  const blank = () => ({ profile: { ...DEFAULT_PROFILE }, days: {}, weights: [], shop: {}, links: {}, cal: { shifts: {}, autoS: true }, prefs: { fav: {}, hide: {} } });
+  const blank = () => ({ profile: { ...DEFAULT_PROFILE }, days: {}, weights: [], shop: {}, links: {}, cal: { shifts: {}, autoS: true }, recipes: { custom: [], edits: {}, removed: {}, foods: {} } });
   let S = load();
 
   function load() {
@@ -37,8 +37,8 @@
     share: '<path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>',
     swap: '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
     pot: '<path d="M4 10h16v5.5A4.5 4.5 0 0 1 15.5 20h-7A4.5 4.5 0 0 1 4 15.5zM2 10h2M20 10h2M9.5 7c0-1.2 1-1.6 1-2.8M14 7c0-1.2 1-1.6 1-2.8"/>',
-    heart: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.1a4.3 4.3 0 0 1 7.5 2.7C19.5 15.4 12 20 12 20z"/>',
-    thumbsDown: '<path d="M7.5 13.5V4M7.5 13.5l3.8 6.5c1.4 0 2.3-1.2 2-2.5l-.8-4h5.4a2 2 0 0 0 2-2.4l-1.3-5.7A2.5 2.5 0 0 0 16.2 4H7.5M7.5 4h-3v9.5h3"/>',
+    edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
     dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2.5 10v4M21.5 10v4M8 12h8"/>',
     drop: '<path d="M12 3.5c3.5 4.2 6 7.6 6 10.5a6 6 0 0 1-12 0c0-2.9 2.5-6.3 6-10.5z"/>',
@@ -89,7 +89,16 @@
   }
 
   const ALL_MEALS = Object.values(MEALS).flat();
-  const mealById = id => ALL_MEALS.find(m => m.id === id);
+  const R = () => (S.recipes ||= { custom: [], edits: {}, removed: {}, foods: {} });
+  const DELETED_FOOD = { n: 'Alimento apagado', kcal: 0, p: 0, c: 0, f: 0, cat: 'Outros' };
+  const food = id => FOODS[id] || R().foods[id] || DELETED_FOOD;
+  const builtinSlot = id => Object.keys(MEALS).find(sl => MEALS[sl].some(m => m.id === id));
+  const slotOfMeal = id => builtinSlot(id) || (R().custom.find(m => m.id === id) || {}).slot;
+  function mealsOf(slot) {
+    const r = R();
+    return [...MEALS[slot].filter(m => !r.removed[m.id]).map(m => r.edits[m.id] || m), ...r.custom.filter(m => m.slot === slot)];
+  }
+  const mealById = id => R().edits[id] || R().custom.find(m => m.id === id) || ALL_MEALS.find(m => m.id === id);
   const dayState = k => (S.days[k] ||= { swaps: {}, done: {}, agua: 0 });
   const peekDay = k => S.days[k] || { swaps: {}, done: {}, agua: 0 };
   const lmOn = k => { const v = peekDay(k).lm; return v === undefined ? S.profile.lmSempre === true : v; };
@@ -98,7 +107,7 @@
 
   function sumItems(items) {
     const r = { kcal: 0, p: 0, c: 0, f: 0 };
-    for (const it of items) { const F = FOODS[it.f]; for (const k in r) r[k] += F[k] * it.g / 100; }
+    for (const it of items) { const F = food(it.f); for (const k in r) r[k] += F[k] * it.g / 100; }
     return r;
   }
   const roundG = (f, g) => f === 'bolachaArroz' ? Math.max(8, Math.round(g / 8) * 8) : Math.max(5, Math.round(g / 5) * 5);
@@ -136,32 +145,18 @@
   const directDests = (k, slot) => destCandidates(k, slot).filter(([k2, s2]) => sourceOf(k2, s2) === LK(k, slot));
   // Inclui cadeias (ex.: almoço → jantar → almoço de amanhã): tudo o que sai da mesma panela
   const destsOf = (k, slot, depth = 0) => depth > 3 ? [] : directDests(k, slot).flatMap(d => [d, ...destsOf(d[0], d[1], depth + 1)]);
-  const prefs = () => (S.prefs ||= { fav: {}, hide: {} });
   function baseMealId(k, slot) {
-    const hide = prefs().hide, sw = peekDay(k).swaps[slot];
-    if (sw && !hide[sw]) return sw;
+    const list = mealsOf(slot), has = id => list.some(m => m.id === id);
+    const sw = peekDay(k).swaps[slot];
+    if (sw && has(sw)) return sw;
     const def = WEEK[dowIdx(k)][slot];
-    if (!hide[def]) return def;
-    const list = MEALS[slot], i0 = list.findIndex(m => m.id === def);
-    const next = [...list.slice(i0 + 1), ...list.slice(0, i0)].find(m => !hide[m.id]);
-    return (next || list[i0]).id;
-  }
-  function togglePref(kind, id) {
-    const p = prefs(), other = kind === 'fav' ? 'hide' : 'fav';
-    if (p[kind][id]) delete p[kind][id]; else { p[kind][id] = true; delete p[other][id]; }
-    save();
+    if (has(def) || !list.length) return def;
+    return list[dowIdx(k) % list.length].id; // a receita do plano foi eliminada: usa outra
   }
   const baseKcal = o => Math.round(sumItems(o.i.map(it => ({ f: it.f, g: Array.isArray(it.g) ? it.g[0] : it.g }))).kcal);
-  function prefRow(o, slotId, { pick = false, sel = false } = {}) {
-    const p = prefs(), fav = !!p.fav[o.id], hid = !!p.hide[o.id];
-    const tags = [`~${baseKcal(o)} kcal`, o.m ? '<span class="mk-m">Marmita</span>' : '', hid ? 'fora da rotação' : ''].filter(Boolean).join(' · ');
-    const inner = `<div class="ttl">${esc(o.n)}</div><div class="sub">${tags}</div>`;
-    return `<div class="row alt ${sel ? 'sel' : ''} ${hid ? 'hid' : ''}">
-      ${pick ? `<button class="row-main pick" data-act="pick" data-slot="${slotId}" data-id="${o.id}">${inner}</button>` : `<div class="row-main">${inner}</div>`}
-      ${sel ? ic('check', 'ok') : ''}
-      <button class="mini ${fav ? 'fav' : ''}" data-act="fav" data-id="${o.id}" aria-pressed="${fav}" aria-label="Preferida">${ic('heart')}</button>
-      <button class="mini ${hid ? 'hide' : ''}" data-act="hide" data-id="${o.id}" aria-pressed="${hid}" aria-label="Não gosto">${ic('thumbsDown')}</button>
-    </div>`;
+  function recipeTags(o) {
+    const r = R(), own = r.custom.some(m => m.id === o.id), edited = !!r.edits[o.id];
+    return [`~${baseKcal(o)} kcal`, o.m ? '<span class="mk-m">Marmita</span>' : '', own ? 'criada por ti' : edited ? 'editada' : ''].filter(Boolean).join(' · ');
   }
   function mealIdAt(k, slot, depth = 0) {
     const src = depth < 3 && sourceOf(k, slot);
@@ -202,7 +197,7 @@
   const PLURAL = { fatia: 'fatias', wrap: 'wraps', bolacha: 'bolachas', lata: 'latas', scoop: 'scoops', ovo: 'ovos', 'banana média': 'bananas médias', 'maçã': 'maçãs', 'pêra': 'pêras', laranja: 'laranjas', kiwi: 'kiwis', prato: 'pratos', quadrado: 'quadrados' };
   const plural = (lbl, n) => (n > 1 && PLURAL[lbl]) ? PLURAL[lbl] : lbl;
   function unitHint(f, g) {
-    const F = FOODS[f]; if (!F.u) return '';
+    const F = food(f); if (!F.u) return '';
     const q = Math.max(0.25, Math.round((g / F.u[0]) * 4) / 4), w = Math.floor(q);
     const fr = { 0.25: '¼', 0.5: '½', 0.75: '¾' }[q - w] || '';
     return `≈ ${(w || '') + fr} ${plural(F.u[1], q)}`;
@@ -274,6 +269,8 @@
       backEl.addEventListener('click', closeSheet);
       sheetEl.addEventListener('click', onSheetClick);
       sheetEl.addEventListener('submit', onSheetSubmit);
+      sheetEl.addEventListener('input', onRecipeInput);
+      sheetEl.addEventListener('change', onRecipeInput);
       sheetEl.addEventListener('pointerdown', e => {
         const b = e.target.closest('[data-step]'); if (!b) return;
         e.preventDefault(); stopHold();
@@ -402,7 +399,7 @@
       const done = !!P.st.done[slotId] || !!m.fora;
       const mode = sheetEl.dataset.mode;
       let h = `<div class="over">${m.slot.n} · ${m.slot.t}</div><h2>${esc(m.meal.n)}</h2>`;
-      if (m.meal.m || prefs().fav[m.meal.id]) h += `<div>${m.meal.m ? `<span class="tag-pill">${ic('box')}Marmita</span>` : ''}${prefs().fav[m.meal.id] ? `<span class="tag-pill fav">${ic('heart')}Preferida</span>` : ''}</div>`;
+      if (m.meal.m) h += `<div><span class="tag-pill">${ic('box')}Marmita</span></div>`;
       if (m.fora) h += `<div class="note" style="margin:0 0 12px">${ic('info')}<div>Registaste outra refeição (~${m.fora} kcal). <button class="link" data-act="unfora" data-slot="${slotId}">Desfazer</button></div></div>`;
       h += `<div class="stat4 num"><div><b>${n0(m.tot.kcal)}</b><span>kcal</span></div><div><b style="color:var(--p)">${n0(m.tot.p)}</b><span>proteína</span></div>
         <div><b style="color:var(--c)">${n0(m.tot.c)}</b><span>hidratos</span></div><div><b style="color:var(--f)">${n0(m.tot.f)}</b><span>gordura</span></div></div>`;
@@ -423,7 +420,7 @@
 
       h += `<div class="group-label">${m.src ? 'A tua dose' : 'Ingredientes · 1 dose'}</div><div class="list">${m.items.map(it => {
         const hint = cook[it.f] ? `cozinhar ${qty(it.f, cook[it.f])}` : unitHint(it.f, it.g);
-        return `<div class="row ing"><div class="row-main">${esc(FOODS[it.f].n)}</div><div class="q num">${qty(it.f, it.g)}${hint ? `<small>${hint}</small>` : ''}</div></div>`;
+        return `<div class="row ing"><div class="row-main">${esc(food(it.f).n)}</div><div class="q num">${qty(it.f, it.g)}${hint ? `<small>${hint}</small>` : ''}</div></div>`;
       }).join('')}</div>`;
       if (!m.src) h += `<div class="group-label">Preparação</div><div class="list"><ol class="steps">${steps(m.meal.prep)}</ol></div>`;
 
@@ -440,11 +437,12 @@
       }
 
       if (mode === 'alts') {
-        const p = prefs(), noTurno = /turno/i.test(m.slot.n);
-        const score = o => (p.hide[o.id] ? 0 : 4) + (p.fav[o.id] ? 2 : 0) + (noTurno && o.m ? 1 : 0);
-        const opts = MEALS[slotId].map((o, i) => ({ o, i })).sort((a, b) => score(b.o) - score(a.o) || a.i - b.i).map(x => x.o);
-        h += `<div class="group-label">Escolher outra opção${noTurno ? ' · marmitas primeiro' : ''}</div><div class="list">${opts.map(o => prefRow(o, slotId, { pick: true, sel: o.id === m.meal.id })).join('')}</div>
-          <p class="cap">♥ preferida (aparece primeiro) · 👎 não gosto (sai da rotação).</p>`;
+        const noTurno = /turno/i.test(m.slot.n);
+        const opts = mealsOf(slotId).map((o, i) => ({ o, i })).sort((a, b) => (noTurno ? (b.o.m ? 1 : 0) - (a.o.m ? 1 : 0) : 0) || a.i - b.i).map(x => x.o);
+        h += `<div class="group-label">Escolher outra opção${noTurno ? ' · marmitas primeiro' : ''}</div><div class="list">${opts.map(o => {
+          const sel = o.id === m.meal.id;
+          return `<button class="row tap alt ${sel ? 'sel' : ''}" data-act="pick" data-slot="${slotId}" data-id="${o.id}"><div class="row-main"><div class="ttl">${esc(o.n)}</div><div class="sub">${recipeTags(o)}</div></div>${sel ? ic('check', 'ok') : ''}</button>`;
+        }).join('')}<button class="row tap add-row" data-act="rnew" data-slot="${slotId}" data-pick="1">${ic('plus')}<div class="row-main"><div class="ttl">Nova receita</div><div class="sub">Fica logo escolhida para este dia</div></div></button></div>`;
       }
       if (mode === 'fora') {
         h += `<div class="group-label">Comi outra coisa — quanto, mais ou menos?</div><div class="list">${FORA.map(o => `
@@ -454,6 +452,7 @@
       h += `<div class="btn-stack">
         ${m.fora ? '' : `<button class="btn primary press" data-act="done" data-slot="${slotId}">${done ? 'Desmarcar' : ic('check') + ' Marcar como comido'}</button>`}
         ${mode === 'alts' ? '' : `<button class="btn secondary press" data-act="mode" data-v="alts">${ic('swap')} Trocar refeição</button>`}
+        ${m.src || m.fora ? '' : `<button class="btn secondary press" data-act="redit" data-id="${m.meal.id}">${ic('edit')} Editar receita</button>`}
         ${m.fora || mode === 'fora' ? '' : `<button class="btn secondary press" data-act="mode" data-v="fora">${ic('plate')} Comi outra coisa</button>`}
         ${slotId === 'lm' ? `<button class="btn danger press" data-act="lmrem">Hoje não faço lanche da manhã</button>` : ''}
       </div>`;
@@ -481,6 +480,129 @@
         <p class="cap">Os horários das refeições mudam com o turno. Podes ajustá-los em Perfil → Turnos e horários.</p>
         <div class="btn-stack"><button class="btn primary press" data-act="close">Feito</button></div>`;
     };
+  }
+
+  // ================= Editor de receitas =================
+  let rDraft = null;
+  const roleOf = f => (food(f).cat === 'Hidratos' ? 'c' : food(f).cat === 'Proteínas' ? 'p' : undefined);
+  const normTxt = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const FOOD_CATS = ['Proteínas', 'Laticínios e ovos', 'Hidratos', 'Legumes', 'Fruta', 'Gorduras', 'Outros'];
+  function openEditor(meal, slot, pickFor = null) {
+    rDraft = meal
+      ? { id: meal.id, slot: slotOfMeal(meal.id), n: meal.n, prep: meal.prep || '', m: meal.m ? 1 : 0, i: meal.i.map(it => ({ f: it.f, g: Array.isArray(it.g) ? it.g[0] : it.g })), isNew: false }
+      : { id: null, slot: slot || 'almoco', n: '', prep: '', m: 0, i: [], isNew: true };
+    rDraft.pickFor = pickFor; rDraft.view = 'edit';
+    openSheet(editorSheet);
+  }
+  function syncDraftFromDom() {
+    if (!rDraft || rDraft.view !== 'edit' || !sheetEl.querySelector('#r_n')) return;
+    rDraft.n = sheetEl.querySelector('#r_n').value;
+    rDraft.prep = sheetEl.querySelector('#r_prep').value;
+    rDraft.m = sheetEl.querySelector('#r_m').checked ? 1 : 0;
+    sheetEl.querySelectorAll('.g-in').forEach(el => { const v = parseFloat(el.value.replace(',', '.')); rDraft.i[+el.dataset.ri].g = v > 0 ? v : 0; });
+  }
+  const draftTotals = () => sumItems(rDraft.i.filter(it => it.g > 0));
+  const totalsHTML = t => `<div><b>${n0(t.kcal)}</b><span>kcal</span></div><div><b style="color:var(--p)">${n0(t.p)}</b><span>proteína</span></div><div><b style="color:var(--c)">${n0(t.c)}</b><span>hidratos</span></div><div><b style="color:var(--f)">${n0(t.f)}</b><span>gordura</span></div>`;
+  function foodListHTML(q) {
+    const all = { ...FOODS, ...R().foods }, nq = normTxt(q.trim());
+    const hits = Object.keys(all).filter(f => !nq || normTxt(all[f].n).includes(nq));
+    if (!hits.length) return `<p class="cap" style="text-align:center;margin:16px 0">Não encontrei "${esc(q)}". Cria-o em baixo.</p>`;
+    return FOOD_CATS.map(c => {
+      const rows = hits.filter(f => (all[f].cat || 'Outros') === c).sort((a, b) => all[a].n.localeCompare(all[b].n, 'pt'));
+      if (!rows.length) return '';
+      return `<div class="group-label">${c}</div><div class="list">${rows.map(f => `<button class="row tap" data-act="raddf" data-f="${f}"><div class="row-main"><div class="ttl" style="font-weight:500">${esc(all[f].n)}</div><div class="sub num">${Math.round(all[f].kcal)} kcal · P ${n1(all[f].p)} · H ${n1(all[f].c)} · G ${n1(all[f].f)} por 100 g</div></div>${ic('plus', 'chev')}</button>`).join('')}</div>`;
+    }).join('');
+  }
+  function editorSheet() {
+    const d = rDraft;
+    if (d.view === 'food') {
+      return `<div class="over">${esc(d.n || 'Receita')}</div><h2>Adicionar ingrediente</h2>
+        <div class="list search-row">${ic('search')}<input id="f_q" type="search" placeholder="Procurar alimento" autocomplete="off" aria-label="Procurar alimento"></div>
+        <div id="f_list">${foodListHTML('')}</div>
+        <div class="btn-stack"><button class="btn secondary press" data-act="rview" data-v="newfood">${ic('plus')} Alimento que não está na lista</button>
+        <button class="btn secondary press" data-act="rview" data-v="edit">Voltar à receita</button></div>`;
+    }
+    if (d.view === 'newfood') {
+      const num = (id, l) => `<div class="form-row"><label for="${id}">${l}</label><input id="${id}" type="text" inputmode="decimal" autocomplete="off" placeholder="0"></div>`;
+      return `<div class="over">Novo alimento</div><h2>Alimento que não está na lista</h2>
+        <div class="list"><div class="form-row"><label for="nf_n">Nome</label><input id="nf_n" type="text" autocomplete="off" placeholder="Cuscuz, cogumelos…"></div>
+          <div class="form-row"><label for="nf_cat">Tipo</label><select id="nf_cat">${FOOD_CATS.map(c => `<option>${c}</option>`).join('')}</select></div></div>
+        <div class="group-label">Por 100 g (vem no rótulo)</div>
+        <div class="list">${num('nf_kcal', 'Calorias (kcal)')}${num('nf_p', 'Proteína (g)')}${num('nf_c', 'Hidratos (g)')}${num('nf_f', 'Gordura (g)')}</div>
+        <p class="cap err" id="nf_err"></p>
+        <div class="btn-stack"><button class="btn primary press" data-act="rfoodsave">Guardar e juntar à receita</button>
+        <button class="btn secondary press" data-act="rview" data-v="food">Voltar</button></div>`;
+    }
+    const t = draftTotals();
+    return `<div class="over">${d.isNew ? 'Nova receita' : 'Editar receita'}</div><h2>${esc(d.n) || 'Receita sem nome'}</h2>
+      <div class="list"><div class="form-row"><label for="r_n">Nome</label><input id="r_n" type="text" autocomplete="off" value="${esc(d.n)}" placeholder="Frango com arroz"></div></div>
+      <div class="group-label">Refeição</div>
+      <div class="seg full seg-slots" role="group" aria-label="Refeição">${SLOTS.map(sl => `<button type="button" class="${d.slot === sl.id ? 'on' : ''}" data-act="rslot" data-v="${sl.id}">${{ pa: 'P. almoço', lm: 'L. manhã', almoco: 'Almoço', lanche: 'Lanche', jantar: 'Jantar' }[sl.id]}</button>`).join('')}</div>
+      <div class="group-label">Ingredientes · 1 dose</div>
+      <div class="list">${d.i.map((it, idx) => `<div class="row ing-edit"><div class="row-main"><div class="ttl" style="font-weight:500">${esc(food(it.f).n)}</div><div class="sub num" data-rk="${idx}">${n0(food(it.f).kcal * it.g / 100)} kcal</div></div>
+          <input class="g-in num" data-ri="${idx}" type="text" inputmode="decimal" autocomplete="off" value="${it.g ? String(it.g).replace('.', ',') : ''}" aria-label="Quantidade de ${esc(food(it.f).n)}" onfocus="this.select()"><span class="unit">${isLiquid(it.f) ? 'ml' : 'g'}</span>
+          <button type="button" class="mini" data-act="rdel" data-ri="${idx}" aria-label="Tirar ${esc(food(it.f).n)}">${ic('x')}</button></div>`).join('')}
+        <button class="row tap add-row" data-act="rview" data-v="food">${ic('plus')}<div class="row-main"><div class="ttl">Adicionar ingrediente</div></div></button></div>
+      <div class="stat4 num" id="r_tot" style="margin-top:12px">${totalsHTML(t)}</div>
+      <div class="group-label">Preparação</div>
+      <div class="list"><textarea id="r_prep" rows="4" placeholder="Passos, separados por pontos. Ex.: Grelhar o frango. Cozer o arroz.">${esc(d.prep)}</textarea></div>
+      <div class="list" style="margin-top:12px"><label class="form-row" style="cursor:pointer"><span>Boa para marmita</span><input id="r_m" type="checkbox" class="sw-in" ${d.m ? 'checked' : ''}><span class="switch"></span></label></div>
+      <p class="cap err" id="r_err"></p>
+      <div class="btn-stack"><button class="btn primary press" data-act="rsave">Guardar receita</button>
+        ${d.isNew ? '' : '<button class="btn danger press" data-act="rdelete">Eliminar receita</button>'}
+        <button class="btn secondary press" data-act="close">Cancelar</button></div>
+      <p class="cap">As quantidades de hidratos ajustam-se sozinhas à meta de cada dia.</p>`;
+  }
+  function onRecipeInput(e) {
+    const el = e.target;
+    if (el.id === 'f_q') { sheetEl.querySelector('#f_list').innerHTML = foodListHTML(el.value); return; }
+    if (!rDraft || rDraft.view !== 'edit') return;
+    if (el.classList.contains('g-in')) {
+      const idx = +el.dataset.ri, v = parseFloat(el.value.replace(',', '.'));
+      rDraft.i[idx].g = v > 0 ? v : 0;
+      const k = sheetEl.querySelector(`[data-rk="${idx}"]`); if (k) k.textContent = `${n0(food(rDraft.i[idx].f).kcal * rDraft.i[idx].g / 100)} kcal`;
+      sheetEl.querySelector('#r_tot').innerHTML = totalsHTML(draftTotals());
+    }
+    if (el.id === 'r_n') rDraft.n = el.value;
+  }
+  const showErr = (id, msg) => { const e = sheetEl.querySelector('#' + id); if (e) e.textContent = msg; };
+  function saveNewFood() {
+    const v = id => sheetEl.querySelector('#' + id).value.trim();
+    const num = id => parseFloat(v(id).replace(',', '.'));
+    const n = v('nf_n'), kcal = num('nf_kcal'), p = num('nf_p') || 0, c = num('nf_c') || 0, f = num('nf_f') || 0;
+    if (!n) return showErr('nf_err', 'Escreve o nome do alimento.');
+    if (!(kcal > 0)) return showErr('nf_err', 'Escreve as calorias por 100 g (estão no rótulo).');
+    const id = 'uf_' + Date.now().toString(36);
+    R().foods[id] = { n, cat: v('nf_cat'), kcal, p, c, f };
+    save();
+    rDraft.i.push({ f: id, g: 100 }); rDraft.view = 'edit'; paintSheet();
+  }
+  function saveRecipe() {
+    syncDraftFromDom();
+    const d = rDraft, n = d.n.trim(), items = d.i.filter(it => it.g > 0);
+    if (!n) return showErr('r_err', 'Dá um nome à receita.');
+    if (!items.length) return showErr('r_err', 'Junta pelo menos um ingrediente com quantidade.');
+    const meal = { n, m: d.m, prep: d.prep.trim(), i: items.map(it => ({ f: it.f, g: Math.round(it.g * 10) / 10, ...(roleOf(it.f) ? { r: roleOf(it.f) } : {}) })) };
+    const r = R(), bslot = d.id && builtinSlot(d.id);
+    let id = d.id;
+    if (bslot && bslot === d.slot) r.edits[id] = { id, ...meal };
+    else {
+      if (bslot) { r.removed[id] = true; delete r.edits[id]; id = null; } // receita do plano mudada de refeição: passa a ser tua
+      if (id) Object.assign(r.custom.find(m => m.id === id), meal, { slot: d.slot });
+      else { id = 'u_' + Date.now().toString(36); r.custom.push({ id, slot: d.slot, ...meal }); }
+    }
+    if (d.pickFor && d.pickFor.slot === d.slot) dayState(d.pickFor.k).swaps[d.slot] = id;
+    save(); closeSheet(); render(); toast(d.isNew ? 'Receita criada' : 'Receita guardada');
+  }
+  function deleteRecipe() {
+    const d = rDraft;
+    if (mealsOf(d.slot).length <= 1) return showErr('r_err', 'Tem de ficar pelo menos uma receita nesta refeição.');
+    askConfirm({ title: 'Eliminar receita?', ok: 'Eliminar receita', text: `<b>${esc(d.n)}</b> deixa de aparecer no plano e é substituída por outra receita. Isto não pode ser desfeito.`,
+      onOk: () => {
+        const r = R();
+        if (builtinSlot(d.id)) { r.removed[d.id] = true; delete r.edits[d.id]; } else r.custom = r.custom.filter(m => m.id !== d.id);
+        save(); render(); toast('Receita eliminada');
+      } });
   }
 
   function toggleDone(slot) {
@@ -551,13 +673,13 @@
     const mon = shopKey(), agg = {};
     for (let i = 0; i < 7; i++) for (const m of dayPlan(addDays(mon, i)).meals) for (const it of m.items) agg[it.f] = (agg[it.f] || 0) + it.g;
     const cats = {};
-    for (const f in agg) (cats[FOODS[f].cat] ||= []).push({ f, g: agg[f] });
-    for (const c in cats) cats[c].sort((a, b) => FOODS[a.f].n.localeCompare(FOODS[b.f].n, 'pt'));
+    for (const f in agg) (cats[food(f).cat] ||= []).push({ f, g: agg[f] });
+    for (const c in cats) cats[c].sort((a, b) => food(a.f).n.localeCompare(food(b.f).n, 'pt'));
     return cats;
   }
   function amountTxt(f, g) {
     if (f === 'sopa') return { a: `${Math.ceil(g / 300)} pratos`, h: '1–2 panelas' };
-    const liq = isLiquid(f), F = FOODS[f];
+    const liq = isLiquid(f), F = food(f);
     const a = g >= 1000 ? `${n1(Math.ceil(g / 100) / 10)} ${liq ? 'L' : 'kg'}` : `${Math.ceil(g / 10) * 10} ${liq ? 'ml' : 'g'}`;
     let h = '';
     if (F.u && !['azeite', 'manteigaAm', 'chocolate'].includes(f)) { const n = Math.ceil(g / F.u[0] - 0.15); h = `${n} ${plural(F.u[1], n)}`; }
@@ -577,7 +699,7 @@
       for (const it of cats[c]) {
         const A = amountTxt(it.f, it.g), on = !!got[it.f];
         h += `<button class="row tap shop-row ${on ? 'got' : ''}" data-act="got" data-f="${it.f}" aria-pressed="${on}">
-          <span class="cb">${ic('check')}</span><span class="row-main ttl">${esc(FOODS[it.f].n)}</span>
+          <span class="cb">${ic('check')}</span><span class="row-main ttl">${esc(food(it.f).n)}</span>
           <span class="val num">${A.a}${A.h ? `<small>${A.h}</small>` : ''}</span></button>`;
       }
       h += `</div>`;
@@ -591,7 +713,7 @@
     for (const c of CAT_ORDER) {
       const rows = (cats[c] || []).filter(it => !got[it.f]);
       if (!rows.length) continue;
-      txt += `\n${c}\n` + rows.map(it => { const A = amountTxt(it.f, it.g); return `• ${FOODS[it.f].n} — ${A.a}${A.h ? ` (${A.h})` : ''}`; }).join('\n') + '\n';
+      txt += `\n${c}\n` + rows.map(it => { const A = amountTxt(it.f, it.g); return `• ${food(it.f).n} — ${A.a}${A.h ? ` (${A.h})` : ''}`; }).join('\n') + '\n';
     }
     try {
       if (navigator.share) await navigator.share({ title: 'Lista de compras', text: txt });
@@ -761,7 +883,7 @@
     ['regras', 'Regras para ficar lean', 'target', '#e2590f'],
     ['trocas', 'Tabela de trocas', 'swap', '#1c7ed6'],
   ];
-  const PLANO = [['refeicoes', 'As minhas refeições', 'heart', '#d6336c']];
+  const PLANO = [['refeicoes', 'As minhas receitas', 'pot', '#1d5c45']];
   const SETTINGS = [['calendario', 'Calendário dos turnos', 'cal', '#e2590f'], ['ajustes', 'Ajustes do plano', 'sliders', '#5c636a'], ['horarios', 'Turnos e horários', 'clock', '#5c636a'], ['dados', 'Cópia de segurança', 'box', '#5c636a'], ['fontes', 'Fontes científicas', 'doc', '#5c636a']];
   const navRow = ([id, l, i, col]) => `<button class="row tap" data-act="sub" data-id="${id}"><span class="tile" style="background:${col}">${ic(i)}</span><span class="row-main ttl" style="font-weight:500">${l}</span>${ic('chevR', 'chev')}</button>`;
 
@@ -886,11 +1008,13 @@
         <p class="cap">Ponto de partida para semanas novas — muda dia a dia em Semana → Escala. Recomendado: défice de 12% e atividade ligeira. Se ao fim de 3 semanas a média de peso e a cintura não descerem, sobe o défice um nível.</p>
       </form>`;
     } else if (id === 'refeicoes') {
-      const p = prefs(), nF = Object.keys(p.fav).length, nH = Object.keys(p.hide).length;
-      h = `<div class="prose"><p>Marca com <b>♥</b> as que gostas — aparecem primeiro quando trocas uma refeição. As que marcares com <b>👎</b> saem da rotação e a app escolhe outra sozinha.</p>
-          <p style="color:var(--ink-2);font-size:14px">${nF} preferidas · ${nH} fora da rotação · <span class="mk-m">Marmita</span> = aguenta bem numa caixa.</p></div>` +
-        SLOTS.map(s => `<div class="group-label">${s.n}</div><div class="list">${MEALS[s.id].map(o => prefRow(o, s.id)).join('')}</div>`).join('') +
-        `<p class="cap">Calorias aproximadas num dia de descanso; a app ajusta as quantidades de hidratos à meta de cada dia.</p>`;
+      const r = R(), changed = Object.keys(r.edits).length + Object.keys(r.removed).length;
+      h = `<div class="btn-stack" style="margin-top:4px"><button class="btn primary press" data-act="rnew" data-slot="almoco">${ic('plus')} Nova receita</button></div>` +
+        SLOTS.map(sl => `<div class="group-label">${sl.n}</div><div class="list">${mealsOf(sl.id).map(o => `
+          <button class="row tap" data-act="redit" data-id="${o.id}"><div class="row-main"><div class="ttl" style="font-weight:500">${esc(o.n)}</div><div class="sub">${recipeTags(o)}</div></div>${ic('chevR', 'chev')}</button>`).join('')}
+          <button class="row tap add-row" data-act="rnew" data-slot="${sl.id}">${ic('plus')}<div class="row-main"><div class="ttl">Adicionar ${sl.n.toLowerCase()}</div></div></button></div>`).join('') +
+        `<p class="cap">Toca numa receita para a editar ou eliminar. As quantidades de hidratos ajustam-se sozinhas à meta de cada dia; as calorias são de um dia de descanso.</p>` +
+        (changed ? `<div class="btn-stack"><button class="btn secondary press" data-act="rreset">Repor as receitas originais</button></div>` : '');
     } else if (id === 'calendario') {
       const c = S.cal || {};
       if (!c.url) {
@@ -1014,7 +1138,12 @@
         askConfirm({ title: 'Desligar o calendário?', ok: 'Desligar', text: 'Os turnos que mudaste à mão ficam; os do calendário deixam de aparecer.',
           onOk: () => { S.cal = { shifts: {}, autoS: true }; save(); render(); toast('Calendário desligado'); } });
         return;
-      case 'fav': case 'hide': togglePref(a, b.dataset.id); if (a === 'hide' && prefs().hide[b.dataset.id]) toast('Fora da rotação'); break;
+      case 'redit': openEditor(mealById(b.dataset.id)); return;
+      case 'rnew': openEditor(null, b.dataset.slot); return;
+      case 'rreset':
+        askConfirm({ title: 'Repor as receitas originais?', ok: 'Repor', text: 'As receitas do plano que editaste ou eliminaste voltam ao original. As que criaste ficam.',
+          onOk: () => { const r = R(); r.edits = {}; r.removed = {}; save(); render(); toast('Receitas repostas'); } });
+        return;
       case 'lmadd': dayState(curDay).lm = true; save(); toast('Lanche da manhã adicionado'); break;
       case 'resetturnos': S.profile.shifts = {}; save(); toast('Horários repostos'); break;
       case 'reset':
@@ -1062,7 +1191,6 @@
       case 'mode': sheetEl.dataset.mode = b.dataset.v; paintSheet(); sheetEl.scrollTo({ top: sheetEl.scrollHeight, behavior: 'smooth' }); return;
       case 'pick': {
         const st = dayState(curDay);
-        delete prefs().hide[b.dataset.id];
         if (sourceOf(curDay, slot)) S.links[LK(curDay, slot)] = 'none';
         if (b.dataset.id === WEEK[dowIdx(curDay)][slot]) delete st.swaps[slot]; else st.swaps[slot] = b.dataset.id;
         delete sheetEl.dataset.mode; refresh(); sheetEl.scrollTop = 0; toast('Refeição trocada'); return;
@@ -1078,7 +1206,15 @@
       }
       case 'calreset': delete dayState(b.dataset.k).turno; save(); render(); paintSheet(); toast('A seguir o calendário'); return;
       case 'lmrem': { const st = dayState(curDay); st.lm = false; delete st.done.lm; if (st.fora) delete st.fora.lm; save(); render(); closeSheet(); toast('Lanche da manhã retirado'); return; }
-      case 'fav': case 'hide': togglePref(a, b.dataset.id); render(); paintSheet(); if (a === 'hide' && prefs().hide[b.dataset.id]) toast('Fora da rotação'); return;
+      case 'redit': openEditor(mealById(b.dataset.id)); return;
+      case 'rnew': openEditor(null, b.dataset.slot, b.dataset.pick ? { k: curDay, slot } : null); return;
+      case 'rview': syncDraftFromDom(); rDraft.view = b.dataset.v; paintSheet(); sheetEl.scrollTop = 0; if (b.dataset.v === 'food') sheetEl.querySelector('#f_q').focus(); return;
+      case 'rslot': syncDraftFromDom(); rDraft.slot = b.dataset.v; paintSheet(); return;
+      case 'rdel': syncDraftFromDom(); rDraft.i.splice(+b.dataset.ri, 1); paintSheet(); return;
+      case 'raddf': { const F = food(b.dataset.f); rDraft.i.push({ f: b.dataset.f, g: F.u ? F.u[0] : 100 }); rDraft.view = 'edit'; paintSheet(); const ins = sheetEl.querySelectorAll('.g-in'); if (ins.length) { ins[ins.length - 1].focus(); ins[ins.length - 1].select(); } return; }
+      case 'rfoodsave': return saveNewFood();
+      case 'rsave': return saveRecipe();
+      case 'rdelete': return deleteRecipe();
       case 'setshift': setShift(b.dataset.k, b.dataset.v); render(); paintSheet(); return;
       case 'settrain': toggleTrain(b.dataset.k); render(); paintSheet(); return;
     }
@@ -1151,6 +1287,9 @@
     if (!c || !c.url) return '';
     return `<p class="cap" style="display:flex;align-items:center;gap:6px;margin-top:12px">${ic('cal', 'sm')}${c.err ? `Calendário: ${esc(c.err)} — a usar a escala de ${c.sync ? ago(c.sync) : 'antes'}` : `Calendário sincronizado ${c.sync ? ago(c.sync) : ''}`}</p>`;
   }
+
+  // Migração: refeições marcadas com "não gosto" passam a eliminadas
+  if (S.prefs && S.prefs.hide && Object.keys(S.prefs.hide).length) { Object.assign(R().removed, S.prefs.hide); delete S.prefs; save(); }
 
   // ================= Arranque =================
   render();
