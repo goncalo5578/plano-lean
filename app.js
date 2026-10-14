@@ -41,6 +41,7 @@
     search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
     barcode: '<path d="M4 7V5.5A1.5 1.5 0 0 1 5.5 4H7M17 4h1.5A1.5 1.5 0 0 1 20 5.5V7M20 17v1.5a1.5 1.5 0 0 1-1.5 1.5H17M7 20H5.5A1.5 1.5 0 0 1 4 18.5V17M8 8v8M11 8v8M14 8v8M17 8v8"/>',
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    refresh: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.5H15"/>',
     dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2.5 10v4M21.5 10v4M8 12h8"/>',
     drop: '<path d="M12 3.5c3.5 4.2 6 7.6 6 10.5a6 6 0 0 1-12 0c0-2.9 2.5-6.3 6-10.5z"/>',
     flame: '<path d="M12 21c-3.9 0-6.5-2.6-6.5-6.2 0-3.4 2.3-5.4 3.9-7.6.4 1.6 1.3 2.7 2.4 3.2-.2-3 1.3-5.9 3.4-7.4.1 3.3 3.3 5.6 3.3 9.8 0 4.4-2.6 8.2-6.5 8.2z"/>',
@@ -229,6 +230,7 @@
   const $tabs = document.getElementById('tabs');
   const TABS = [['hoje', 'Hoje', 'plate'], ['semana', 'Semana', 'cal'], ['compras', 'Compras', 'bag'], ['progresso', 'Progresso', 'chart'], ['perfil', 'Perfil', 'user']];
   let tab = 'hoje', sub = null, curDay = todayKey(), weekOffset = 0, shopWeek = 0, range = 30;
+  const NAV_KEY = 'planoLean.nav';
 
   $tabs.innerHTML = TABS.map(([id, l, i]) => `<button data-tab="${id}" class="press">${ic(i)}<span>${l}</span></button>`).join('');
   $tabs.addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) go(b.dataset.tab); });
@@ -244,6 +246,7 @@
     if (anim) { $view.classList.remove('fade'); void $view.offsetWidth; $view.classList.add('fade'); }
     onScroll();
     syncGuard();
+    try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, recCat, curDay, weekOffset, shopWeek, range, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
   }
   function header(over, title, actions = '') {
     $hdr.innerHTML = `<div><div class="over">${over}</div><h1>${title}</h1></div><div class="hdr-actions">${actions}</div>`;
@@ -1414,7 +1417,7 @@
   }
   // O histórico do browser acompanha a profundidade. As entradas novas só são criadas durante um toque
   // (o Chrome do Android salta entradas criadas sem toque), e o "voltar" só desfaz — nunca cria.
-  let histD = 0, pendingPops = 0, inPop = false;
+  let histD = (history.state && history.state.d) || 0, pendingPops = 0, inPop = false;
   function syncGuard() {
     if (inPop) return;
     const t = uiDepth();
@@ -1454,8 +1457,65 @@
   }
 
   // ================= Arranque =================
-  history.replaceState({ d: 0 }, '');
+  // Depois de recarregar, volta ao sítio onde estavas
+  try {
+    const nav = JSON.parse(sessionStorage.getItem(NAV_KEY));
+    if (nav && TABS.some(t => t[0] === nav.tab)) {
+      tab = nav.tab;
+      if (tab === 'perfil' && [...PLANO, ...GUIDE, ...SETTINGS].some(x => x[0] === nav.sub)) { sub = nav.sub; recCat = SLOTS.some(x => x.id === nav.recCat) ? nav.recCat : null; }
+      if (nav.on === todayKey() && /^\d{4}-\d{2}-\d{2}$/.test(nav.curDay || '')) curDay = nav.curDay;
+      weekOffset = +nav.weekOffset || 0; shopWeek = +nav.shopWeek || 0; range = [0, 30, 90].includes(nav.range) ? nav.range : 30;
+    }
+  } catch (e) { /* começa no Hoje */ }
+  if (!history.state || typeof history.state.d !== 'number') history.replaceState({ d: 0 }, '');
   render();
+
+  // ================= Puxar para baixo para atualizar =================
+  const ptr = document.createElement('div');
+  ptr.className = 'ptr'; ptr.setAttribute('aria-hidden', 'true'); ptr.innerHTML = ic('refresh');
+  document.body.appendChild(ptr);
+  const PTR_MAX = 92, PTR_GO = 64;
+  let py0 = null, px0 = 0, pull = 0, refreshing = false;
+  const setPtr = (y, anim) => {
+    ptr.style.transition = anim ? 'transform .3s var(--ease), opacity .3s' : 'none';
+    ptr.style.transform = `translateY(${y - 56}px) rotate(${y * 4}deg)`;
+    ptr.style.opacity = Math.min(1, y / PTR_GO);
+    ptr.classList.toggle('ready', y >= PTR_GO);
+  };
+  document.addEventListener('touchstart', e => {
+    py0 = (!refreshing && !sheetOpen() && window.scrollY <= 0) ? e.touches[0].clientY : null;
+    px0 = e.touches[0].clientX; pull = 0;
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (py0 === null) return;
+    const dy = e.touches[0].clientY - py0, dx = Math.abs(e.touches[0].clientX - px0);
+    if (dy <= 0 || dx > dy || window.scrollY > 0) { if (pull) setPtr(0, true); pull = 0; return; }
+    pull = Math.min(PTR_MAX, dy * 0.5);
+    setPtr(pull, false);
+  }, { passive: true });
+  document.addEventListener('touchend', () => {
+    if (py0 === null) return;
+    py0 = null;
+    if (pull >= PTR_GO) pullRefresh(); else if (pull) setPtr(0, true);
+    pull = 0;
+  }, { passive: true });
+  async function pullRefresh() {
+    refreshing = true;
+    setPtr(PTR_GO, true); ptr.classList.add('spin');
+    const t0 = Date.now();
+    let updated = false;
+    try {
+      const reg = 'serviceWorker' in navigator && await navigator.serviceWorker.getRegistration();
+      if (reg) { await reg.update(); updated = !!(reg.installing || reg.waiting); }
+    } catch (e) { /* sem internet */ }
+    await syncCal(true).catch(() => {});
+    await new Promise(r => setTimeout(r, Math.max(0, 700 - (Date.now() - t0))));
+    if (updated) { location.reload(); return; } // há versão nova: recarrega e volta ao mesmo sítio
+    render();
+    ptr.classList.remove('spin'); setPtr(0, true);
+    refreshing = false;
+    toast(navigator.onLine === false ? 'Sem internet — a mostrar o que está guardado' : 'Atualizado');
+  }
   let lastToday = todayKey();
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
