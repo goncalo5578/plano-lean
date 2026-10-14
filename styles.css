@@ -119,8 +119,7 @@ main { max-width: 600px; margin: 0 auto; padding: 0 16px 24px; outline: none; }
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
   display: grid; grid-template-columns: repeat(5, 1fr);
   padding: 7px 6px calc(6px + env(safe-area-inset-bottom));
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
-  backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background: var(--surface); /* sólido: igual à cor da barra de gestos do Android (manifest background_color) */
   border-top: .5px solid var(--sep);
 }
 .tabs button { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; color: var(--ink-3); padding: 2px 0; }
