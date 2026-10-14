@@ -41,6 +41,9 @@
     search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
     barcode: '<path d="M4 7V5.5A1.5 1.5 0 0 1 5.5 4H7M17 4h1.5A1.5 1.5 0 0 1 20 5.5V7M20 17v1.5a1.5 1.5 0 0 1-1.5 1.5H17M7 20H5.5A1.5 1.5 0 0 1 4 18.5V17M8 8v8M11 8v8M14 8v8M17 8v8"/>',
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    fish: '<path d="M2.5 12c2.6-3.6 6.6-5.2 10.6-4.3 1.6.4 3 1.2 4.2 2.3l3.2-2.5v9l-3.2-2.5c-1.2 1.1-2.6 1.9-4.2 2.3-4 .9-8-.7-10.6-4.3z"/><path d="M7.5 11.5v.01"/>',
+    egg: '<path d="M12 3.5c3.6 0 6.5 5.4 6.5 9.8a6.5 6.5 0 0 1-13 0c0-4.4 2.9-9.8 6.5-9.8z"/>',
+    wheat: '<path d="M12 21V9"/><path d="M12 9c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 9c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8zM12 14c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 14c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8zM12 19c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 19c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8z"/>',
     refresh: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.5H15"/>',
     dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2.5 10v4M21.5 10v4M8 12h8"/>',
     drop: '<path d="M12 3.5c3.5 4.2 6 7.6 6 10.5a6 6 0 0 1-12 0c0-2.9 2.5-6.3 6-10.5z"/>',
@@ -882,21 +885,37 @@
     if (f === 'claras') h = `${Math.ceil(g / 33)} claras`;
     return { a, h };
   }
+  // Cor e ícone de cada categoria da lista de compras
+  const CAT_STYLE = {
+    'Proteínas': ['fish', 'var(--f)'], 'Laticínios e ovos': ['egg', 'var(--p)'], 'Hidratos': ['wheat', 'var(--c)'],
+    'Legumes': ['leaf', 'var(--accent)'], 'Fruta': ['apple', 'var(--train)'], 'Gorduras': ['drop', '#b08a2e'], 'Outros': ['box', 'var(--ink-3)'],
+  };
   function renderCompras() {
     const r = shopRange(), k = r.key, cats = shopItems(), got = S.shop[k] || {};
-    const total = Object.values(cats).flat().length, nGot = Object.values(cats).flat().filter(i => got[i.f]).length, days = daysIn(r);
+    const all = Object.values(cats).flat(), total = all.length, nGot = all.filter(i => got[i.f]).length, left = total - nGot, days = daysIn(r);
     header(rangeTxt(r), 'Compras', `<button class="circle-btn press" data-act="share" aria-label="Partilhar lista">${ic('share', 'sm')}</button>`);
     let h = `<div class="seg full seg-shop" role="group" aria-label="Período">${SHOP_MODES.map(([v, l]) => `<button class="${shopMode === v ? 'on' : ''}" data-act="sw" data-w="${v}">${l}</button>`).join('')}</div>
-      <section class="card" style="margin-top:12px"><div class="meta num" style="margin:0"><span><b>${nGot}</b> de ${total} artigos · ${days} ${days === 1 ? 'dia' : 'dias'}</span>${nGot ? '<button data-act="clear" style="color:var(--accent);font-weight:600;font-size:13px">Limpar</button>' : ''}</div>
-      <div class="track thin"><i style="width:${total ? (nGot / total) * 100 : 0}%"></i></div></section>`;
+      <section class="card shop-sum">
+        <div class="energy-top">
+          <div><div class="big num" data-count="shopleft" data-v="${left}">${left}</div><div class="big-lbl">${left === 1 ? 'artigo por comprar' : 'artigos por comprar'}</div></div>
+          <div class="shop-days">${ic('cal', 'sm')}<span class="num"><b>${days}</b> ${days === 1 ? 'dia' : 'dias'}</span></div>
+        </div>
+        <div class="track"><i style="width:${total ? (nGot / total) * 100 : 0}%"></i></div>
+        <div class="meta num"><span>Comprado <b>${nGot}</b> de ${total}</span>${nGot ? '<button class="link" data-act="clear">Limpar</button>' : ''}</div>
+      </section>`;
+    if (total && !left) h += `<section class="card done-card">${ic('check')}<div><b>Tudo comprado</b><span>A lista deste período está completa.</span></div></section>`;
     for (const c of CAT_ORDER) {
       if (!cats[c]) continue;
-      h += `<div class="group-label">${c}</div><div class="list">`;
+      const [icon, col] = CAT_STYLE[c] || ['box', 'var(--ink-3)'];
+      const cGot = cats[c].filter(it => got[it.f]).length, complete = cGot === cats[c].length;
+      h += `<div class="shop-cat" style="--cc:${col}"><span class="cat-ic">${ic(icon)}</span><span class="cat-n">${c}</span>
+        <span class="cat-c num ${complete ? 'ok' : ''}">${complete ? ic('check') : `${cGot}/${cats[c].length}`}</span></div><div class="list">`;
       for (const it of cats[c]) {
         const A = amountTxt(it.f, it.g), on = !!got[it.f];
         h += `<button class="row tap shop-row ${on ? 'got' : ''}" data-act="got" data-f="${it.f}" aria-pressed="${on}">
-          <span class="cb">${ic('check')}</span><span class="row-main ttl">${esc(food(it.f).n)}</span>
-          <span class="val num">${A.a}${A.h ? `<small>${A.h}</small>` : ''}</span></button>`;
+          <span class="cb">${ic('check')}</span>
+          <span class="row-main"><span class="ttl">${esc(food(it.f).n)}</span>${A.h ? `<span class="sub">${A.h}</span>` : ''}</span>
+          <span class="amt num">${A.a}</span></button>`;
       }
       h += `</div>`;
     }
