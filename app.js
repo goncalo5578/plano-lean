@@ -304,12 +304,13 @@
     const slide = (tab === 'hoje' || tab === 'semana') && (anim === 'next' || anim === 'prev');
     const oldPane = slide ? $view.querySelector('.day-pane') : null;
     const ghost = oldPane ? oldPane.cloneNode(true) : null;
-    morphNext = !anim;
+    const dragDx = oldPane ? oldPane.style.getPropertyValue('--dx') : ''; // se veio de arrastar com o dedo, continua daí
+    morphNext = !anim || slide; // no carrossel só se atualiza o que muda (título e botões ficam quietos)
     ({ hoje: renderHoje, semana: renderSemana, compras: renderCompras, progresso: renderProgresso, perfil: renderPerfil })[tab]();
     morphNext = false;
     if (anim) {
       const cls = 'v-' + (anim === true ? 'fade' : anim);
-      for (const el of ghost ? [$hdr] : [$view, $hdr]) { el.classList.remove(...V_ANIM); void el.offsetWidth; el.classList.add(cls); }
+      for (const el of ghost ? (tab === 'hoje' ? [$hdr] : []) : [$view, $hdr]) { el.classList.remove(...V_ANIM); void el.offsetWidth; el.classList.add(cls); }
       if (ghost) {
         $view.classList.remove(...V_ANIM);
         const stage = $view.querySelector('.day-stage'), pane = stage.querySelector('.day-pane');
@@ -317,8 +318,7 @@
         ghost.classList.add('ghost', anim === 'next' ? 'out-left' : 'out-right');
         ghost.setAttribute('aria-hidden', 'true');
         pane.classList.add(anim === 'next' ? 'in-right' : 'in-left');
-        const dx = oldPane.style.getPropertyValue('--dx'); // se veio de arrastar com o dedo, continua daí
-        if (dx) pane.style.setProperty('--dx', dx);
+        if (dragDx) pane.style.setProperty('--dx', dragDx);
         stage.appendChild(ghost);
         setTimeout(() => { ghost.remove(); pane.classList.remove('in-right', 'in-left'); pane.style.removeProperty('--dx'); }, 450);
       }
