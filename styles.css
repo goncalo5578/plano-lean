@@ -453,6 +453,13 @@ details.hist .hist-list .row { box-shadow: inset 0 .5px 0 var(--sep); }
 .cap.err { color: var(--danger); min-height: 0; }
 .cap.err:empty { display: none; }
 
+/* Refeições em cartões separados (As minhas receitas) */
+.cat-cards { display: grid; gap: 10px; }
+.cat-card { background: var(--surface); border-radius: var(--r-lg); min-height: 64px; padding: 14px 16px; }
+.cat-card .tile { width: 38px; height: 38px; border-radius: 11px; }
+.cat-card .tile .ic { width: 21px; height: 21px; }
+.cat-card .ttl { font-size: 16.5px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

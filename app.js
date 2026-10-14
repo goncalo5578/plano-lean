@@ -1018,9 +1018,9 @@
     } else if (id === 'refeicoes') {
       const r = R(), changed = Object.keys(r.edits).length + Object.keys(r.removed).length;
       h = `<div class="btn-stack" style="margin-top:4px"><button class="btn primary press" data-act="rnew" data-slot="almoco">${ic('plus')} Nova receita</button></div>
-        <div class="group-label">Refeições</div><div class="list">${SLOTS.map(sl => { const n = mealsOf(sl.id).length; return `
-          <button class="row tap" data-act="rcat" data-slot="${sl.id}"><span class="tile" style="background:var(--accent-soft);color:var(--accent)">${ic(SLOT_IC[sl.id] || 'apple')}</span><div class="row-main"><div class="ttl" style="font-weight:500">${sl.n}</div><div class="sub">${n} ${n === 1 ? 'receita' : 'receitas'}</div></div>${ic('chevR', 'chev')}</button>`; }).join('')}</div>
-        <p class="cap">As quantidades de hidratos ajustam-se sozinhas à meta de cada dia; as calorias das receitas são de um dia de descanso.</p>` +
+        <div class="group-label">Refeições</div><div class="cat-cards">${SLOTS.map(sl => { const n = mealsOf(sl.id).length; return `
+          <button class="row tap cat-card press" data-act="rcat" data-slot="${sl.id}"><span class="tile" style="background:var(--accent-soft);color:var(--accent)">${ic(SLOT_IC[sl.id] || 'apple')}</span><div class="row-main"><div class="ttl" style="font-weight:500">${sl.n}</div><div class="sub">${n} ${n === 1 ? 'receita' : 'receitas'}</div></div>${ic('chevR', 'chev')}</button>`; }).join('')}</div>
+` +
         (changed ? `<div class="btn-stack"><button class="btn secondary press" data-act="rreset">Repor as receitas originais</button></div>` : '');
     } else if (id === 'calendario') {
       const c = S.cal || {};
