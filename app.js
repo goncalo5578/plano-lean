@@ -39,6 +39,7 @@
     pot: '<path d="M4 10h16v5.5A4.5 4.5 0 0 1 15.5 20h-7A4.5 4.5 0 0 1 4 15.5zM2 10h2M20 10h2M9.5 7c0-1.2 1-1.6 1-2.8M14 7c0-1.2 1-1.6 1-2.8"/>',
     edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
     search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
+    barcode: '<path d="M4 7V5.5A1.5 1.5 0 0 1 5.5 4H7M17 4h1.5A1.5 1.5 0 0 1 20 5.5V7M20 17v1.5a1.5 1.5 0 0 1-1.5 1.5H17M7 20H5.5A1.5 1.5 0 0 1 4 18.5V17M8 8v8M11 8v8M14 8v8M17 8v8"/>',
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
     dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2.5 10v4M21.5 10v4M8 12h8"/>',
     drop: '<path d="M12 3.5c3.5 4.2 6 7.6 6 10.5a6 6 0 0 1-12 0c0-2.9 2.5-6.3 6-10.5z"/>',
@@ -270,6 +271,7 @@
       sheetEl.addEventListener('click', onSheetClick);
       sheetEl.addEventListener('submit', onSheetSubmit);
       sheetEl.addEventListener('input', onRecipeInput);
+      sheetEl.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'bc_in') { e.preventDefault(); lookupBarcode(e.target.value); } });
       sheetEl.addEventListener('change', onRecipeInput);
       sheetEl.addEventListener('pointerdown', e => {
         const b = e.target.closest('[data-step]'); if (!b) return;
@@ -308,6 +310,7 @@
       <button class="btn secondary press" data-act="close">Cancelar</button></div>`, { noClose: true });
   }
   function closeSheet() {
+    if (typeof stopScan === 'function') stopScan();
     if (!sheetEl) return;
     backEl.classList.remove('open'); sheetEl.classList.remove('open');
     document.body.style.overflow = '';
@@ -517,10 +520,23 @@
     const d = rDraft;
     if (d.view === 'food') {
       return `<div class="over">${esc(d.n || 'Receita')}</div><h2>Adicionar ingrediente</h2>
-        <div class="list search-row">${ic('search')}<input id="f_q" type="search" placeholder="Procurar alimento" autocomplete="off" aria-label="Procurar alimento"></div>
+        <div class="list search-row">${ic('search')}<input id="f_q" type="search" placeholder="Procurar alimento ou produto" autocomplete="off" aria-label="Procurar alimento ou produto"></div>
+        <div class="list" style="margin-top:10px"><button class="row tap" data-act="rview" data-v="scan"><span class="tile" style="background:var(--accent-soft);color:var(--accent)">${ic('barcode')}</span><div class="row-main"><div class="ttl" style="font-weight:500">Ler código de barras</div><div class="sub">Da embalagem do produto</div></div>${ic('chevR', 'chev')}</button></div>
         <div id="f_list">${foodListHTML('')}</div>
+        <div class="group-label">Produtos do supermercado</div>
+        <div id="off_list"><p class="cap" style="margin:0 4px">Escreve pelo menos 3 letras para procurar produtos à venda em Portugal (Open Food Facts).</p></div>
         <div class="btn-stack"><button class="btn secondary press" data-act="rview" data-v="newfood">${ic('plus')} Alimento que não está na lista</button>
         <button class="btn secondary press" data-act="rview" data-v="edit">Voltar à receita</button></div>`;
+    }
+    if (d.view === 'scan') {
+      const hasCam = 'BarcodeDetector' in window && navigator.mediaDevices;
+      return `<div class="over">${esc(d.n || 'Receita')}</div><h2>Ler código de barras</h2>
+        ${hasCam ? `<div class="scan-box"><video id="scan_v" playsinline muted></video><span class="scan-line"></span></div>
+          <p class="cap" id="scan_msg" style="text-align:center">Aponta a câmara para o código de barras.</p>`
+          : `<p class="cap" style="margin:0 4px 10px">Este telemóvel não deixa ler o código com a câmara dentro da app. Escreve os números que estão por baixo das barras.</p>`}
+        <div class="list search-row">${ic('barcode')}<input id="bc_in" type="text" inputmode="numeric" autocomplete="off" placeholder="5601234567890" aria-label="Número do código de barras"><button type="button" class="link" data-act="bcgo">Procurar</button></div>
+        <div id="bc_res"></div>
+        <div class="btn-stack"><button class="btn secondary press" data-act="rview" data-v="food">Voltar</button></div>`;
     }
     if (d.view === 'newfood') {
       const num = (id, l) => `<div class="form-row"><label for="${id}">${l}</label><input id="${id}" type="text" inputmode="decimal" autocomplete="off" placeholder="0"></div>`;
@@ -555,7 +571,11 @@
   }
   function onRecipeInput(e) {
     const el = e.target;
-    if (el.id === 'f_q') { sheetEl.querySelector('#f_list').innerHTML = foodListHTML(el.value); return; }
+    if (el.id === 'f_q') {
+      sheetEl.querySelector('#f_list').innerHTML = foodListHTML(el.value);
+      clearTimeout(offTimer); offTimer = setTimeout(() => searchOFF(el.value), 450);
+      return;
+    }
     if (!rDraft || rDraft.view !== 'edit') return;
     if (el.classList.contains('g-in')) {
       const idx = +el.dataset.ri, v = parseFloat(el.value.replace(',', '.'));
@@ -564,6 +584,71 @@
       sheetEl.querySelector('#r_tot').innerHTML = totalsHTML(draftTotals());
     }
     if (el.id === 'r_n') rDraft.n = el.value;
+  }
+  // ---- Produtos do supermercado (Open Food Facts, através do Worker) ----
+  const FOOD_API = 'https://plano-lean-calendario.goncalo5578.workers.dev';
+  let offTimer = null, offSeq = 0, offHits = [], camStream = null, scanTimer = null;
+  const guessCat = x => (x.p >= 15 && x.c < 10 ? 'Proteínas' : x.c >= 40 ? 'Hidratos' : x.f >= 40 ? 'Gorduras' : 'Outros');
+  const offRow = (x, i) => `<button class="row tap" data-act="raddoff" data-i="${i}"><div class="row-main"><div class="ttl" style="font-weight:500">${esc(x.n)}</div>
+    <div class="sub num">${[x.b, x.q].filter(Boolean).map(esc).join(' · ')}${x.b || x.q ? ' · ' : ''}${x.kcal} kcal · P ${n1(x.p)} · H ${n1(x.c)} · G ${n1(x.f)} por 100 g</div></div>${ic('plus', 'chev')}</button>`;
+  async function searchOFF(q) {
+    const box = sheetEl.querySelector('#off_list'); if (!box) return;
+    q = q.trim();
+    if (q.length < 3) { box.innerHTML = '<p class="cap" style="margin:0 4px">Escreve pelo menos 3 letras para procurar produtos à venda em Portugal (Open Food Facts).</p>'; return; }
+    const seq = ++offSeq;
+    box.innerHTML = '<p class="cap" style="margin:0 4px">A procurar…</p>';
+    try {
+      const r = await fetch(`${FOOD_API}/alimentos?q=${encodeURIComponent(q)}&v=2`);
+      if (!r.ok) throw new Error();
+      const { items } = await r.json();
+      if (seq !== offSeq || !sheetEl.querySelector('#off_list')) return; // já escreveste outra coisa
+      offHits = items;
+      box.innerHTML = items.length ? `<div class="list">${items.map(offRow).join('')}</div><p class="cap">Valores do rótulo, partilhados por voluntários no Open Food Facts. Confirma se parecerem estranhos.</p>`
+        : `<p class="cap" style="margin:0 4px">Não encontrei produtos com "${esc(q)}".</p>`;
+    } catch (e) {
+      if (seq === offSeq) box.innerHTML = '<p class="cap" style="margin:0 4px">Sem ligação à internet — por agora só aparecem os alimentos da app.</p>';
+    }
+  }
+  function addOffFood(x) {
+    const id = 'off_' + x.code;
+    R().foods[id] = { n: x.b && !x.n.toLowerCase().includes(x.b.toLowerCase()) ? `${x.n} (${x.b})` : x.n, cat: guessCat(x), kcal: x.kcal, p: x.p, c: x.c, f: x.f, off: x.code };
+    save();
+    rDraft.i.push({ f: id, g: 100 }); rDraft.view = 'edit'; stopScan(); paintSheet();
+    const ins = sheetEl.querySelectorAll('.g-in'); if (ins.length) { ins[ins.length - 1].focus(); ins[ins.length - 1].select(); }
+  }
+  async function lookupBarcode(code) {
+    code = String(code).replace(/\D/g, '');
+    const box = sheetEl.querySelector('#bc_res'); if (!box) return;
+    if (code.length < 6) { box.innerHTML = '<p class="cap err">O código tem de ter pelo menos 6 números.</p>'; return; }
+    box.innerHTML = '<p class="cap" style="margin:10px 4px 0">A procurar…</p>';
+    try {
+      const r = await fetch(`${FOOD_API}/produto?code=${code}`);
+      const { item } = await r.json();
+      if (!item) { box.innerHTML = `<p class="cap" style="margin:10px 4px">Não encontrei o produto ${code}. Podes criá-lo com os valores do rótulo.</p><div class="btn-stack" style="margin-top:8px"><button class="btn secondary press" data-act="rview" data-v="newfood">${ic('plus')} Criar alimento</button></div>`; return; }
+      offHits = [item];
+      box.innerHTML = `<div class="group-label">Encontrado</div><div class="list">${offRow(item, 0)}</div>`;
+    } catch (e) { box.innerHTML = '<p class="cap" style="margin:10px 4px">Sem ligação à internet. Tenta outra vez.</p>'; }
+  }
+  async function startScan() {
+    const v = sheetEl.querySelector('#scan_v'); if (!v) return;
+    const msg = t => { const m = sheetEl.querySelector('#scan_msg'); if (m) m.textContent = t; };
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      if (!sheetEl.querySelector('#scan_v')) return stopScan();
+      v.srcObject = camStream; await v.play();
+      const det = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+      scanTimer = setInterval(async () => {
+        if (!v.videoWidth) return;
+        try {
+          const codes = await det.detect(v);
+          if (codes.length) { const c = codes[0].rawValue; stopScan(); sheetEl.querySelector('#bc_in').value = c; msg(`Código lido: ${c}`); lookupBarcode(c); }
+        } catch (e) { /* tenta na próxima imagem */ }
+      }, 300);
+    } catch (e) { stopScan(); msg('Não consegui abrir a câmara. Escreve o número do código em baixo.'); }
+  }
+  function stopScan() {
+    clearInterval(scanTimer); scanTimer = null;
+    if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
   }
   const showErr = (id, msg) => { const e = sheetEl.querySelector('#' + id); if (e) e.textContent = msg; };
   function saveNewFood() {
@@ -1217,7 +1302,12 @@
       case 'lmrem': { const st = dayState(curDay); st.lm = false; delete st.done.lm; if (st.fora) delete st.fora.lm; save(); render(); closeSheet(); toast('Lanche da manhã retirado'); return; }
       case 'redit': openEditor(mealById(b.dataset.id)); return;
       case 'rnew': openEditor(null, b.dataset.slot, b.dataset.pick ? { k: curDay, slot } : null); return;
-      case 'rview': syncDraftFromDom(); rDraft.view = b.dataset.v; paintSheet(); sheetEl.scrollTop = 0; if (b.dataset.v === 'food') sheetEl.querySelector('#f_q').focus(); return;
+      case 'rview': syncDraftFromDom(); stopScan(); rDraft.view = b.dataset.v; paintSheet(); sheetEl.scrollTop = 0;
+        if (b.dataset.v === 'food') sheetEl.querySelector('#f_q').focus();
+        if (b.dataset.v === 'scan') startScan();
+        return;
+      case 'raddoff': if (offHits[+b.dataset.i]) addOffFood(offHits[+b.dataset.i]); return;
+      case 'bcgo': lookupBarcode(sheetEl.querySelector('#bc_in').value); return;
       case 'rslot': syncDraftFromDom(); rDraft.slot = b.dataset.v; paintSheet(); return;
       case 'rdel': syncDraftFromDom(); rDraft.i.splice(+b.dataset.ri, 1); paintSheet(); return;
       case 'raddf': { const F = food(b.dataset.f); rDraft.i.push({ f: b.dataset.f, g: F.u ? F.u[0] : 100 }); rDraft.view = 'edit'; paintSheet(); const ins = sheetEl.querySelectorAll('.g-in'); if (ins.length) { ins[ins.length - 1].focus(); ins[ins.length - 1].select(); } return; }
