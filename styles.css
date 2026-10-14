@@ -116,10 +116,10 @@ main { max-width: 600px; margin: 0 auto; padding: 0 16px 24px; outline: none; }
   opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .2s, transform .2s;
 }
 .topbar.show { opacity: 1; transform: none; }
-/* Separação suave: em vez de uma linha, a cor da barra desvanece para o conteúdo */
+/* Linha de divisão em baixo da barra: mais visível ao centro e a desvanecer para os lados */
 .topbar::after {
-  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 18px; pointer-events: none;
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 78%, transparent), transparent);
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; pointer-events: none;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--ink) 16%, transparent) 50%, transparent);
 }
 
 /* ============ Tab bar ============ */
