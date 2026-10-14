@@ -56,7 +56,7 @@
     scale: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8.5 9.5a5 5 0 0 1 7 0L12 12.5z"/>',
   };
   const ic = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
-  const SLOT_IC = { pa: 'sunrise', almoco: 'sun', lanche: 'apple', jantar: 'moon' };
+  const SLOT_IC = { pa: 'sunrise', lm: 'apple', almoco: 'sun', lanche: 'apple', jantar: 'moon' };
 
   // ================= Datas =================
   const DOW = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -483,7 +483,7 @@
   }
 
   // ================= Editor de receitas =================
-  let rDraft = null;
+  let rDraft = null, recCat = null; // recCat: refeição aberta em Perfil → As minhas receitas
   const roleOf = f => (food(f).cat === 'Hidratos' ? 'c' : food(f).cat === 'Proteínas' ? 'p' : undefined);
   const normTxt = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const FOOD_CATS = ['Proteínas', 'Laticínios e ovos', 'Hidratos', 'Legumes', 'Fruta', 'Gorduras', 'Outros'];
@@ -910,8 +910,10 @@
 
   function renderSub(id) {
     const all = [...PLANO, ...GUIDE, ...SETTINGS], meta = all.find(x => x[0] === id);
-    $hdr.innerHTML = `<div><button class="back over" data-act="back" style="font-size:16px">${ic('chevL', 'sm')}Perfil</button><h1>${meta[1]}</h1></div>`;
-    $top.textContent = meta[1];
+    const catSlot = id === 'refeicoes' && recCat ? SLOTS.find(x => x.id === recCat) : null;
+    const title = catSlot ? catSlot.n : meta[1];
+    $hdr.innerHTML = `<div><button class="back over" data-act="${catSlot ? 'rcatback' : 'back'}" style="font-size:16px">${ic('chevL', 'sm')}${catSlot ? 'Receitas' : 'Perfil'}</button><h1>${title}</h1></div>`;
+    $top.textContent = title;
     const p = S.profile, T = targets();
     const item = (t, d) => `<div class="item"><h4>${t}</h4><p>${d}</p></div>`;
     const vs = (t, w, m) => `<div class="item"><h4>${t}</h4><div class="vs">${m == null ? `<div class="both">${w}</div>` : `<div><span>Mulher</span>${w}</div><div><span>Homem</span>${m}</div>`}</div></div>`;
@@ -1007,13 +1009,18 @@
         </div></div>
         <p class="cap">Ponto de partida para semanas novas — muda dia a dia em Semana → Escala. Recomendado: défice de 12% e atividade ligeira. Se ao fim de 3 semanas a média de peso e a cintura não descerem, sobe o défice um nível.</p>
       </form>`;
+    } else if (id === 'refeicoes' && catSlot) {
+      const list = mealsOf(catSlot.id);
+      h = `<div class="btn-stack" style="margin-top:4px"><button class="btn primary press" data-act="rnew" data-slot="${catSlot.id}">${ic('plus')} Nova receita</button></div>
+        <div class="group-label">${list.length} ${list.length === 1 ? 'receita' : 'receitas'}</div><div class="list">${list.map(o => `
+          <button class="row tap" data-act="redit" data-id="${o.id}"><div class="row-main"><div class="ttl" style="font-weight:500">${esc(o.n)}</div><div class="sub">${recipeTags(o)}</div></div>${ic('chevR', 'chev')}</button>`).join('')}</div>
+        <p class="cap">Toca numa receita para a editar ou eliminar.</p>`;
     } else if (id === 'refeicoes') {
       const r = R(), changed = Object.keys(r.edits).length + Object.keys(r.removed).length;
-      h = `<div class="btn-stack" style="margin-top:4px"><button class="btn primary press" data-act="rnew" data-slot="almoco">${ic('plus')} Nova receita</button></div>` +
-        SLOTS.map(sl => `<div class="group-label">${sl.n}</div><div class="list">${mealsOf(sl.id).map(o => `
-          <button class="row tap" data-act="redit" data-id="${o.id}"><div class="row-main"><div class="ttl" style="font-weight:500">${esc(o.n)}</div><div class="sub">${recipeTags(o)}</div></div>${ic('chevR', 'chev')}</button>`).join('')}
-          <button class="row tap add-row" data-act="rnew" data-slot="${sl.id}">${ic('plus')}<div class="row-main"><div class="ttl">Adicionar ${sl.n.toLowerCase()}</div></div></button></div>`).join('') +
-        `<p class="cap">Toca numa receita para a editar ou eliminar. As quantidades de hidratos ajustam-se sozinhas à meta de cada dia; as calorias são de um dia de descanso.</p>` +
+      h = `<div class="btn-stack" style="margin-top:4px"><button class="btn primary press" data-act="rnew" data-slot="almoco">${ic('plus')} Nova receita</button></div>
+        <div class="group-label">Refeições</div><div class="list">${SLOTS.map(sl => { const n = mealsOf(sl.id).length; return `
+          <button class="row tap" data-act="rcat" data-slot="${sl.id}"><span class="tile" style="background:var(--accent-soft);color:var(--accent)">${ic(SLOT_IC[sl.id] || 'apple')}</span><div class="row-main"><div class="ttl" style="font-weight:500">${sl.n}</div><div class="sub">${n} ${n === 1 ? 'receita' : 'receitas'}</div></div>${ic('chevR', 'chev')}</button>`; }).join('')}</div>
+        <p class="cap">As quantidades de hidratos ajustam-se sozinhas à meta de cada dia; as calorias das receitas são de um dia de descanso.</p>` +
         (changed ? `<div class="btn-stack"><button class="btn secondary press" data-act="rreset">Repor as receitas originais</button></div>` : '');
     } else if (id === 'calendario') {
       const c = S.cal || {};
@@ -1127,8 +1134,10 @@
       }
       case 'usepeso': S.profile.peso = +b.dataset.kg; save(); toast(`Plano recalculado para ${n1(+b.dataset.kg)} kg`); break;
       // Perfil
-      case 'sub': sub = b.dataset.id; render(true); window.scrollTo(0, 0); return;
-      case 'back': sub = null; render(true); window.scrollTo(0, 0); return;
+      case 'sub': sub = b.dataset.id; recCat = null; render(true); window.scrollTo(0, 0); return;
+      case 'back': sub = null; recCat = null; render(true); window.scrollTo(0, 0); return;
+      case 'rcat': recCat = b.dataset.slot; render(true); window.scrollTo(0, 0); return;
+      case 'rcatback': recCat = null; render(true); window.scrollTo(0, 0); return;
       case 'export': exportData(); return;
       case 'tema': S.profile.tema = b.dataset.v; save(); applyTheme(); break;
       case 'calreset': delete dayState(b.dataset.k).turno; save(); render(); if (sheetEl && sheetEl.classList.contains('open')) paintSheet(); return;
