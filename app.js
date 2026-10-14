@@ -257,6 +257,26 @@
       },
     });
   }
+  // Números que contam até ao valor novo
+  const countPrev = {};
+  // jump = true (mudar de dia, de aba…): os números aparecem logo com o valor certo, sem contar
+  function animateCounts(jump = false) {
+    const still = jump || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $view.querySelectorAll('[data-count]').forEach(el => {
+      const key = el.dataset.count, to = +el.dataset.v, from = countPrev[key];
+      countPrev[key] = to;
+      if (still || from === undefined || from === to) return;
+      const t0 = performance.now(), dur = 520;
+      const step = now => {
+        if (!el.isConnected || +el.dataset.v !== to) return;
+        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        el.textContent = n0(from + (to - from) * e);
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
   const $view = document.getElementById('view');
   const $hdr = document.getElementById('hdr');
   const $top = document.getElementById('topbar');
@@ -299,6 +319,7 @@
         setTimeout(() => { ghost.remove(); pane.classList.remove('in-right', 'in-left'); }, 450);
       }
     }
+    animateCounts(!!anim); // só conta ao marcar refeições, água, etc. (no mesmo dia)
     onScroll();
     syncGuard();
     try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, recCat, curDay, weekOffset, shopWeek, range, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
@@ -416,19 +437,19 @@
     const pct = Math.min(100, (P.done.kcal / P.goal) * 100);
     const cG = isT ? T.cT : T.cD;
     const mac = (lbl, cls, v, g) => `<div><div class="m-lbl"><i class="dot bg-${cls}"></i>${lbl}</div>
-      <div class="m-val num"><b>${n0(v)}</b> / ${g} g</div><div class="track thin"><i class="bg-${cls}" style="width:${Math.min(100, (v / g) * 100)}%"></i></div></div>`;
+      <div class="m-val num"><b data-count="m-${cls}" data-v="${Math.round(v)}">${n0(v)}</b> / ${g} g</div><div class="track thin"><i class="bg-${cls}" style="width:${Math.min(100, (v / g) * 100)}%"></i></div></div>`;
 
     let h = `
       <section class="card">
         <div class="energy-top">
-          <div><div class="big num">${n0(Math.abs(left))}</div><div class="big-lbl">${left >= 0 ? 'kcal por comer' : 'kcal acima da meta'}</div></div>
+          <div><div class="big num" data-count="left" data-v="${Math.round(Math.abs(left))}">${n0(Math.abs(left))}</div><div class="big-lbl">${left >= 0 ? 'kcal por comer' : 'kcal acima da meta'}</div></div>
           <div class="daytype ${isT ? 'is-train' : 'is-rest'}">
             <span class="dt-ic">${ic(isT ? 'dumbbell' : 'moon')}</span>
             <span><b>${isT ? 'Dia de treino' : 'Dia de descanso'}</b><small>${isT ? `+${T.train - T.rest} kcal` : 'Recuperação'}</small></span>
           </div>
         </div>
         <div class="track"><i style="width:${pct}%"></i></div>
-        <div class="meta num"><span>Comido <b>${n0(P.done.kcal)}</b></span><span>Meta <b>${n0(P.goal)}</b> kcal</span></div>
+        <div class="meta num"><span>Comido <b data-count="eaten" data-v="${Math.round(P.done.kcal)}">${n0(P.done.kcal)}</b></span><span>Meta <b>${n0(P.goal)}</b> kcal</span></div>
         <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
       </section>`;
     if (sc.tip) h += `<div class="note shiftnote" style="--sc:${sc.col}">${ic('clock')}<div><b>${shiftPhrase(P.shift)} · ${sc.h}</b><br>${sc.tip}</div></div>`;
