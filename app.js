@@ -285,7 +285,7 @@
   const $tabs = document.getElementById('tabs');
   smartHTML($view); smartHTML($hdr);
   const TABS = [['hoje', 'Hoje', 'plate'], ['semana', 'Semana', 'cal'], ['compras', 'Compras', 'bag'], ['progresso', 'Progresso', 'chart'], ['perfil', 'Perfil', 'user']];
-  let tab = 'hoje', sub = null, curDay = todayKey(), weekOffset = 0, shopWeek = 0, range = 30;
+  let tab = 'hoje', sub = null, curDay = todayKey(), weekOffset = 0, shopMode = 'w0', range = 30;
   const NAV_KEY = 'planoLean.nav';
 
   $tabs.innerHTML = TABS.map(([id, l, i]) => `<button data-tab="${id}" class="press">${ic(i)}<span>${l}</span></button>`).join('');
@@ -326,7 +326,7 @@
     animateCounts(!!anim); // só conta ao marcar refeições, água, etc. (no mesmo dia)
     onScroll();
     syncGuard();
-    try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, recCat, curDay, weekOffset, shopWeek, range, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
+    try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, recCat, curDay, weekOffset, shopMode, range, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
   }
   function header(over, title, actions = '') {
     $hdr.innerHTML = `<div><div class="over">${over}</div><h1>${title}</h1></div><div class="hdr-actions">${actions}</div>`;
@@ -849,11 +849,25 @@
   }
 
   // ================= COMPRAS =================
-  const shopKey = () => addDays(mondayOf(todayKey()), shopWeek * 7);
+  // Período das compras: w0 esta semana · w1 próxima semana · m0 de hoje até ao fim do mês · m1 o mês seguinte inteiro
+  const SHOP_MODES = [['w0', 'Esta semana'], ['w1', 'Próx. semana'], ['m0', 'Este mês'], ['m1', 'Próx. mês']];
+  function shopRange() {
+    const tk = todayKey(), t = fromKey(tk);
+    if (shopMode === 'm0' || shopMode === 'm1') {
+      const first = new Date(t.getFullYear(), t.getMonth() + (shopMode === 'm1' ? 1 : 0), 1);
+      const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
+      return { from: shopMode === 'm0' ? tk : keyOf(first), to: keyOf(last), key: 'm:' + keyOf(first).slice(0, 7), month: true };
+    }
+    const mon = addDays(mondayOf(tk), shopMode === 'w1' ? 7 : 0);
+    return { from: mon, to: addDays(mon, 6), key: mon, month: false };
+  }
+  const shopKey = () => shopRange().key;
+  const rangeTxt = r => `${niceDate(r.from)} – ${niceDate(r.to)}`;
+  const daysIn = r => Math.round((fromKey(r.to) - fromKey(r.from)) / 864e5) + 1;
   const CAT_ORDER = ['Proteínas', 'Laticínios e ovos', 'Hidratos', 'Legumes', 'Fruta', 'Gorduras', 'Outros'];
   function shopItems() {
-    const mon = shopKey(), agg = {};
-    for (let i = 0; i < 7; i++) for (const m of dayPlan(addDays(mon, i)).meals) for (const it of m.items) agg[it.f] = (agg[it.f] || 0) + it.g;
+    const r = shopRange(), agg = {};
+    for (let k = r.from; k <= r.to; k = addDays(k, 1)) for (const m of dayPlan(k).meals) for (const it of m.items) agg[it.f] = (agg[it.f] || 0) + it.g;
     const cats = {};
     for (const f in agg) (cats[food(f).cat] ||= []).push({ f, g: agg[f] });
     for (const c in cats) cats[c].sort((a, b) => food(a.f).n.localeCompare(food(b.f).n, 'pt'));
@@ -869,11 +883,11 @@
     return { a, h };
   }
   function renderCompras() {
-    const k = shopKey(), cats = shopItems(), got = S.shop[k] || {};
-    const total = Object.values(cats).flat().length, nGot = Object.values(cats).flat().filter(i => got[i.f]).length;
-    header(`${niceDate(k)} – ${niceDate(addDays(k, 6))}`, 'Compras', `<button class="circle-btn press" data-act="share" aria-label="Partilhar lista">${ic('share', 'sm')}</button>`);
-    let h = `<div class="seg full"><button class="${shopWeek === 0 ? 'on' : ''}" data-act="sw" data-w="0">Esta semana</button><button class="${shopWeek === 1 ? 'on' : ''}" data-act="sw" data-w="1">Próxima semana</button></div>
-      <section class="card" style="margin-top:12px"><div class="meta num" style="margin:0"><span><b>${nGot}</b> de ${total} artigos</span>${nGot ? '<button data-act="clear" style="color:var(--accent);font-weight:600;font-size:13px">Limpar</button>' : ''}</div>
+    const r = shopRange(), k = r.key, cats = shopItems(), got = S.shop[k] || {};
+    const total = Object.values(cats).flat().length, nGot = Object.values(cats).flat().filter(i => got[i.f]).length, days = daysIn(r);
+    header(rangeTxt(r), 'Compras', `<button class="circle-btn press" data-act="share" aria-label="Partilhar lista">${ic('share', 'sm')}</button>`);
+    let h = `<div class="seg full seg-shop" role="group" aria-label="Período">${SHOP_MODES.map(([v, l]) => `<button class="${shopMode === v ? 'on' : ''}" data-act="sw" data-w="${v}">${l}</button>`).join('')}</div>
+      <section class="card" style="margin-top:12px"><div class="meta num" style="margin:0"><span><b>${nGot}</b> de ${total} artigos · ${days} ${days === 1 ? 'dia' : 'dias'}</span>${nGot ? '<button data-act="clear" style="color:var(--accent);font-weight:600;font-size:13px">Limpar</button>' : ''}</div>
       <div class="track thin"><i style="width:${total ? (nGot / total) * 100 : 0}%"></i></div></section>`;
     for (const c of CAT_ORDER) {
       if (!cats[c]) continue;
@@ -886,12 +900,13 @@
       }
       h += `</div>`;
     }
-    h += `<p class="cap">Inclui as trocas de refeições feitas para essa semana. Temperos (alho, cebola, limão, ervas, especiarias, vinagre, molho de soja, tomate pelado) não estão na lista.</p>`;
+    if (r.month) h += `<div class="note">${ic('info')}<div>Fruta, legumes, carne e peixe frescos aguentam poucos dias: congela-os ou compra-os semana a semana.</div></div>`;
+    h += `<p class="cap">Inclui as trocas de refeições feitas para esse período. Temperos (alho, cebola, limão, ervas, especiarias, vinagre, molho de soja, tomate pelado) não estão na lista.</p>`;
     $view.innerHTML = h;
   }
   async function shareList() {
     const cats = shopItems(), got = S.shop[shopKey()] || {};
-    let txt = `Lista de compras · ${niceDate(shopKey())}\n`;
+    let txt = `Lista de compras · ${rangeTxt(shopRange())}\n`;
     for (const c of CAT_ORDER) {
       const rows = (cats[c] || []).filter(it => !got[it.f]);
       if (!rows.length) continue;
@@ -1299,7 +1314,7 @@
       case 'wk': weekOffset += +b.dataset.d; render(+b.dataset.d > 0 ? 'next' : 'prev'); return;
       case 'open': curDay = b.dataset.k; go('hoje'); return;
       // Compras
-      case 'sw': shopWeek = +b.dataset.w; break;
+      case 'sw': shopMode = b.dataset.w; break;
       case 'got': { const m = (S.shop[shopKey()] ||= {}); m[b.dataset.f] = !m[b.dataset.f]; save(); break; }
       case 'share': shareList(); return;
       case 'clear': delete S.shop[shopKey()]; save(); break;
@@ -1580,7 +1595,7 @@
       tab = nav.tab;
       if (tab === 'perfil' && [...PLANO, ...GUIDE, ...SETTINGS].some(x => x[0] === nav.sub)) { sub = nav.sub; recCat = SLOTS.some(x => x.id === nav.recCat) ? nav.recCat : null; }
       if (nav.on === todayKey() && /^\d{4}-\d{2}-\d{2}$/.test(nav.curDay || '')) curDay = nav.curDay;
-      weekOffset = +nav.weekOffset || 0; shopWeek = +nav.shopWeek || 0; range = [0, 30, 90].includes(nav.range) ? nav.range : 30;
+      weekOffset = +nav.weekOffset || 0; shopMode = ['w0', 'w1', 'm0', 'm1'].includes(nav.shopMode) ? nav.shopMode : 'w0'; range = [0, 30, 90].includes(nav.range) ? nav.range : 30;
     }
   } catch (e) { /* começa no Hoje */ }
   if (!history.state || typeof history.state.d !== 'number') history.replaceState({ d: 0 }, '');

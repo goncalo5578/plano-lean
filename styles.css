@@ -579,6 +579,8 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .kpis-sm b { font-size: 19.5px; }
 .kpis-sm span { font-size: 12px; }
 
+.seg-shop button { padding: 8px 2px; font-size: 12.5px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
