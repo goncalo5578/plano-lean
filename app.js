@@ -224,10 +224,63 @@
   applyTheme();
 
   // ================= Navegação =================
+  // ================= Atualizar o ecrã sem o redesenhar todo =================
+  // Quando nada muda de página, o HTML novo é aplicado por cima do que já existe: só mudam os textos e atributos
+  // diferentes, por isso as barras, anéis e vistos deslizam (transições CSS) em vez de saltarem.
+  const NATIVE_HTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+  function morphChildren(a, b) {
+    const an = [...a.childNodes], bn = [...b.childNodes];
+    bn.forEach((y, i) => {
+      const x = an[i];
+      if (!x) { a.appendChild(y); return; }
+      if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName) { a.replaceChild(y, x); return; }
+      if (x.nodeType !== 1) { if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; return; }
+      for (const at of [...x.attributes]) if (!y.hasAttribute(at.name)) x.removeAttribute(at.name);
+      for (const at of [...y.attributes]) if (x.getAttribute(at.name) !== at.value) x.setAttribute(at.name, at.value);
+      morphChildren(x, y);
+      const focused = x === document.activeElement;
+      if (x.tagName === 'INPUT') { if (x.type === 'checkbox' || x.type === 'radio') x.checked = y.checked; else if (!focused && x.value !== y.value) x.value = y.value; }
+      if ((x.tagName === 'TEXTAREA' || x.tagName === 'SELECT') && !focused && x.value !== y.value) x.value = y.value;
+    });
+    for (let i = an.length - 1; i >= bn.length; i--) an[i].remove();
+  }
+  let morphNext = false;
+  function smartHTML(el) {
+    Object.defineProperty(el, 'innerHTML', {
+      configurable: true,
+      get() { return NATIVE_HTML.get.call(this); },
+      set(html) {
+        if (!morphNext || !this.firstChild) return NATIVE_HTML.set.call(this, html);
+        const tpl = document.createElement('template');
+        tpl.innerHTML = html;
+        morphChildren(this, tpl.content);
+      },
+    });
+  }
+  // Números que contam até ao valor novo
+  const countPrev = {};
+  function animateCounts() {
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $view.querySelectorAll('[data-count]').forEach(el => {
+      const key = el.dataset.count, to = +el.dataset.v, from = countPrev[key];
+      countPrev[key] = to;
+      if (still || from === undefined || from === to) return;
+      const t0 = performance.now(), dur = 520;
+      const step = now => {
+        if (!el.isConnected || +el.dataset.v !== to) return;
+        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        el.textContent = n0(from + (to - from) * e);
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
   const $view = document.getElementById('view');
   const $hdr = document.getElementById('hdr');
   const $top = document.getElementById('topbar');
   const $tabs = document.getElementById('tabs');
+  smartHTML($view); smartHTML($hdr);
   const TABS = [['hoje', 'Hoje', 'plate'], ['semana', 'Semana', 'cal'], ['compras', 'Compras', 'bag'], ['progresso', 'Progresso', 'chart'], ['perfil', 'Perfil', 'user']];
   let tab = 'hoje', sub = null, curDay = todayKey(), weekOffset = 0, shopWeek = 0, range = 30;
   const NAV_KEY = 'planoLean.nav';
@@ -238,12 +291,20 @@
   function go(t, subpage = null) {
     if (t === 'hoje' && tab === 'hoje' && !subpage) curDay = todayKey();
     tab = t; sub = subpage;
-    render(true); window.scrollTo(0, 0);
+    render('fade'); window.scrollTo(0, 0);
   }
+  // anim: 'fade' (mudar de aba) · 'push' (entrar numa página) · 'pop' (voltar) · 'next' / 'prev' (outro dia ou semana)
+  const V_ANIM = ['v-fade', 'v-push', 'v-pop', 'v-next', 'v-prev'];
   function render(anim) {
     $tabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    morphNext = !anim;
     ({ hoje: renderHoje, semana: renderSemana, compras: renderCompras, progresso: renderProgresso, perfil: renderPerfil })[tab]();
-    if (anim) { $view.classList.remove('fade'); void $view.offsetWidth; $view.classList.add('fade'); }
+    morphNext = false;
+    if (anim) {
+      const cls = 'v-' + (anim === true ? 'fade' : anim);
+      for (const el of [$view, $hdr]) { el.classList.remove(...V_ANIM); void el.offsetWidth; el.classList.add(cls); }
+    }
+    animateCounts();
     onScroll();
     syncGuard();
     try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, recCat, curDay, weekOffset, shopWeek, range, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
@@ -270,6 +331,7 @@
     if (!sheetEl) {
       backEl = document.createElement('div'); backEl.className = 'backdrop';
       sheetEl = document.createElement('div'); sheetEl.className = 'sheet'; sheetEl.setAttribute('role', 'dialog'); sheetEl.setAttribute('aria-modal', 'true');
+      smartHTML(sheetEl);
       document.body.append(backEl, sheetEl);
       backEl.addEventListener('click', closeSheet);
       sheetEl.addEventListener('click', onSheetClick);
@@ -287,15 +349,15 @@
       sheetEl.addEventListener('touchstart', e => { y0 = sheetEl.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
       sheetEl.addEventListener('touchmove', e => {
         if (y0 == null) return; const dy = e.touches[0].clientY - y0;
-        if (dy > 0) { sheetEl.style.transition = 'none'; sheetEl.style.transform = `translateY(${dy}px)`; }
+        if (dy > 0) { sheetEl.style.transition = 'none'; sheetEl.style.transform = `translateY(${dy}px)`; backEl.style.transition = 'none'; backEl.style.opacity = String(Math.max(0, 1 - dy / 450)); }
       }, { passive: true });
       sheetEl.addEventListener('touchend', e => {
         if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null;
-        sheetEl.style.transition = ''; sheetEl.style.transform = '';
+        sheetEl.style.transition = ''; sheetEl.style.transform = ''; backEl.style.transition = ''; backEl.style.opacity = '';
         if (dy > 110) closeSheet();
       });
     }
-    paintSheet();
+    sheetFresh = true; paintSheet(); sheetFresh = false;
     backEl.hidden = sheetEl.hidden = false;
     void sheetEl.offsetHeight; // garante a animação de entrada depois de display:none
     backEl.classList.add('open'); sheetEl.classList.add('open');
@@ -303,9 +365,12 @@
     document.body.style.overflow = 'hidden';
     syncGuard();
   }
+  let sheetFresh = false;
   function paintSheet() {
     // Sem botão X: fecha-se a deslizar para baixo, a tocar fora, com o "voltar" do telemóvel ou nos botões da própria folha
+    morphNext = !sheetFresh;
     sheetEl.innerHTML = `<div class="grabber" aria-hidden="true"></div>${sheetRender()}`;
+    morphNext = false;
     syncGuard();
   }
   let pendingConfirm = null;
@@ -357,19 +422,19 @@
     const pct = Math.min(100, (P.done.kcal / P.goal) * 100);
     const cG = isT ? T.cT : T.cD;
     const mac = (lbl, cls, v, g) => `<div><div class="m-lbl"><i class="dot bg-${cls}"></i>${lbl}</div>
-      <div class="m-val num"><b>${n0(v)}</b> / ${g} g</div><div class="track thin"><i class="bg-${cls}" style="width:${Math.min(100, (v / g) * 100)}%"></i></div></div>`;
+      <div class="m-val num"><b data-count="m-${cls}" data-v="${Math.round(v)}">${n0(v)}</b> / ${g} g</div><div class="track thin"><i class="bg-${cls}" style="width:${Math.min(100, (v / g) * 100)}%"></i></div></div>`;
 
     let h = strip + `
       <section class="card">
         <div class="energy-top">
-          <div><div class="big num">${n0(Math.abs(left))}</div><div class="big-lbl">${left >= 0 ? 'kcal por comer' : 'kcal acima da meta'}</div></div>
+          <div><div class="big num" data-count="left" data-v="${Math.round(Math.abs(left))}">${n0(Math.abs(left))}</div><div class="big-lbl">${left >= 0 ? 'kcal por comer' : 'kcal acima da meta'}</div></div>
           <div class="daytype ${isT ? 'is-train' : 'is-rest'}">
             <span class="dt-ic">${ic(isT ? 'dumbbell' : 'moon')}</span>
             <span><b>${isT ? 'Dia de treino' : 'Dia de descanso'}</b><small>${isT ? `+${T.train - T.rest} kcal` : 'Recuperação'}</small></span>
           </div>
         </div>
         <div class="track"><i style="width:${pct}%"></i></div>
-        <div class="meta num"><span>Comido <b>${n0(P.done.kcal)}</b></span><span>Meta <b>${n0(P.goal)}</b> kcal</span></div>
+        <div class="meta num"><span>Comido <b data-count="eaten" data-v="${Math.round(P.done.kcal)}">${n0(P.done.kcal)}</b></span><span>Meta <b>${n0(P.goal)}</b> kcal</span></div>
         <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
       </section>`;
     if (sc.tip) h += `<div class="note shiftnote" style="--sc:${sc.col}">${ic('clock')}<div><b>${shiftPhrase(P.shift)} · ${sc.h}</b><br>${sc.tip}</div></div>`;
@@ -397,7 +462,7 @@
     h += `<h2 class="sec-h">Hidratação</h2>
       <section class="card water">
         <div class="w-ic">${ic('drop')}</div>
-        <div class="row-main"><div class="num"><b style="font-size:18px">${n1(agua * 0.25)} L</b> <span style="color:var(--ink-3);font-size:14px">de 2,5 L</span></div>
+        <div class="row-main"><div class="num"><b style="font-size:18px">${(agua * 0.25).toLocaleString('pt-PT', { maximumFractionDigits: 2 })} L</b> <span style="color:var(--ink-3);font-size:14px">de 2,5 L</span></div>
           <div class="track"><i style="width:${Math.min(100, agua * 10)}%"></i></div></div>
         <div class="stepper"><button class="press" data-act="agua" data-d="-1" aria-label="Menos um copo">${ic('minus')}</button><button class="press" data-act="agua" data-d="1" aria-label="Mais um copo">${ic('plus')}</button></div>
       </section>`;
@@ -1199,8 +1264,8 @@
   function handle(a, b) {
     switch (a) {
       // Hoje
-      case 'today': curDay = todayKey(); break;
-      case 'day': curDay = b.dataset.k; break;
+      case 'today': { const dir = todayKey() > curDay ? 'next' : 'prev'; curDay = todayKey(); render(dir); return; }
+      case 'day': { if (b.dataset.k === curDay) return; const dir = b.dataset.k > curDay ? 'next' : 'prev'; curDay = b.dataset.k; render(dir); return; }
       case 'type': if (b.dataset.v !== dayType(curDay)) toggleTrain(curDay); break;
       case 'dayset': openSheet(daySheet(curDay)); return;
       case 'escala': openSheet(escalaSheet()); return;
@@ -1208,7 +1273,7 @@
       case 'meal': if (sheetEl) delete sheetEl.dataset.mode; openSheet(mealSheet(b.dataset.slot)); return;
       case 'agua': { const st = dayState(curDay); st.agua = Math.max(0, Math.min(20, (st.agua || 0) + +b.dataset.d)); save(); break; }
       // Semana
-      case 'wk': weekOffset += +b.dataset.d; break;
+      case 'wk': weekOffset += +b.dataset.d; render(+b.dataset.d > 0 ? 'next' : 'prev'); return;
       case 'open': curDay = b.dataset.k; go('hoje'); return;
       // Compras
       case 'sw': shopWeek = +b.dataset.w; break;
@@ -1227,10 +1292,10 @@
       }
       case 'usepeso': S.profile.peso = +b.dataset.kg; save(); toast(`Plano recalculado para ${n1(+b.dataset.kg)} kg`); break;
       // Perfil
-      case 'sub': sub = b.dataset.id; recCat = null; render(true); window.scrollTo(0, 0); return;
-      case 'back': sub = null; recCat = null; render(true); window.scrollTo(0, 0); return;
-      case 'rcat': recCat = b.dataset.slot; render(true); window.scrollTo(0, 0); return;
-      case 'rcatback': recCat = null; render(true); window.scrollTo(0, 0); return;
+      case 'sub': sub = b.dataset.id; recCat = null; render('push'); window.scrollTo(0, 0); return;
+      case 'back': sub = null; recCat = null; render('pop'); window.scrollTo(0, 0); return;
+      case 'rcat': recCat = b.dataset.slot; render('push'); window.scrollTo(0, 0); return;
+      case 'rcatback': recCat = null; render('pop'); window.scrollTo(0, 0); return;
       case 'export': exportData(); return;
       case 'tema': S.profile.tema = b.dataset.v; save(); applyTheme(); break;
       case 'calreset': delete dayState(b.dataset.k).turno; save(); render(); if (sheetEl && sheetEl.classList.contains('open')) paintSheet(); return;
@@ -1343,7 +1408,7 @@
   $view.addEventListener('touchstart', e => { sx = e.target.closest('#strip') ? e.touches[0].clientX : null; }, { passive: true });
   $view.addEventListener('touchend', e => {
     if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; sx = null;
-    if (Math.abs(dx) > 50) { curDay = addDays(curDay, dx < 0 ? 7 : -7); render(); }
+    if (Math.abs(dx) > 50) { curDay = addDays(curDay, dx < 0 ? 7 : -7); render(dx < 0 ? 'next' : 'prev'); }
   });
 
   // ================= Calendário =================
@@ -1430,10 +1495,10 @@
       if (sheetEl.dataset.mode) { delete sheetEl.dataset.mode; paintSheet(); return; }
       pendingConfirm = null; closeSheet(); return;
     }
-    if (tab === 'perfil' && recCat) { recCat = null; render(true); window.scrollTo(0, 0); return; }
-    if (sub) { sub = null; recCat = null; render(true); window.scrollTo(0, 0); return; }
-    if (tab !== 'hoje') { tab = 'hoje'; render(true); window.scrollTo(0, 0); return; }
-    if (curDay !== todayKey()) { curDay = todayKey(); render(); }
+    if (tab === 'perfil' && recCat) { recCat = null; render('pop'); window.scrollTo(0, 0); return; }
+    if (sub) { sub = null; recCat = null; render('pop'); window.scrollTo(0, 0); return; }
+    if (tab !== 'hoje') { tab = 'hoje'; render('fade'); window.scrollTo(0, 0); return; }
+    if (curDay !== todayKey()) { const dir = todayKey() > curDay ? 'next' : 'prev'; curDay = todayKey(); render(dir); }
   }
   window.addEventListener('popstate', e => {
     const d = (e.state && e.state.d) || 0;

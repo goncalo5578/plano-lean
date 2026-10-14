@@ -22,6 +22,8 @@
   --r-md: 14px;
   --r-sm: 10px;
   --ease: cubic-bezier(.32, .72, 0, 1);
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --spring: cubic-bezier(.34, 1.56, .64, 1);
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --seg-on: #ffffff;
   color-scheme: light;
@@ -169,7 +171,7 @@ main { max-width: 600px; margin: 0 auto; padding: 0 16px 24px; outline: none; }
 .big { font-size: 44px; font-weight: 750; letter-spacing: -.035em; line-height: 1; }
 .big-lbl { font-size: 14px; color: var(--ink-2); margin-top: 4px; }
 .track { height: 8px; border-radius: 99px; background: var(--fill); overflow: hidden; margin-top: 16px; }
-.track i { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width .5s var(--ease); }
+.track i { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width .65s var(--ease-out); }
 .track.thin { height: 5px; margin-top: 8px; }
 .meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-3); margin-top: 8px; }
 .meta b { color: var(--ink-2); font-weight: 600; }
@@ -475,6 +477,61 @@ details.hist .hist-list .row { box-shadow: inset 0 .5px 0 var(--sep); }
 .ptr.spin { color: var(--accent); }
 .ptr.spin .ic { animation: ptrspin .75s linear infinite; }
 @keyframes ptrspin { to { transform: rotate(360deg); } }
+
+/* ============ Movimento ============ */
+@property --pct { syntax: '<number>'; inherits: false; initial-value: 0; }
+.strip .ring { transition: --pct .6s var(--ease-out); }
+.strip .dn { transition: background-color .25s, color .25s, box-shadow .25s; }
+
+/* Transições entre ecrãs */
+#view.v-fade > *, #hdr.v-fade > * { animation: vRise .44s var(--ease-out) both; }
+#view.v-fade > :nth-child(2) { animation-delay: .035s; }
+#view.v-fade > :nth-child(3) { animation-delay: .07s; }
+#view.v-fade > :nth-child(4) { animation-delay: .105s; }
+#view.v-fade > :nth-child(5) { animation-delay: .14s; }
+#view.v-fade > :nth-child(6) { animation-delay: .175s; }
+#view.v-fade > :nth-child(n+7) { animation-delay: .21s; }
+.v-push { animation: vPush .38s var(--ease-out) both; }
+.v-pop { animation: vPop .38s var(--ease-out) both; }
+#view.v-next > :not(.strip):not(.weeknav) { animation: vNext .34s var(--ease-out) both; }
+#view.v-prev > :not(.strip):not(.weeknav) { animation: vPrev .34s var(--ease-out) both; }
+#hdr.v-next, #hdr.v-prev { animation: vFadeOnly .28s ease-out both; }
+@keyframes vRise { from { opacity: 0; transform: translateY(12px); } }
+@keyframes vPush { from { opacity: 0; transform: translateX(36px); } }
+@keyframes vPop { from { opacity: 0; transform: translateX(-36px); } }
+@keyframes vNext { from { opacity: 0; transform: translateX(24px); } }
+@keyframes vPrev { from { opacity: 0; transform: translateX(-24px); } }
+@keyframes vFadeOnly { from { opacity: .2; } }
+
+/* Folhas: o conteúdo novo entra suavemente */
+.sheet.open > * { animation: vRise .4s var(--ease-out) both; }
+.sheet.open > :nth-child(3) { animation-delay: .03s; }
+.sheet.open > :nth-child(4) { animation-delay: .06s; }
+.sheet.open > :nth-child(n+5) { animation-delay: .09s; }
+.backdrop { transition: opacity .32s ease; }
+
+/* Visto ao marcar */
+.check { transition: background .25s, box-shadow .25s, transform .2s; }
+.check .ic path { stroke-dasharray: 22; stroke-dashoffset: 22; transition: stroke-dashoffset .32s .06s var(--ease-out); }
+.check.on .ic path { stroke-dashoffset: 0; }
+.check.on { animation: checkPop .42s var(--spring); }
+.got .cb { animation: checkPop .42s var(--spring); }
+@keyframes checkPop { 0% { transform: scale(.7); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.meal-row .ttl, .shop-row .ttl, .shop-row .val { transition: color .25s; }
+
+/* Toques */
+.row.tap { transition: background .18s; }
+.press { transition: transform .2s var(--spring), opacity .15s; }
+.tabs .ic { transition: transform .3s var(--spring); }
+.tabs button.active .ic { transform: translateY(-1px) scale(1.08); }
+.tabs button:active .ic { transform: scale(.9); }
+.switch::after { transition: transform .3s var(--spring); }
+.seg button { transition: background .25s, color .25s, box-shadow .25s; }
+
+/* Avisos e histórico */
+.toast { transform: translate(-50%, 18px) scale(.96); transition: opacity .25s, transform .45s var(--spring); }
+.toast.show { transform: translate(-50%, 0) scale(1); }
+details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
