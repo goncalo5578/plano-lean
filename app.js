@@ -819,7 +819,7 @@
         <div class="wk-lbl" aria-live="polite"><b>${lbl}</b><span class="num">${range}</span></div>
         <button class="circle-btn press" data-act="wk" data-d="1" aria-label="Semana seguinte">${ic('chevR', 'sm')}</button></div>
       <div class="day-stage"><div class="day-pane week-pane">
-      <section class="card kpis num"><div><b>${n0(avg)}</b><span>kcal / dia</span></div><div><b>${nTurnos}</b><span>turnos</span></div><div><b>${nT}</b><span>treinos</span></div></section>
+      <section class="card kpis kpis-sm num"><div><b>${n0(avg)}</b><span>kcal / dia</span></div><div><b>${nTurnos}</b><span>turnos</span></div><div><b>${nT}</b><span>treinos</span></div></section>
       <div class="list">`;
     plans.forEach((P, i) => {
       const isT = P.type === 'T', c = shiftCfg(P.shift);
