@@ -533,6 +533,18 @@ details.hist .hist-list .row { box-shadow: inset 0 .5px 0 var(--sep); }
 .toast.show { transform: translate(-50%, 0) scale(1); }
 details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 
+/* Hoje: mudar de dia desliza como um carrossel */
+.day-stage { position: relative; margin: 0 -16px; padding: 0 16px; overflow-x: clip; }
+.day-pane.ghost { position: absolute; top: 0; left: 16px; right: 16px; pointer-events: none; }
+.day-pane.out-left { animation: dayOutL .42s var(--ease-out) both; }
+.day-pane.out-right { animation: dayOutR .42s var(--ease-out) both; }
+.day-pane.in-right { animation: dayInR .42s var(--ease-out) both; }
+.day-pane.in-left { animation: dayInL .42s var(--ease-out) both; }
+@keyframes dayOutL { to { transform: translateX(calc(-100% - 16px)); opacity: .5; } }
+@keyframes dayOutR { to { transform: translateX(calc(100% + 16px)); opacity: .5; } }
+@keyframes dayInR { from { transform: translateX(calc(100% + 16px)); opacity: .5; } }
+@keyframes dayInL { from { transform: translateX(calc(-100% - 16px)); opacity: .5; } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

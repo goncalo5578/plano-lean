@@ -297,12 +297,26 @@
   const V_ANIM = ['v-fade', 'v-push', 'v-pop', 'v-next', 'v-prev'];
   function render(anim) {
     $tabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    // Mudar de dia no Hoje: o dia atual sai por um lado enquanto o novo entra pelo outro (como um carrossel)
+    const slide = tab === 'hoje' && (anim === 'next' || anim === 'prev');
+    const oldPane = slide ? $view.querySelector('.day-pane') : null;
+    const ghost = oldPane ? oldPane.cloneNode(true) : null;
     morphNext = !anim;
     ({ hoje: renderHoje, semana: renderSemana, compras: renderCompras, progresso: renderProgresso, perfil: renderPerfil })[tab]();
     morphNext = false;
     if (anim) {
       const cls = 'v-' + (anim === true ? 'fade' : anim);
-      for (const el of [$view, $hdr]) { el.classList.remove(...V_ANIM); void el.offsetWidth; el.classList.add(cls); }
+      for (const el of ghost ? [$hdr] : [$view, $hdr]) { el.classList.remove(...V_ANIM); void el.offsetWidth; el.classList.add(cls); }
+      if (ghost) {
+        $view.classList.remove(...V_ANIM);
+        const stage = $view.querySelector('.day-stage'), pane = stage.querySelector('.day-pane');
+        ghost.classList.remove('in-left', 'in-right', 'out-left', 'out-right');
+        ghost.classList.add('ghost', anim === 'next' ? 'out-left' : 'out-right');
+        ghost.setAttribute('aria-hidden', 'true');
+        pane.classList.add(anim === 'next' ? 'in-right' : 'in-left');
+        stage.appendChild(ghost);
+        setTimeout(() => { ghost.remove(); pane.classList.remove('in-right', 'in-left'); }, 450);
+      }
     }
     animateCounts();
     onScroll();
@@ -424,7 +438,7 @@
     const mac = (lbl, cls, v, g) => `<div><div class="m-lbl"><i class="dot bg-${cls}"></i>${lbl}</div>
       <div class="m-val num"><b data-count="m-${cls}" data-v="${Math.round(v)}">${n0(v)}</b> / ${g} g</div><div class="track thin"><i class="bg-${cls}" style="width:${Math.min(100, (v / g) * 100)}%"></i></div></div>`;
 
-    let h = strip + `
+    let h = `
       <section class="card">
         <div class="energy-top">
           <div><div class="big num" data-count="left" data-v="${Math.round(Math.abs(left))}">${n0(Math.abs(left))}</div><div class="big-lbl">${left >= 0 ? 'kcal por comer' : 'kcal acima da meta'}</div></div>
@@ -466,7 +480,8 @@
           <div class="track"><i style="width:${Math.min(100, agua * 10)}%"></i></div></div>
         <div class="stepper"><button class="press" data-act="agua" data-d="-1" aria-label="Menos um copo">${ic('minus')}</button><button class="press" data-act="agua" data-d="1" aria-label="Mais um copo">${ic('plus')}</button></div>
       </section>`;
-    $view.innerHTML = h;
+    // O conteúdo do dia fica num "palco" para poder deslizar de lado ao mudar de dia (a barra dos dias fica parada)
+    $view.innerHTML = `${strip}<div class="day-stage"><div class="day-pane">${h}</div></div>`;
   }
 
   function mealSheet(slotId) {
@@ -1502,7 +1517,7 @@
   }
   window.addEventListener('popstate', e => {
     const d = (e.state && e.state.d) || 0;
-    if (pendingPops > 0) { pendingPops--; histD = d; return; }
+    if (pendingPops > 0) { pendingPops--; histD = d; syncGuard(); return; }
     inPop = true;
     for (let n = 0; n < 10 && uiDepth() > d; n++) backStep();
     inPop = false;
