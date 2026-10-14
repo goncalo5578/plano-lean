@@ -303,6 +303,7 @@
   function paintSheet() {
     // Sem botão X: fecha-se a deslizar para baixo, a tocar fora, com o "voltar" do telemóvel ou nos botões da própria folha
     sheetEl.innerHTML = `<div class="grabber" aria-hidden="true"></div>${sheetRender()}`;
+    syncGuard();
   }
   let pendingConfirm = null;
   function askConfirm({ title, text, ok, onOk }) {
@@ -1398,12 +1399,27 @@
   // A app é uma página única: guardamos uma entrada extra no histórico sempre que não estamos no ecrã inicial,
   // para o "voltar" recuar um passo dentro da app em vez de a fechar.
   const sheetOpen = () => !!(sheetEl && sheetEl.classList.contains('open'));
-  const atRoot = () => !sheetOpen() && tab === 'hoje' && !sub && curDay === todayKey();
-  let popIgnore = false;
+  // Profundidade atual da interface (0 = ecrã Hoje, no dia de hoje, sem nada aberto)
+  function uiDepth() {
+    let d = 0;
+    if (tab !== 'hoje') d++; else if (curDay !== todayKey()) d++;
+    if (sub) d++;
+    if (sub && recCat) d++;
+    if (sheetOpen()) {
+      d++;
+      if (sheetEl.dataset.mode) d++;
+      if (sheetRender === editorSheet && rDraft && rDraft.view !== 'edit') d += rDraft.view === 'food' ? 1 : 2;
+    }
+    return d;
+  }
+  // O histórico do browser acompanha a profundidade. As entradas novas só são criadas durante um toque
+  // (o Chrome do Android salta entradas criadas sem toque), e o "voltar" só desfaz — nunca cria.
+  let histD = 0, pendingPops = 0, inPop = false;
   function syncGuard() {
-    const guarded = !!(history.state && history.state.g);
-    if (!atRoot() && !guarded) history.pushState({ g: 1 }, '');
-    else if (atRoot() && guarded && !popIgnore) { popIgnore = true; history.back(); } // voltou ao início pela app: tira a entrada extra
+    if (inPop) return;
+    const t = uiDepth();
+    while (histD < t) { histD++; history.pushState({ d: histD }, ''); }
+    if (t < histD) { pendingPops++; history.go(t - histD); histD = t; } // fechaste algo pela app: tira as entradas a mais
   }
   function backStep() {
     if (sheetOpen()) {
@@ -1416,10 +1432,14 @@
     if (tab !== 'hoje') { tab = 'hoje'; render(true); window.scrollTo(0, 0); return; }
     if (curDay !== todayKey()) { curDay = todayKey(); render(); }
   }
-  window.addEventListener('popstate', () => {
-    if (popIgnore) { popIgnore = false; syncGuard(); return; }
-    backStep();
-    syncGuard();
+  window.addEventListener('popstate', e => {
+    const d = (e.state && e.state.d) || 0;
+    if (pendingPops > 0) { pendingPops--; histD = d; return; }
+    inPop = true;
+    for (let n = 0; n < 10 && uiDepth() > d; n++) backStep();
+    inPop = false;
+    histD = d;
+    if (uiDepth() < d) syncGuard(); // recuou mais do que um passo de uma vez
   });
   // iPhone (app no ecrã principal): não há gesto de voltar do sistema — deslizar do bordo esquerdo para a direita
   if (/iPhone|iPad|iPod/.test(navigator.userAgent) && navigator.standalone) {
@@ -1428,13 +1448,13 @@
     document.addEventListener('touchend', e => {
       if (ex === null) return;
       const t = e.changedTouches[0];
-      if (t.clientX - ex > 70 && Math.abs(t.clientY - ey) < 60 && !atRoot()) history.back();
+      if (t.clientX - ex > 70 && Math.abs(t.clientY - ey) < 60 && uiDepth() > 0) history.back();
       ex = null;
     }, { passive: true });
   }
 
   // ================= Arranque =================
-  history.replaceState({ root: 1 }, '');
+  history.replaceState({ d: 0 }, '');
   render();
   let lastToday = todayKey();
   document.addEventListener('visibilitychange', () => {
