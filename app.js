@@ -301,7 +301,8 @@
     syncGuard();
   }
   function paintSheet() {
-    sheetEl.innerHTML = `<div class="grabber"></div>${sheetNoClose ? '' : `<button class="sheet-close press" data-act="close" aria-label="Fechar">${ic('x')}</button>`}${sheetRender()}`;
+    // Sem botão X: fecha-se a deslizar para baixo, a tocar fora, com o "voltar" do telemóvel ou nos botões da própria folha
+    sheetEl.innerHTML = `<div class="grabber" aria-hidden="true"></div>${sheetRender()}`;
   }
   let pendingConfirm = null;
   function askConfirm({ title, text, ok, onOk }) {
