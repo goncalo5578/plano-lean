@@ -243,6 +243,7 @@
     ({ hoje: renderHoje, semana: renderSemana, compras: renderCompras, progresso: renderProgresso, perfil: renderPerfil })[tab]();
     if (anim) { $view.classList.remove('fade'); void $view.offsetWidth; $view.classList.add('fade'); }
     onScroll();
+    syncGuard();
   }
   function header(over, title, actions = '') {
     $hdr.innerHTML = `<div><div class="over">${over}</div><h1>${title}</h1></div><div class="hdr-actions">${actions}</div>`;
@@ -297,6 +298,7 @@
     backEl.classList.add('open'); sheetEl.classList.add('open');
     sheetEl.scrollTop = 0;
     document.body.style.overflow = 'hidden';
+    syncGuard();
   }
   function paintSheet() {
     sheetEl.innerHTML = `<div class="grabber"></div>${sheetNoClose ? '' : `<button class="sheet-close press" data-act="close" aria-label="Fechar">${ic('x')}</button>`}${sheetRender()}`;
@@ -313,6 +315,7 @@
     if (typeof stopScan === 'function') stopScan();
     if (!sheetEl) return;
     backEl.classList.remove('open'); sheetEl.classList.remove('open');
+    syncGuard();
     document.body.style.overflow = '';
     setTimeout(() => { if (!sheetEl.classList.contains('open')) { backEl.hidden = sheetEl.hidden = true; } }, 380);
   }
@@ -1390,7 +1393,47 @@
   // Migração: refeições marcadas com "não gosto" passam a eliminadas
   if (S.prefs && S.prefs.hide && Object.keys(S.prefs.hide).length) { Object.assign(R().removed, S.prefs.hide); delete S.prefs; save(); }
 
+  // ================= Gesto / botão "voltar" do telemóvel =================
+  // A app é uma página única: guardamos uma entrada extra no histórico sempre que não estamos no ecrã inicial,
+  // para o "voltar" recuar um passo dentro da app em vez de a fechar.
+  const sheetOpen = () => !!(sheetEl && sheetEl.classList.contains('open'));
+  const atRoot = () => !sheetOpen() && tab === 'hoje' && !sub && curDay === todayKey();
+  let popIgnore = false;
+  function syncGuard() {
+    const guarded = !!(history.state && history.state.g);
+    if (!atRoot() && !guarded) history.pushState({ g: 1 }, '');
+    else if (atRoot() && guarded && !popIgnore) { popIgnore = true; history.back(); } // voltou ao início pela app: tira a entrada extra
+  }
+  function backStep() {
+    if (sheetOpen()) {
+      if (sheetRender === editorSheet && rDraft && rDraft.view !== 'edit') { stopScan(); rDraft.view = rDraft.view === 'food' ? 'edit' : 'food'; paintSheet(); sheetEl.scrollTop = 0; return; }
+      if (sheetEl.dataset.mode) { delete sheetEl.dataset.mode; paintSheet(); return; }
+      pendingConfirm = null; closeSheet(); return;
+    }
+    if (tab === 'perfil' && recCat) { recCat = null; render(true); window.scrollTo(0, 0); return; }
+    if (sub) { sub = null; recCat = null; render(true); window.scrollTo(0, 0); return; }
+    if (tab !== 'hoje') { tab = 'hoje'; render(true); window.scrollTo(0, 0); return; }
+    if (curDay !== todayKey()) { curDay = todayKey(); render(); }
+  }
+  window.addEventListener('popstate', () => {
+    if (popIgnore) { popIgnore = false; syncGuard(); return; }
+    backStep();
+    syncGuard();
+  });
+  // iPhone (app no ecrã principal): não há gesto de voltar do sistema — deslizar do bordo esquerdo para a direita
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent) && navigator.standalone) {
+    let ex = null, ey = 0;
+    document.addEventListener('touchstart', e => { const t = e.touches[0]; ex = t.clientX < 24 ? t.clientX : null; ey = t.clientY; }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (ex === null) return;
+      const t = e.changedTouches[0];
+      if (t.clientX - ex > 70 && Math.abs(t.clientY - ey) < 60 && !atRoot()) history.back();
+      ex = null;
+    }, { passive: true });
+  }
+
   // ================= Arranque =================
+  history.replaceState({ root: 1 }, '');
   render();
   let lastToday = todayKey();
   document.addEventListener('visibilitychange', () => {
