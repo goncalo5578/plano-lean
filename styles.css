@@ -113,10 +113,14 @@ main { max-width: 600px; margin: 0 auto; padding: 0 16px 24px; outline: none; }
   font-size: 16px; font-weight: 650;
   background: color-mix(in srgb, var(--bg) 78%, transparent);
   backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: .5px solid var(--sep);
   opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .2s, transform .2s;
 }
 .topbar.show { opacity: 1; transform: none; }
+/* Separação suave: em vez de uma linha, a cor da barra desvanece para o conteúdo */
+.topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 18px; pointer-events: none;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 78%, transparent), transparent);
+}
 
 /* ============ Tab bar ============ */
 .tabs {
