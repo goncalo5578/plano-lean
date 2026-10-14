@@ -322,7 +322,6 @@
       }
     }
     animateCounts(!!anim); // só conta ao marcar refeições, água, etc. (no mesmo dia)
-    syncFab();
     onScroll();
     syncGuard();
     try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, recCat, curDay, weekOffset, shopWeek, range, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
@@ -330,23 +329,6 @@
   function header(over, title, actions = '') {
     $hdr.innerHTML = `<div><div class="over">${over}</div><h1>${title}</h1></div><div class="hdr-actions">${actions}</div>`;
     $top.textContent = title.replace(/<[^>]+>/g, '');
-  }
-  // "Nova receita" a flutuar — fora da página, para ficar parado no ecrã ao fazer scroll
-  let fabEl = null;
-  function syncFab() {
-    const show = tab === 'perfil' && sub === 'refeicoes' && !!recCat;
-    if (!fabEl) {
-      if (!show) return;
-      fabEl = document.createElement('button');
-      fabEl.className = 'fab-add';
-      fabEl.innerHTML = `${ic('plus')}<span>Nova receita</span>`;
-      fabEl.addEventListener('click', () => { if (recCat) openEditor(null, recCat); });
-      document.body.appendChild(fabEl);
-      void fabEl.offsetWidth;
-    }
-    fabEl.classList.toggle('show', show);
-    fabEl.tabIndex = show ? 0 : -1;
-    fabEl.setAttribute('aria-hidden', String(!show));
   }
   const onScroll = () => $top.classList.toggle('show', window.scrollY > 56);
   window.addEventListener('scroll', onScroll, { passive: true });
@@ -1207,8 +1189,7 @@
       const list = mealsOf(catSlot.id);
       h = `<div class="group-label" style="margin-top:8px">${list.length} ${list.length === 1 ? 'receita' : 'receitas'}</div><div class="list">${list.map(o => `
           <button class="row tap" data-act="redit" data-id="${o.id}"><div class="row-main"><div class="ttl" style="font-weight:500">${esc(o.n)}</div><div class="sub">${recipeTags(o)}</div></div>${ic('chevR', 'chev')}</button>`).join('')}</div>
-        <p class="cap">Toca numa receita para a editar ou eliminar.</p>
-        <div class="fab-space" aria-hidden="true"></div>`;
+        <div class="fab-wrap"><button class="fab-add" data-act="rnew" data-slot="${catSlot.id}">${ic('plus')}<span>Nova receita</span></button></div>`;
     } else if (id === 'refeicoes') {
       const r = R(), changed = Object.keys(r.edits).length + Object.keys(r.removed).length;
       h = `<div class="btn-stack" style="margin-top:4px"><button class="btn primary press" data-act="rnew" data-slot="almoco">${ic('plus')} Nova receita</button></div>

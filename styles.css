@@ -77,13 +77,14 @@
 
 /* ============ Base ============ */
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; } /* desliga o recarregar do browser; a app tem o seu */
+html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; overflow-x: clip; } /* desliga o recarregar do browser; a app tem o seu */
 body {
   margin: 0; background: var(--bg); color: var(--ink);
   font: 400 16px/1.4 var(--font); letter-spacing: -.005em;
   -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
   padding-bottom: calc(84px + env(safe-area-inset-bottom));
   overscroll-behavior-y: none;
+  overflow-x: clip; /* a app nunca desliza para os lados */
 }
 button, input, select { font: inherit; color: inherit; letter-spacing: inherit; }
 button { cursor: pointer; background: none; border: 0; padding: 0; }
@@ -546,20 +547,19 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 @keyframes dayInR { from { transform: translateX(calc(100% + 16px)); opacity: .5; } }
 @keyframes dayInL { from { transform: translateX(calc(-100% - 16px)); opacity: .5; } }
 
-/* "Nova receita" a flutuar por cima da barra das abas (dentro de cada refeição) */
+/* "Nova receita" dentro de cada refeição: colado ao fundo do ecrã enquanto há lista por baixo,
+   e quando chegas ao fim assenta logo abaixo da última receita */
+.fab-wrap { position: sticky; bottom: calc(80px + env(safe-area-inset-bottom)); z-index: 5; margin-top: 14px; }
 .fab-add {
-  position: fixed; left: 16px; right: 16px; margin: 0 auto; max-width: 568px; z-index: 9; justify-content: center;
-  bottom: calc(78px + env(safe-area-inset-bottom));
-  display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: 999px;
+  display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+  padding: 10px 18px; border-radius: 999px;
   background: var(--surface); color: var(--accent); font-size: 15.5px; font-weight: 600;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .13), 0 1px 3px rgba(0, 0, 0, .08), 0 0 0 .5px var(--sep);
-  opacity: 0; transform: translateY(20px) scale(.92); pointer-events: none;
-  transition: opacity .25s, transform .45s var(--spring);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12), 0 1px 3px rgba(0, 0, 0, .08), 0 0 0 .5px var(--sep);
+  transition: transform .2s var(--spring);
 }
-.fab-add.show { opacity: 1; transform: none; pointer-events: auto; }
-.fab-add.show:active { transform: scale(.95); }
+.fab-add:active { transform: scale(.97); }
 .fab-add .ic { width: 28px; height: 28px; padding: 5px; border-radius: 50%; background: var(--accent-soft); stroke-width: 2.4; }
-.fab-space { height: 64px; }
+
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
