@@ -805,7 +805,10 @@
   const weekMon = () => addDays(mondayOf(todayKey()), weekOffset * 7);
   function renderSemana() {
     const mon = weekMon();
-    const lbl = weekOffset === 0 ? 'Esta semana' : weekOffset === 1 ? 'Próxima semana' : weekOffset === -1 ? 'Semana passada' : `${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`;
+    const lbl = weekOffset === 0 ? 'Esta semana' : weekOffset === 1 ? 'Próxima semana' : weekOffset === -1 ? 'Semana passada'
+      : weekOffset > 1 ? `Daqui a ${weekOffset} semanas` : `Há ${-weekOffset} semanas`;
+    const m0 = fromKey(mon), m6 = fromKey(addDays(mon, 6));
+    const range = m0.getMonth() === m6.getMonth() ? `${m0.getDate()} – ${m6.getDate()} ${MON[m6.getMonth()]}` : `${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`;
     header(`${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`, 'Semana', `<button class="pill-btn press" data-act="escala">Escala</button>`);
     const plans = Array.from({ length: 7 }, (_, i) => dayPlan(addDays(mon, i)));
     const avg = plans.reduce((a, p) => a + p.tot.kcal, 0) / 7;
@@ -813,7 +816,7 @@
     const nTurnos = plans.filter(p => ['M', 'T', 'N'].includes(p.shift)).length;
     let h = `<div class="weeknav">
         <button class="circle-btn press" data-act="wk" data-d="-1" aria-label="Semana anterior">${ic('chevL', 'sm')}</button>
-        <span class="lbl">${lbl}</span>
+        <div class="wk-lbl" aria-live="polite"><b>${lbl}</b><span class="num">${range}</span></div>
         <button class="circle-btn press" data-act="wk" data-d="1" aria-label="Semana seguinte">${ic('chevR', 'sm')}</button></div>
       <div class="day-stage"><div class="day-pane week-pane">
       <section class="card kpis num"><div><b>${n0(avg)}</b><span>kcal / dia</span></div><div><b>${nTurnos}</b><span>turnos</span></div><div><b>${nT}</b><span>treinos</span></div></section>
