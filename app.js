@@ -1147,8 +1147,12 @@
           <div><b>${n1(p.peso / (p.altura / 100) ** 2)}</b><span>IMC</span></div>
         </div>
       </section>
-      <div class="list" style="margin-top:12px">${PLANO.map(r => navRow(r)).join('')}</div>
-      <div class="list" style="margin-top:12px">${HUBS.map(r => navRow(r)).join('')}</div>
+      <div class="tile-grid">${[
+        ['metas', 'Metas', 'target', '#e2590f', `${n0(dayType(todayKey()) === 'T' ? T.train : T.rest)} kcal hoje`],
+        ['refeicoes', 'Receitas', 'pot', '#1d5c45', `${SLOTS.reduce((n, sl) => n + mealsOf(sl.id).length, 0)} receitas`],
+        ['guia', 'Guia', 'book', '#3b5bdb', `${GUIDE.length} temas`],
+        ['definicoes', 'Definições', 'gear', '#5c636a', 'Plano, turnos, aparência'],
+      ].map(([id, l, i, col, d]) => `<button class="ptile press" data-act="sub" data-id="${id}"><span class="tile" style="background:${col}">${ic(i)}</span><span><b>${l}</b><small>${d}</small></span></button>`).join('')}</div>
       <p class="cap" style="margin-top:20px">Informativo — não substitui um nutricionista. Com historial de distúrbios alimentares, gravidez ou doença, procura acompanhamento profissional.</p>`;
   }
 
