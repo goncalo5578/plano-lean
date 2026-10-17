@@ -231,15 +231,12 @@ html[data-preview] .toast { bottom: calc(146px + env(safe-area-inset-bottom)); }
 [data-look="bento"] .hdr h1 { font-weight: 800; letter-spacing: -.035em; }
 [data-look="bento"] .sec-h { font-weight: 800; letter-spacing: -.02em; }
 [data-look="bento"] :is(.big, .kpis b, .wk-lbl b, .me-stats b, .hero-grid b) { font-weight: 800; }
-/* Calorias e macros como no B (bloco escuro), com o tipo de dia à direita */
-.en-d { margin: 0 0 12px; border-radius: var(--r-lg); padding: 18px 18px 20px; }
-.en-d .energy-top { align-items: flex-start; }
-.en-d .big { font-size: 64px; margin-top: 2px; }
+/* Calorias e macros com a disposição do B, num cartão branco como antes; tipo de dia à direita */
+.en-d { padding: 18px 18px 20px; }
+.en-d .big { font-size: 64px; font-weight: 800; letter-spacing: -.05em; margin-top: 2px; }
+.en-d .big-lbl { font-size: 15px; }
 .en-d .daytype { padding-top: 6px; }
-.en-d .daytype b { color: #fff; }
-.en-d .daytype small { color: rgba(255, 255, 255, .55); }
-.en-d .daytype.is-rest .dt-ic { background: rgba(196, 240, 91, .14); color: var(--lime); }
-.en-d .daytype.is-train .dt-ic { background: rgba(255, 164, 119, .16); color: #ffa477; }
+.en-d .track:not(.thin) { height: 10px; margin-top: 18px; }
 [data-look="bento"] .m-ic { background: var(--slc); color: #fff; border-radius: 14px; }
 .glasses { display: flex; gap: 4px; margin-top: 9px; }
 .glasses i { flex: 1; height: 14px; border-radius: 4px; background: var(--fill); transition: background .3s; }

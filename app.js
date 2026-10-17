@@ -515,7 +515,7 @@
         <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
       </section>`;
     } else if (look === 'bento') h = `
-      <section class="en-b en-d">
+      <section class="card en-d">
         <div class="energy-top">
           <div><div class="big num">${leftNum}</div><div class="big-lbl">${leftLbl}</div></div>
           <div class="daytype ${isT ? 'is-train' : 'is-rest'}">
