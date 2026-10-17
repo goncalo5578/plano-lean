@@ -66,7 +66,7 @@ const SLOTS = [
 
 // Turnos: hora e nome de cada refeição. Horas antes das 05:00 contam como fim do dia (depois da meia-noite).
 // Horários editáveis na app (Perfil → Turnos e horários).
-const SHIFT_ORDER = ['M', 'T', 'N', 'S', 'F'];
+const SHIFT_ORDER = ['M', 'T', 'N', 'F'];
 const SHIFTS = {
   M: { n: 'Manhã', h: '08–16h', col: '#e09a00',
        t: { pa: '06:45', lm: '10:00', almoco: '12:30', lanche: '16:30', jantar: '20:00' },
@@ -80,10 +80,11 @@ const SHIFTS = {
        t: { pa: '10:30', lm: '12:30', almoco: '14:30', jantar: '20:30', lanche: '02:00' },
        l: { jantar: 'Jantar antes do turno', lanche: 'Refeição no turno' },
        tip: 'O jantar antes do turno é a refeição principal. Durante a noite, pouco e leve (proteína + fruta), sem doces. Café só na primeira metade do turno.' },
-  S: { n: 'Saída de noite', h: 'Depois da noite', col: '#868e96',
-       t: { pa: '08:30', lm: '12:00', almoco: '15:00', lanche: '18:00', jantar: '21:00' },
+  // Não é um turno: ajusta a manhã de qualquer dia a seguir a uma noite (folga, tarde ou outra noite)
+  PN: { n: 'Depois de uma noite', h: 'Manhã a dormir', col: '#868e96',
+       t: { pa: '08:30', almoco: '15:00' },
        l: { pa: 'Pequeno-almoço leve', almoco: 'Almoço ao acordar' },
-       tip: 'Ao sair, come algo leve antes de dormir para não acordares com fome. Quarto escuro, 4–6 h de sono; o resto do dia segue normal.' },
+       tip: 'Ao sair, come algo leve antes de dormir para não acordares com fome. Quarto escuro, 4–6 h de sono; o almoço ao acordar é a primeira refeição a sério.' },
   F: { n: 'Folga', h: 'Dia livre', col: '#2f9e44',
        t: { pa: '09:00', lm: '11:00', almoco: '13:00', lanche: '17:00', jantar: '20:30' },
        l: {},

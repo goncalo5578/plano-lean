@@ -373,7 +373,7 @@ a { color: var(--accent); text-decoration: none; }
 .row.esc { gap: 10px; padding: 9px 12px; }
 .esc .day-date { width: 32px; }
 .esc .day-date .dn { font-size: 18px; }
-.esc-seg { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); }
+.esc-seg { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); }
 .esc-seg button { padding: 8px 0; font-weight: 700; font-size: 14px; }
 .esc-seg button.on { color: var(--sc); }
 .train-tg { width: 38px; height: 38px; border-radius: 10px; background: var(--fill); color: var(--ink-3); display: grid; place-items: center; flex: none; transition: background .2s, color .2s; }
@@ -603,6 +603,10 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .shop-row .amt { flex: none; padding: 5px 10px; border-radius: 999px; background: var(--fill); font-size: 13.5px; font-weight: 600; color: var(--ink); white-space: nowrap; transition: color .25s, background .25s; }
 .got .amt { background: transparent; color: var(--ink-3); text-decoration: line-through; }
 .got .sub { text-decoration: line-through; }
+
+/* Manhã impossível depois de uma noite */
+.esc-seg button.blocked { opacity: .3; text-decoration: line-through; }
+.row.blocked { opacity: .45; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

@@ -118,8 +118,9 @@
   const roundG = (f, g) => f === 'bolachaArroz' ? Math.max(8, Math.round(g / 8) * 8) : Math.max(5, Math.round(g / 5) * 5);
 
   // ---- Turnos ----
-  const calShift = k => (S.cal && S.cal.url && S.cal.shifts && S.cal.shifts[k]) || null;
-  const shiftOf = k => peekDay(k).turno || calShift(k) || 'F';
+  const calShift = k => { const v = (S.cal && S.cal.url && S.cal.shifts && S.cal.shifts[k]) || null; return v === 'S' ? null : v; };
+  const shiftOf = k => { const v = peekDay(k).turno || calShift(k) || 'F'; return v === 'S' ? 'F' : v; }; // 'S' antigo = folga
+  const afterNight = k => shiftOf(addDays(k, -1)) === 'N'; // manhã a dormir: não dá para fazer manhã
   function shiftCfg(id) {
     const o = (S.profile.shifts || {})[id] || {};
     return { ...SHIFTS[id], h: o.h || SHIFTS[id].h, t: { ...SHIFTS[id].t, ...(o.t || {}) } };
@@ -127,6 +128,7 @@
   const sortTime = t => (t < '05:00' ? '2' : '1') + t; // depois da meia-noite vai para o fim
   function slotInfo(k, slot, isT) {
     const c = shiftCfg(shiftOf(k)), s = SLOTS.find(x => x.id === slot);
+    if (afterNight(k) && (slot === 'pa' || slot === 'almoco')) { const pn = shiftCfg('PN'); return { n: pn.l[slot], t: pn.t[slot] }; }
     return { n: c.l[slot] || (isT && s.nt ? s.nt : s.n), t: c.t[slot] };
   }
 
@@ -420,7 +422,7 @@
   }
   function shiftPhrase(id) {
     const c = shiftCfg(id);
-    return id === 'S' ? 'Saída de noite' : id === 'F' ? 'Folga' : `Turno da ${c.n.toLowerCase()}`;
+    return id === 'F' ? 'Folga' : `Turno da ${c.n.toLowerCase()}`;
   }
   function renderHoje() {
     const P = dayPlan(curDay), T = P.T, isT = P.type === 'T';
@@ -460,6 +462,7 @@
         <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
       </section>`;
     if (sc.tip) h += `<div class="note shiftnote" style="--sc:${sc.col}">${ic('clock')}<div><b>${shiftPhrase(P.shift)} · ${sc.h}</b><br>${sc.tip}</div></div>`;
+    if (afterNight(curDay)) { const pn = shiftCfg('PN'); h += `<div class="note shiftnote" style="--sc:${pn.col}">${ic('moon')}<div><b>Depois de uma noite</b><br>${pn.tip}</div></div>`; }
 
     h += `<h2 class="sec-h">Refeições <small class="num">${P.nDone} de ${P.meals.length}</small></h2><div class="list">`;
     for (const m of P.meals) {
@@ -570,9 +573,9 @@
       const cur = shiftOf(k), isT = dayType(k) === 'T';
       return `<div class="over">${DOW[dowIdx(k)]}, ${niceDate(k)}</div><h2>Turno e treino</h2>
         <div class="list">${SHIFT_ORDER.map(id => {
-          const c = shiftCfg(id);
-          return `<button class="row tap" data-act="setshift" data-k="${k}" data-v="${id}"><span class="sdot" style="--sc:${c.col}"></span>
-            <div class="row-main"><div class="ttl" style="font-weight:500">${c.n}</div><div class="sub">${c.h}</div></div>${cur === id ? ic('check', 'ok') : ''}</button>`;
+          const c = shiftCfg(id), blocked = id === 'M' && afterNight(k);
+          return `<button class="row tap ${blocked ? 'blocked' : ''}" data-act="setshift" data-k="${k}" data-v="${id}" ${blocked ? 'aria-disabled="true"' : ''}><span class="sdot" style="--sc:${c.col}"></span>
+            <div class="row-main"><div class="ttl" style="font-weight:500">${c.n}</div><div class="sub">${blocked ? 'Não dá: vens de uma noite' : c.h}</div></div>${cur === id ? ic('check', 'ok') : ''}</button>`;
         }).join('')}</div>
         <div class="list" style="margin-top:12px"><button class="row tap" data-act="settrain" data-k="${k}" aria-pressed="${isT}"><div class="row-main"><div class="ttl" style="font-weight:500">Dia de treino</div><div class="sub">+200 kcal, sobretudo hidratos</div></div><span class="switch ${isT ? 'on' : ''}"></span></button></div>
         ${calNote(k)}
@@ -829,7 +832,7 @@
       h += `<div class="row tap ${P.k === todayKey() ? 'is-today' : ''}" data-act="open" data-k="${P.k}">
         <div class="day-date"><div class="wd">${DOW_S[i]}</div><div class="dn num">${dayNum(P.k)}</div></div>
         <div class="row-main">
-          <div class="tagline"><span class="shift" style="--sc:${c.col}"><i></i>${c.n}</span>${isT ? `<span class="tag train">${ic('flame', 'sm')}Treino</span>` : ''}<span class="num" style="color:var(--ink-3);font-size:12.5px">${n0(P.tot.kcal)} kcal</span></div>
+          <div class="tagline"><span class="shift" style="--sc:${c.col}"><i></i>${c.n}</span>${afterNight(P.k) ? `<span class="tag rest">${ic('moon', 'sm')}Depois da noite</span>` : ''}${isT ? `<span class="tag train">${ic('flame', 'sm')}Treino</span>` : ''}<span class="num" style="color:var(--ink-3);font-size:12.5px">${n0(P.tot.kcal)} kcal</span></div>
           <div class="sub clamp">${P.meals.map(m => esc(m.meal.n) + (m.src ? ' <em>(sobras)</em>' : '')).join(' · ')}</div>
         </div>${ic('chevR', 'chev')}</div>`;
     });
@@ -843,10 +846,10 @@
       for (let i = 0; i < 7; i++) {
         const k = addDays(mon, i), cur = shiftOf(k), isT = dayType(k) === 'T';
         h += `<div class="row esc"><div class="day-date"><div class="wd">${DOW_S[i]}</div><div class="dn num">${dayNum(k)}</div></div>
-          <div class="seg esc-seg" role="group" aria-label="Turno de ${DOW[i]}">${SHIFT_ORDER.map(id => `<button class="${cur === id ? 'on' : ''}" style="--sc:${SHIFTS[id].col}" data-act="setshift" data-k="${k}" data-v="${id}" aria-label="${SHIFTS[id].n}" aria-pressed="${cur === id}">${id}</button>`).join('')}</div>
+          <div class="seg esc-seg" role="group" aria-label="Turno de ${DOW[i]}">${SHIFT_ORDER.map(id => { const blocked = id === 'M' && afterNight(k); return `<button class="${cur === id ? 'on' : ''} ${blocked ? 'blocked' : ''}" style="--sc:${SHIFTS[id].col}" data-act="setshift" data-k="${k}" data-v="${id}" aria-label="${SHIFTS[id].n}${blocked ? ' (não dá depois de uma noite)' : ''}" aria-pressed="${cur === id}" ${blocked ? 'aria-disabled="true"' : ''}>${id}</button>`; }).join('')}</div>
           <button class="train-tg ${isT ? 'on' : ''}" data-act="settrain" data-k="${k}" aria-label="Treino em ${DOW[i]}" aria-pressed="${isT}">${ic('dumbbell')}</button></div>`;
       }
-      return h + `</div><p class="cap"><b>M</b> manhã · <b>T</b> tarde · <b>N</b> noite · <b>S</b> saída de noite · <b>F</b> folga. O haltere marca os dias de treino.${S.cal && S.cal.url ? ' Os turnos vêm do calendário; o que mudares aqui fica por cima.' : ''}</p>
+      return h + `</div><p class="cap"><b>M</b> manhã · <b>T</b> tarde · <b>N</b> noite · <b>F</b> folga. Depois de uma noite não dá para fazer manhã, e a app ajusta a manhã desse dia sozinha. O haltere marca os dias de treino.${S.cal && S.cal.url ? ' Os turnos vêm do calendário; o que mudares aqui fica por cima.' : ''}</p>
         <div class="btn-stack"><button class="btn primary press" data-act="close">Feito</button></div>`;
     };
   }
@@ -1153,7 +1156,9 @@
           <div class="form-row"><label for="h_${sid}">Horário</label><input id="h_${sid}" name="h_${sid}" type="text" value="${esc(c.h)}"></div>
           ${SLOTS.map(sl => `<div class="form-row"><label for="t_${sid}_${sl.id}">${c.l[sl.id] || sl.n}</label><input id="t_${sid}_${sl.id}" name="t_${sid}_${sl.id}" type="time" value="${c.t[sl.id]}"></div>`).join('')}
         </div>`;
-      }).join('')}</form>
+      }).join('')}${(() => { const pn = shiftCfg('PN'); return `<div class="group-label"><span class="sdot" style="--sc:${pn.col};margin-right:6px"></span>Depois de uma noite</div><div class="list">
+          ${['pa', 'almoco'].map(sl => `<div class="form-row"><label for="t_PN_${sl}">${pn.l[sl]}</label><input id="t_PN_${sl}" name="t_PN_${sl}" type="time" value="${pn.t[sl]}"></div>`).join('')}
+        </div>`; })()}</form>
       <div class="btn-stack"><button class="btn secondary press" data-act="resetturnos">Repor horários originais</button></div>
       <p class="cap">As refeições aparecem por esta ordem no ecrã Hoje. Horas antes das 05:00 contam como depois da meia-noite.</p>`;
     } else if (id === 'numeros') {
@@ -1254,9 +1259,6 @@
             <div class="row kv-row"><div class="row-main" style="font-size:15px">Última sincronização</div><div class="val"><b>${c.sync ? ago(c.sync) : '—'}</b></div></div>
             <div class="row kv-row"><div class="row-main" style="font-size:15px">Turnos a partir de hoje</div><div class="val num"><b>${n}</b></div></div>
           </div>
-          <div class="group-label">Opções</div><div class="list">
-            <button class="row tap" data-act="calautoS" aria-pressed="${c.autoS !== false}"><div class="row-main"><div class="ttl" style="font-weight:500">Saída de noite automática</div><div class="sub">O dia depois de uma noite fica como saída de noite</div></div><span class="switch ${c.autoS !== false ? 'on' : ''}"></span></button>
-          </div>
           <div class="btn-stack"><button class="btn secondary press" data-act="calsync">Sincronizar agora</button>
           <button class="btn danger press" data-act="caloff">Desligar calendário</button></div>
           <p class="cap">A app lê o calendário ao abrir (no máximo de 10 em 10 minutos). Sem internet, usa a última escala lida.</p>`;
@@ -1299,6 +1301,9 @@
       for (const sl of SLOTS) { const v = f.elements[`t_${sid}_${sl.id}`].value; if (v && v !== SHIFTS[sid].t[sl.id]) o.t[sl.id] = v; }
       if (o.h || Object.keys(o.t).length) out[sid] = o;
     }
+    const pn = { t: {} };
+    for (const sl of ['pa', 'almoco']) { const v = f.elements[`t_PN_${sl}`].value; if (v && v !== SHIFTS.PN.t[sl]) pn.t[sl] = v; }
+    if (Object.keys(pn.t).length) out.PN = pn;
     S.profile.shifts = out; save(); toast('Horários guardados');
   }
   function exportData() {
@@ -1357,7 +1362,6 @@
       case 'tema': S.profile.tema = b.dataset.v; save(); applyTheme(); break;
       case 'calreset': delete dayState(b.dataset.k).turno; save(); render(); if (sheetEl && sheetEl.classList.contains('open')) paintSheet(); return;
       case 'calsync': syncCal(true).then(n => toast(`${n} turnos lidos`)).catch(e => toast(e.message)); return;
-      case 'calautoS': S.cal.autoS = S.cal.autoS === false; S.cal.shifts = buildShifts(S.cal.events || []); save(); break;
       case 'caloff':
         askConfirm({ title: 'Desligar o calendário?', ok: 'Desligar', text: 'Os turnos que mudaste à mão ficam; os do calendário deixam de aparecer.',
           onOk: () => { S.cal = { shifts: {}, autoS: true }; save(); render(); toast('Calendário desligado'); } });
@@ -1444,7 +1448,11 @@
       case 'rfoodsave': return saveNewFood();
       case 'rsave': return saveRecipe();
       case 'rdelete': return deleteRecipe();
-      case 'setshift': setShift(b.dataset.k, b.dataset.v); render(); paintSheet(); return;
+      case 'setshift':
+        if (b.dataset.v === 'M' && afterNight(b.dataset.k)) { toast('Depois de uma noite não dá para fazer manhã'); return; }
+        setShift(b.dataset.k, b.dataset.v); render(); paintSheet();
+        if (b.dataset.v === 'N' && shiftOf(addDays(b.dataset.k, 1)) === 'M') toast('O dia a seguir está como Manhã — muda-o');
+        return;
       case 'settrain': toggleTrain(b.dataset.k); render(); paintSheet(); return;
     }
   }
@@ -1507,7 +1515,6 @@
       const d = L === 'N' && ev.s && ev.s < '05:00' ? addDays(ev.d, -1) : ev.d; // noite que começa à meia-noite pertence ao dia anterior
       if (!map[d] || rank[L] > rank[map[d]]) map[d] = L;
     }
-    if (S.cal.autoS !== false) for (const d of Object.keys(map)) if (map[d] === 'N' && !map[addDays(d, 1)]) map[addDays(d, 1)] = 'S';
     return map;
   }
   let syncing = null;
