@@ -68,17 +68,18 @@ html[data-preview] .toast { bottom: calc(146px + env(safe-area-inset-bottom)); }
 [data-look="suave"] :is(.card, .list, .mcards > .row:not(.add-row), .ptile, .prose, .hero-grid, .weeknav, .cat-card, .pill-btn, .circle-btn) { box-shadow: var(--soft); }
 [data-look="suave"] .pill-btn, [data-look="suave"] .circle-btn { background: var(--surface); }
 /* Dias: cápsulas que enchem de baixo para cima à medida que comes */
-[data-look="suave"] .strip { gap: 6px; margin-bottom: 16px; }
-[data-look="suave"] .strip button { position: relative; overflow: hidden; background: var(--surface); border-radius: 999px; padding: 11px 0 9px; gap: 3px; box-shadow: var(--soft); transition: background .25s; }
-[data-look="suave"] .strip button::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: var(--lv, 0%); background: var(--accent-soft); transition: height .8s var(--ease-expo); }
-[data-look="suave"] .strip button > * { position: relative; }
-[data-look="suave"] .strip .ring, [data-look="suave"] .strip .sel .ring { background: none; width: auto; height: auto; }
-[data-look="suave"] .strip .dn, [data-look="suave"] .strip .sel .dn { background: none; width: auto; height: auto; box-shadow: none; font-size: 17px; font-family: var(--serif); font-weight: 600; }
-[data-look="suave"] .strip .sel { background: var(--accent); }
-[data-look="suave"] .strip .sel::before { background: rgba(255, 255, 255, .16); }
-[data-look="suave"] .strip .sel .wd, [data-look="suave"] .strip .sel .dn { color: #fff; }
-[data-look="suave"] .strip .sel .mk { color: rgba(255, 255, 255, .85) !important; }
-[data-look="suave"] .strip .train .ring::after { top: -1px; right: -9px; width: 7px; height: 7px; box-shadow: none; }
+:is([data-look="suave"], [data-look="bento"]) .strip { gap: 6px; margin-bottom: 16px; }
+:is([data-look="suave"], [data-look="bento"]) .strip button { position: relative; overflow: hidden; background: var(--surface); border-radius: 999px; padding: 11px 0 9px; gap: 3px; box-shadow: var(--soft); transition: background .25s; }
+:is([data-look="suave"], [data-look="bento"]) .strip button::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: var(--lv, 0%); background: var(--accent-soft); transition: height .8s var(--ease-expo); }
+:is([data-look="suave"], [data-look="bento"]) .strip button > * { position: relative; }
+:is([data-look="suave"], [data-look="bento"]) .strip .ring, :is([data-look="suave"], [data-look="bento"]) .strip .sel .ring { background: none; width: auto; height: auto; }
+:is([data-look="suave"], [data-look="bento"]) .strip .dn, :is([data-look="suave"], [data-look="bento"]) .strip .sel .dn { background: none; width: auto; height: auto; box-shadow: none; font-size: 17px; font-weight: 700; }
+[data-look="suave"] .strip .dn { font-family: var(--serif); font-weight: 600; }
+:is([data-look="suave"], [data-look="bento"]) .strip .sel { background: var(--accent); }
+:is([data-look="suave"], [data-look="bento"]) .strip .sel::before { background: rgba(255, 255, 255, .16); }
+:is([data-look="suave"], [data-look="bento"]) .strip .sel .wd, :is([data-look="suave"], [data-look="bento"]) .strip .sel .dn { color: #fff; }
+:is([data-look="suave"], [data-look="bento"]) .strip .sel .mk { color: rgba(255, 255, 255, .85) !important; }
+:is([data-look="suave"], [data-look="bento"]) .strip .train .ring::after { top: -1px; right: -9px; width: 7px; height: 7px; box-shadow: none; }
 /* Calorias: anel + macros ao lado */
 .en-a { padding: 18px; }
 .en-a-main { display: flex; align-items: center; gap: 18px; margin-top: 14px; }
@@ -224,37 +225,21 @@ html[data-preview] .toast { bottom: calc(146px + env(safe-area-inset-bottom)); }
   --train: #f0642c; --train-soft: rgba(240, 100, 44, .12);
   --p: #4263eb; --c: #f2a20c; --f: #e8457c; --water: #2b8ae2;
   --font: "Plus Jakarta Sans", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  --band: #0f2a20; --lime: #c4f05b; --soft: 0 1px 2px rgba(20, 22, 28, .05);
   --r-lg: 24px; color-scheme: light;
 }
 [data-look="bento"] .hdr h1 { font-weight: 800; letter-spacing: -.035em; }
 [data-look="bento"] .sec-h { font-weight: 800; letter-spacing: -.02em; }
-[data-look="bento"] :is(.big, .kpis b, .wk-lbl b, .me-stats b, .hero-grid b, .ring-c b) { font-weight: 800; }
-/* Dias em quadrados; o escolhido a escuro */
-[data-look="bento"] .strip { gap: 5px; margin-bottom: 12px; }
-[data-look="bento"] .strip button { background: var(--surface); border-radius: 16px; padding: 8px 0 6px; gap: 4px; transition: background .25s; }
-[data-look="bento"] .strip .ring { width: 34px; height: 34px; }
-[data-look="bento"] .strip .dn { width: 28px; height: 28px; background: var(--surface); font-size: 14px; }
-[data-look="bento"] .strip .sel { background: var(--ink); }
-[data-look="bento"] .strip .sel .wd { color: rgba(255, 255, 255, .6); }
-[data-look="bento"] .strip .sel .ring { background: conic-gradient(#7ee2b8 calc(var(--pct) * 1%), rgba(255, 255, 255, .16) 0); }
-[data-look="bento"] .strip .sel .dn { background: var(--ink); color: #fff; box-shadow: none; width: 28px; height: 28px; }
-[data-look="bento"] .strip .train .ring::after { box-shadow: 0 0 0 2px var(--surface); top: -1px; right: -1px; }
-[data-look="bento"] .strip .sel.train .ring::after { box-shadow: 0 0 0 2px var(--ink); }
-.bento-hero { display: flex; align-items: center; gap: 18px; padding: 18px; }
-.bento-hero .ring-wrap { width: 132px; }
-.bh-side { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
-.bh-row { display: flex; justify-content: space-between; align-items: baseline; width: 100%; font-size: 13.5px; color: var(--ink-3); }
-.bh-row + .bh-row { padding-top: 10px; box-shadow: inset 0 1px 0 var(--sep); }
-.bh-row b { font-size: 20px; font-weight: 800; color: var(--ink); letter-spacing: -.02em; }
-.bento3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-.btile { border-radius: 20px; padding: 12px 12px 13px; }
-.btile > span { font-size: 12px; font-weight: 700; color: var(--ink-2); }
-.btile > b { display: block; font-size: 23px; font-weight: 800; letter-spacing: -.03em; margin-top: 6px; }
-.btile small { font-size: 12px; font-weight: 600; color: var(--ink-3); letter-spacing: 0; margin-left: 1px; }
-.btile .track.thin { background: rgba(255, 255, 255, .7); height: 6px; margin-top: 8px; }
-.t-p { background: color-mix(in srgb, var(--p) 12%, var(--surface)); }
-.t-c { background: color-mix(in srgb, var(--c) 15%, var(--surface)); }
-.t-f { background: color-mix(in srgb, var(--f) 12%, var(--surface)); }
+[data-look="bento"] :is(.big, .kpis b, .wk-lbl b, .me-stats b, .hero-grid b) { font-weight: 800; }
+/* Calorias e macros como no B (bloco escuro), com o tipo de dia à direita */
+.en-d { margin: 0 0 12px; border-radius: var(--r-lg); padding: 18px 18px 20px; }
+.en-d .energy-top { align-items: flex-start; }
+.en-d .big { font-size: 64px; margin-top: 2px; }
+.en-d .daytype { padding-top: 6px; }
+.en-d .daytype b { color: #fff; }
+.en-d .daytype small { color: rgba(255, 255, 255, .55); }
+.en-d .daytype.is-rest .dt-ic { background: rgba(196, 240, 91, .14); color: var(--lime); }
+.en-d .daytype.is-train .dt-ic { background: rgba(255, 164, 119, .16); color: #ffa477; }
 [data-look="bento"] .m-ic { background: var(--slc); color: #fff; border-radius: 14px; }
 .glasses { display: flex; gap: 4px; margin-top: 9px; }
 .glasses i { flex: 1; height: 14px; border-radius: 4px; background: var(--fill); transition: background .3s; }

@@ -514,15 +514,20 @@
         <div class="meta num">${eatenTxt}</div>
         <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
       </section>`;
-    } else if (look === 'bento') {
-      const tileM = (lbl, cls, v, g) => `<div class="btile t-${cls}"><span>${lbl}</span><b class="num"><span data-count="m-${cls}" data-v="${Math.round(v)}">${n0(v)}</span><small>/${g} g</small></b><div class="track thin"><i class="bg-${cls}" style="width:${Math.min(100, (v / g) * 100)}%"></i></div></div>`;
-      h = `
-      <section class="card bento-hero">
-        <div class="ring-wrap">${kRing(pct)}<div class="ring-c">${leftNum}<span>${left >= 0 ? 'por comer' : 'acima'}</span></div></div>
-        <div class="bh-side">${dayChip}<div class="bh-row num"><span>Comido</span><b data-count="eaten" data-v="${Math.round(P.done.kcal)}">${n0(P.done.kcal)}</b></div><div class="bh-row num"><span>Meta</span><b>${n0(P.goal)}</b></div></div>
-      </section>
-      <div class="bento3">${tileM('Proteína', 'p', P.done.p, T.prot)}${tileM('Hidratos', 'c', P.done.c, cG)}${tileM('Gordura', 'f', P.done.f, T.fat)}</div>`;
-    } else h = `
+    } else if (look === 'bento') h = `
+      <section class="en-b en-d">
+        <div class="energy-top">
+          <div><div class="big num">${leftNum}</div><div class="big-lbl">${leftLbl}</div></div>
+          <div class="daytype ${isT ? 'is-train' : 'is-rest'}">
+            <span class="dt-ic">${ic(isT ? 'dumbbell' : 'moon')}</span>
+            <span><b>${isT ? 'Dia de treino' : 'Dia de descanso'}</b><small>${isT ? `+${T.train - T.rest} kcal` : 'Recuperação'}</small></span>
+          </div>
+        </div>
+        <div class="track"><i style="width:${pct}%"></i></div>
+        <div class="meta num">${eatenTxt}</div>
+        <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
+      </section>`;
+    else h = `
       <section class="card">
         <div class="energy-top">
           <div><div class="big num" data-count="left" data-v="${Math.round(Math.abs(left))}">${n0(Math.abs(left))}</div><div class="big-lbl">${left >= 0 ? 'kcal por comer' : 'kcal acima da meta'}</div></div>
