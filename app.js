@@ -44,6 +44,8 @@
     fish: '<path d="M2.5 12c2.6-3.6 6.6-5.2 10.6-4.3 1.6.4 3 1.2 4.2 2.3l3.2-2.5v9l-3.2-2.5c-1.2 1.1-2.6 1.9-4.2 2.3-4 .9-8-.7-10.6-4.3z"/><path d="M7.5 11.5v.01"/>',
     egg: '<path d="M12 3.5c3.6 0 6.5 5.4 6.5 9.8a6.5 6.5 0 0 1-13 0c0-4.4 2.9-9.8 6.5-9.8z"/>',
     wheat: '<path d="M12 21V9"/><path d="M12 9c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 9c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8zM12 14c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 14c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8zM12 19c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 19c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8z"/>',
+    book: '<path d="M4.5 5.5A2 2 0 0 1 6.5 3.5H19v14H6.5a2 2 0 0 0-2 2z"/><path d="M4.5 19.5a2 2 0 0 0 2 2H19v-4"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4.2 7.5l2.1 1.2M17.7 15.3l2.1 1.2M4.2 16.5l2.1-1.2M17.7 8.7l2.1-1.2"/><circle cx="12" cy="12" r="7"/>',
     contrast: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/>',
     refresh: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.5H15"/>',
     dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2.5 10v4M21.5 10v4M8 12h8"/>',
@@ -332,7 +334,7 @@
     animateCounts(!!anim); // só conta ao marcar refeições, água, etc. (no mesmo dia)
     onScroll();
     syncGuard();
-    try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, recCat, curDay, weekOffset, shopMode, range, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
+    try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, subParent, recCat, curDay, weekOffset, shopMode, range, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
   }
   function header(over, title, actions = '') {
     $hdr.innerHTML = `<div><div class="over">${over}</div><h1>${title}</h1></div><div class="hdr-actions">${actions}</div>`;
@@ -586,6 +588,7 @@
   }
 
   // ================= Editor de receitas =================
+  let subParent = null; // página de onde se abriu a atual (Guia ou Definições)
   let rDraft = null, recCat = null; // recCat: refeição aberta em Perfil → As minhas receitas
   const roleOf = f => (food(f).cat === 'Hidratos' ? 'c' : food(f).cat === 'Proteínas' ? 'p' : undefined);
   const normTxt = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -1096,14 +1099,11 @@
   // ================= PERFIL =================
   // [id, título, ícone, cor, descrição]
   const PLANO = [
+    ['metas', 'As tuas metas', 'target', '#e2590f', 'Calorias, proteína e gordura de cada dia'],
     ['refeicoes', 'As minhas receitas', 'pot', '#1d5c45', 'Criar, editar e eliminar receitas'],
-    ['ajustes', 'Ajustes do plano', 'sliders', '#e2590f', 'Peso, défice, dias de treino, sobras'],
-    ['horarios', 'Turnos e horários', 'clock', '#7048e8', 'Horas das refeições em cada turno'],
-    ['calendario', 'Calendário dos turnos', 'cal', '#3b5bdb', 'Ler a escala do teu calendário'],
   ];
   const GUIDE = [
     ['turnos', 'Turnos e dias caóticos', 'clock', '#3b5bdb', 'Marmitas, noites, cantina'],
-    ['numeros', 'Os teus números', 'gauge', '#1d5c45', 'Calorias, macros e IMC'],
     ['sexo', 'Homem vs mulher', 'users', '#d6336c', 'O que muda na dieta'],
     ['ciclo', 'Ciclo menstrual', 'cycle', '#ae3ec9', 'Como ajustar em cada fase'],
     ['micro', 'Micronutrientes', 'leaf', '#2b8a3e', 'Ferro, cálcio, vitamina D…'],
@@ -1111,12 +1111,20 @@
     ['trocas', 'Tabela de trocas', 'swap', '#1c7ed6', 'Equivalências entre alimentos'],
   ];
   const SETTINGS = [
+    ['ajustes', 'Ajustes do plano', 'sliders', '#e2590f', 'Nome, peso, défice, dias de treino'],
+    ['horarios', 'Turnos e horários', 'clock', '#7048e8', 'Horas das refeições em cada turno'],
+    ['calendario', 'Calendário dos turnos', 'cal', '#3b5bdb', 'Ler a escala do teu calendário'],
     ['aparencia', 'Aparência', 'contrast', '#5c636a', ''],
     ['dados', 'Cópia de segurança', 'box', '#5c636a', 'Exportar e importar os teus dados'],
-    ['fontes', 'Fontes científicas', 'doc', '#5c636a', 'De onde vêm as recomendações'],
   ];
+  const HUBS = [
+    ['guia', 'Guia', 'book', '#3b5bdb', `${GUIDE.length} temas: turnos, ciclo, micronutrientes…`],
+    ['definicoes', 'Definições', 'gear', '#5c636a', 'Plano, turnos, calendário, aparência'],
+  ];
+  const HUB_ITEMS = { guia: GUIDE, definicoes: SETTINGS };
+  const PAGES = [...PLANO, ...HUBS, ...GUIDE, ...SETTINGS];
   const TEMA_N = { light: 'Claro', dark: 'Escuro', auto: 'Automático' };
-  const navRow = ([id, l, i, col, d]) => `<button class="row tap nav-row" data-act="sub" data-id="${id}"><span class="tile" style="background:${col}">${ic(i)}</span>
+  const navRow = ([id, l, i, col, d], parent = '') => `<button class="row tap nav-row" data-act="sub" data-id="${id}" ${parent ? `data-parent="${parent}"` : ''}><span class="tile" style="background:${col}">${ic(i)}</span>
     <span class="row-main"><span class="ttl">${l}</span>${d ? `<span class="sub">${d}</span>` : ''}</span>${ic('chevR', 'chev')}</button>`;
 
   function renderPerfil() {
@@ -1139,25 +1147,17 @@
           <div><b>${n1(p.peso / (p.altura / 100) ** 2)}</b><span>IMC</span></div>
         </div>
       </section>
-      <div class="group-label">As tuas metas diárias</div>
-      <div class="hero-grid goals num">
-        <div><span><i class="dot" style="background:var(--train)"></i>Dia de treino</span><b>${n0(T.train)}<small>kcal</small></b></div>
-        <div><span><i class="dot" style="background:var(--accent)"></i>Dia de descanso</span><b>${n0(T.rest)}<small>kcal</small></b></div>
-        <div><span><i class="dot bg-p"></i>Proteína</span><b>${T.prot}<small>g / dia</small></b></div>
-        <div><span><i class="dot bg-f"></i>Gordura mínima</span><b>${T.fat}<small>g / dia</small></b></div>
-      </div>
-      <p class="cap">Défice de ${p.defice}% sobre um gasto estimado de ${n0(T.tdee)} kcal por dia.</p>
-      <div class="group-label">O teu plano</div><div class="list">${PLANO.map(navRow).join('')}</div>
-      <div class="group-label">Guia</div><div class="list">${GUIDE.map(navRow).join('')}</div>
-      <div class="group-label">App</div><div class="list">${SETTINGS.map(r => navRow(r[0] === 'aparencia' ? [...r.slice(0, 4), TEMA_N[p.tema || 'light']] : r)).join('')}</div>
+      <div class="list" style="margin-top:12px">${PLANO.map(r => navRow(r)).join('')}</div>
+      <div class="list" style="margin-top:12px">${HUBS.map(r => navRow(r)).join('')}</div>
       <p class="cap" style="margin-top:20px">Informativo — não substitui um nutricionista. Com historial de distúrbios alimentares, gravidez ou doença, procura acompanhamento profissional.</p>`;
   }
 
   function renderSub(id) {
-    const all = [...PLANO, ...GUIDE, ...SETTINGS], meta = all.find(x => x[0] === id);
+    const meta = PAGES.find(x => x[0] === id);
     const catSlot = id === 'refeicoes' && recCat ? SLOTS.find(x => x.id === recCat) : null;
     const title = catSlot ? catSlot.n : meta[1];
-    $hdr.innerHTML = `<div><button class="back over" data-act="${catSlot ? 'rcatback' : 'back'}" style="font-size:16px">${ic('chevL', 'sm')}${catSlot ? 'Receitas' : 'Perfil'}</button><h1>${title}</h1></div>`;
+    const parent = subParent ? PAGES.find(x => x[0] === subParent) : null;
+    $hdr.innerHTML = `<div><button class="back over" data-act="${catSlot ? 'rcatback' : parent ? 'subback' : 'back'}" style="font-size:16px">${ic('chevL', 'sm')}${catSlot ? 'Receitas' : parent ? parent[1] : 'Perfil'}</button><h1>${title}</h1></div>`;
     $top.textContent = title;
     const p = S.profile, T = targets();
     const item = (t, d) => `<div class="item"><h4>${t}</h4><p>${d}</p></div>`;
@@ -1192,9 +1192,19 @@
       h = `<div class="list" style="margin-top:4px">${[['light', 'Claro', 'sun'], ['dark', 'Escuro', 'moon'], ['auto', 'Automático', 'contrast']].map(([v, l, i]) => `
         <button class="row tap" data-act="tema" data-v="${v}" aria-pressed="${cur === v}"><span class="tile" style="background:var(--fill);color:var(--ink-2)">${ic(i)}</span><span class="row-main ttl" style="font-weight:500">${l}</span>${cur === v ? ic('check', 'ok') : ''}</button>`).join('')}</div>
         <p class="cap">Automático segue o modo claro ou escuro do telemóvel.</p>`;
-    } else if (id === 'numeros') {
+    } else if (HUB_ITEMS[id]) {
+      h = `<div class="list" style="margin-top:4px">${HUB_ITEMS[id].map(r => navRow(r[0] === 'aparencia' ? [...r.slice(0, 4), TEMA_N[p.tema || 'light']] : r, id)).join('')}</div>`;
+    } else if (id === 'metas') {
       const ea = Math.round((T.train - 300) / (p.peso * 0.73));
-      h = `<div class="list">${kv('Metabolismo basal', `${n0(T.bmr)} kcal`)}${kv(`Gasto diário (× ${String(p.atividade).replace('.', ',')})`, `${n0(T.tdee)} kcal`)}${kv(`Média com défice de ${p.defice}%`, `${n0(T.avg)} kcal`)}${kv('Dia de treino', `${n0(T.train)} kcal`)}${kv('Dia de descanso', `${n0(T.rest)} kcal`)}</div>
+      h = `<div class="hero-grid goals num" style="margin-top:4px">
+          <div><span><i class="dot" style="background:var(--train)"></i>Dia de treino</span><b>${n0(T.train)}<small>kcal</small></b></div>
+          <div><span><i class="dot" style="background:var(--accent)"></i>Dia de descanso</span><b>${n0(T.rest)}<small>kcal</small></b></div>
+          <div><span><i class="dot bg-p"></i>Proteína</span><b>${T.prot}<small>g / dia</small></b></div>
+          <div><span><i class="dot bg-f"></i>Gordura mínima</span><b>${T.fat}<small>g / dia</small></b></div>
+        </div>
+        <div class="prose" style="margin-top:12px"><p>Nos <b>dias de treino</b> comes mais 200 kcal, quase tudo em hidratos, para teres energia e recuperares. A <b>proteína</b> é igual todos os dias (2 g por kg) para manter o músculo enquanto perdes gordura. A <b>gordura</b> nunca desce deste mínimo, porque é precisa para as hormonas e o ciclo. Os <b>hidratos</b> ocupam o resto das calorias e são o que a app ajusta em cada refeição.</p></div>
+        <div class="group-label">Como são calculadas</div>
+        <div class="list">${kv('Metabolismo basal', `${n0(T.bmr)} kcal`)}${kv(`Gasto diário (× ${String(p.atividade).replace('.', ',')})`, `${n0(T.tdee)} kcal`)}${kv(`Média com défice de ${p.defice}%`, `${n0(T.avg)} kcal`)}${kv('Dia de treino', `${n0(T.train)} kcal`)}${kv('Dia de descanso', `${n0(T.rest)} kcal`)}</div>
         <div class="group-label">Macronutrientes</div><div class="list">${kv('<i class="dot bg-p"></i>&nbsp; Proteína · 2,0 g/kg', `${T.prot} g`)}${kv('<i class="dot bg-f"></i>&nbsp; Gordura · 0,9 g/kg', `${T.fat} g`)}${kv('<i class="dot bg-c"></i>&nbsp; Hidratos treino / descanso', `${T.cT} / ${T.cD} g`)}${kv('IMC', n1(p.peso / (p.altura / 100) ** 2))}</div>
         <div class="prose" style="margin-top:12px"><p>O IMC está no intervalo saudável, por isso o objetivo é <b>recomposição</b>: perder gordura devagar mantendo — ou ganhando — músculo. Défice pequeno, proteína alta e treino de força dão um aspeto definido sem perder energia.</p>
         <p style="color:var(--ink-2);font-size:14px">Fórmula de Mifflin-St Jeor. Disponibilidade energética estimada num dia de treino: ~${ea} kcal por kg de massa magra, acima do limiar de risco (~30).</p></div>`;
@@ -1302,17 +1312,6 @@
         <div class="btn-stack"><button class="btn secondary press" data-act="export">Exportar cópia</button>
         <label class="btn secondary press" style="cursor:pointer">Importar cópia<input id="importFile" type="file" accept="application/json,.json" hidden></label>
         <button class="btn danger press" data-act="reset">Apagar todos os dados</button></div>`;
-    } else if (id === 'fontes') {
-      h = `<div class="prose"><ol class="src" style="margin:14px 0">
-        <li>Sims ST et al. (2023). ISSN position stand: nutritional concerns of the female athlete. <i>J Int Soc Sports Nutr</i> 20(1). <a href="https://doi.org/10.1080/15502783.2023.2204066" target="_blank" rel="noopener">doi</a></li>
-        <li>Wohlgemuth KJ et al. (2021). Sex differences and considerations for female specific nutritional strategies. <i>J Int Soc Sports Nutr</i> 18:27. <a href="https://doi.org/10.1186/s12970-021-00422-8" target="_blank" rel="noopener">doi</a></li>
-        <li>Mountjoy M et al. (2023). IOC consensus statement on Relative Energy Deficiency in Sport (REDs). <i>Br J Sports Med</i> 57:1073–97. <a href="https://pubmed.ncbi.nlm.nih.gov/37752011/" target="_blank" rel="noopener">PubMed</a></li>
-        <li>Jäger R et al. (2017). ISSN position stand: protein and exercise. <i>J Int Soc Sports Nutr</i> 14:20.</li>
-        <li>Aragon AA et al. (2017). ISSN position stand: diets and body composition. <i>J Int Soc Sports Nutr</i> 14:16.</li>
-        <li>EFSA — valores de referência: <a href="https://www.efsa.europa.eu/en/efsajournal/pub/4254" target="_blank" rel="noopener">ferro</a> (2015), cálcio (2015), folato (2014), fibra (2010).</li>
-        <li>Souza RV et al. (2019). Association between night shift work and nutrition patterns among nurses: a literature review. <i>Med Pr</i> 70(3):363–76. <a href="https://medpr.imp.lodz.pl/Association-between-night-shift-work-and-nutrition-pattern-among-nurses-literature,99931,0,2.html" target="_blank" rel="noopener">artigo</a></li>
-        <li>Mifflin MD, St Jeor ST et al. (1990). A new predictive equation for resting energy expenditure. <i>Am J Clin Nutr</i> 51:241–7.</li>
-      </ol><p style="color:var(--ink-2);font-size:14px">Valores nutricionais aproximados (tabelas INSA/USDA).</p></div>`;
     }
     $view.innerHTML = h;
   }
@@ -1389,8 +1388,9 @@
       }
       case 'usepeso': S.profile.peso = +b.dataset.kg; save(); toast(`Plano recalculado para ${n1(+b.dataset.kg)} kg`); break;
       // Perfil
-      case 'sub': sub = b.dataset.id; recCat = null; render('push'); window.scrollTo(0, 0); return;
-      case 'back': sub = null; recCat = null; render('pop'); window.scrollTo(0, 0); return;
+      case 'sub': sub = b.dataset.id; subParent = b.dataset.parent || null; recCat = null; render('push'); window.scrollTo(0, 0); return;
+      case 'back': sub = null; subParent = null; recCat = null; render('pop'); window.scrollTo(0, 0); return;
+      case 'subback': sub = subParent; subParent = null; render('pop'); window.scrollTo(0, 0); return;
       case 'rcat': recCat = b.dataset.slot; render('push'); window.scrollTo(0, 0); return;
       case 'rcatback': recCat = null; render('pop'); window.scrollTo(0, 0); return;
       case 'export': exportData(); return;
@@ -1599,6 +1599,7 @@
     let d = 0;
     if (tab !== 'hoje') d++; else if (curDay !== todayKey()) d++;
     if (sub) d++;
+    if (sub && subParent) d++;
     if (sub && recCat) d++;
     if (sheetOpen()) {
       d++;
@@ -1623,6 +1624,7 @@
       pendingConfirm = null; closeSheet(); return;
     }
     if (tab === 'perfil' && recCat) { recCat = null; render('pop'); window.scrollTo(0, 0); return; }
+    if (sub && subParent) { sub = subParent; subParent = null; render('pop'); window.scrollTo(0, 0); return; }
     if (sub) { sub = null; recCat = null; render('pop'); window.scrollTo(0, 0); return; }
     if (tab !== 'hoje') { tab = 'hoje'; render('fade'); window.scrollTo(0, 0); return; }
     if (curDay !== todayKey()) { const dir = todayKey() > curDay ? 'next' : 'prev'; curDay = todayKey(); render(dir); }
@@ -1654,7 +1656,7 @@
     const nav = JSON.parse(sessionStorage.getItem(NAV_KEY));
     if (nav && TABS.some(t => t[0] === nav.tab)) {
       tab = nav.tab;
-      if (tab === 'perfil' && [...PLANO, ...GUIDE, ...SETTINGS].some(x => x[0] === nav.sub)) { sub = nav.sub; recCat = SLOTS.some(x => x.id === nav.recCat) ? nav.recCat : null; }
+      if (tab === 'perfil' && PAGES.some(x => x[0] === nav.sub)) { sub = nav.sub; subParent = HUB_ITEMS[nav.subParent] ? nav.subParent : null; recCat = SLOTS.some(x => x.id === nav.recCat) ? nav.recCat : null; }
       if (nav.on === todayKey() && /^\d{4}-\d{2}-\d{2}$/.test(nav.curDay || '')) curDay = nav.curDay;
       weekOffset = +nav.weekOffset || 0; shopMode = ['w0', 'w1', 'm0', 'm1'].includes(nav.shopMode) ? nav.shopMode : 'w0'; range = [0, 30, 90].includes(nav.range) ? nav.range : 30;
     }
