@@ -1,77 +1,83 @@
 /* ============ Tokens ============ */
 :root {
-  --bg: #f2f2ef;
+  --bg: #eceef2;
   --surface: #ffffff;
-  --surface-2: #f6f6f3;
-  --ink: #121412;
-  --ink-2: #5d625e;
-  --ink-3: #989d99;
-  --sep: rgba(18, 20, 18, .09);
-  --fill: rgba(18, 20, 18, .06);
-  --accent: #1d5c45;
+  --surface-2: #f5f6f8;
+  --ink: #14161c;
+  --ink-2: #5a5f6b;
+  --ink-3: #979ba6;
+  --sep: rgba(20, 22, 28, .08);
+  --fill: rgba(20, 22, 28, .06);
+  --accent: #127a5f;
   --accent-ink: #ffffff;
-  --accent-soft: rgba(29, 92, 69, .1);
-  --train: #e2590f;
-  --train-soft: rgba(226, 89, 15, .1);
-  --p: #3b5bdb;
-  --c: #e09a00;
-  --f: #d6336c;
-  --water: #1c7ed6;
+  --accent-soft: rgba(18, 122, 95, .1);
+  --train: #f0642c;
+  --train-soft: rgba(240, 100, 44, .12);
+  --p: #4263eb;
+  --c: #f2a20c;
+  --f: #e8457c;
+  --water: #2b8ae2;
   --danger: #d63b2f;
-  --r-lg: 20px;
+  --r-lg: 24px;
   --r-md: 14px;
   --r-sm: 10px;
   --ease: cubic-bezier(.32, .72, 0, 1);
   --ease-out: cubic-bezier(.22, 1, .36, 1);
   --spring: cubic-bezier(.34, 1.56, .64, 1);
   --ease-expo: cubic-bezier(.16, 1, .3, 1); /* abranda bastante no fim, igual aos números */
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --seg-on: #ffffff;
+  --soft: 0 1px 2px rgba(20, 22, 28, .05);
+  --float: 0 12px 32px rgba(20, 22, 28, .14), 0 0 0 .5px var(--sep);
   color-scheme: light;
 }
 /* Tema: data-theme="light" | "dark" | "auto" (segue o sistema) — escolhido em Perfil → Aparência */
 :root[data-theme="dark"] {
-  --bg: #000000;
-  --surface: #161816;
-  --surface-2: #1e211e;
-  --ink: #f1f3f1;
-  --ink-2: #a2a8a3;
-  --ink-3: #6c726d;
-  --sep: rgba(255, 255, 255, .09);
+  --bg: #0e1013;
+  --surface: #1a1d22;
+  --surface-2: #22262c;
+  --ink: #f1f2f4;
+  --ink-2: #a5aab4;
+  --ink-3: #6d727c;
+  --sep: rgba(255, 255, 255, .08);
   --fill: rgba(255, 255, 255, .08);
-  --accent: #5cc08f;
+  --accent: #4cc495;
   --accent-ink: #04130c;
-  --accent-soft: rgba(92, 192, 143, .14);
-  --train: #ff8a3d;
-  --train-soft: rgba(255, 138, 61, .14);
+  --accent-soft: rgba(76, 196, 149, .15);
+  --train: #ff8a4c;
+  --train-soft: rgba(255, 138, 76, .15);
   --p: #7d95ff;
   --c: #f5c04a;
   --f: #ff7aa2;
   --water: #4dabf7;
   color-scheme: dark;
-  --seg-on: #3a3d3a;
+  --seg-on: #33373e;
+  --soft: none;
+  --float: 0 12px 32px rgba(0, 0, 0, .5), 0 0 0 .5px var(--sep);
 }
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] {
-    --bg: #000000;
-    --surface: #161816;
-    --surface-2: #1e211e;
-    --ink: #f1f3f1;
-    --ink-2: #a2a8a3;
-    --ink-3: #6c726d;
-    --sep: rgba(255, 255, 255, .09);
+    --bg: #0e1013;
+    --surface: #1a1d22;
+    --surface-2: #22262c;
+    --ink: #f1f2f4;
+    --ink-2: #a5aab4;
+    --ink-3: #6d727c;
+    --sep: rgba(255, 255, 255, .08);
     --fill: rgba(255, 255, 255, .08);
-    --accent: #5cc08f;
+    --accent: #4cc495;
     --accent-ink: #04130c;
-    --accent-soft: rgba(92, 192, 143, .14);
-    --train: #ff8a3d;
-    --train-soft: rgba(255, 138, 61, .14);
+    --accent-soft: rgba(76, 196, 149, .15);
+    --train: #ff8a4c;
+    --train-soft: rgba(255, 138, 76, .15);
     --p: #7d95ff;
     --c: #f5c04a;
     --f: #ff7aa2;
     --water: #4dabf7;
     color-scheme: dark;
-    --seg-on: #3a3d3a;
+    --seg-on: #33373e;
+    --soft: none;
+    --float: 0 12px 32px rgba(0, 0, 0, .5), 0 0 0 .5px var(--sep);
   }
 }
 
@@ -579,7 +585,8 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .kpis-sm b { font-size: 19.5px; }
 .kpis-sm span { font-size: 12px; }
 
-.seg-shop button { padding: 8px 2px; font-size: 12.5px; }
+.seg-shop { grid-auto-columns: minmax(0, 1fr); }
+.seg-shop button { padding: 8px 0; font-size: 11.5px; letter-spacing: -.015em; }
 
 /* ============ Compras ============ */
 .shop-sum { margin-top: 12px; }
@@ -634,6 +641,60 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .ptile .tile .ic { width: 20px; height: 20px; }
 .ptile b { display: block; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
 .ptile small { display: block; font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+
+/* ============ Visual (v3): blocos, dias em cápsula, refeições em cartões ============ */
+.hdr h1 { font-weight: 800; letter-spacing: -.035em; }
+.sec-h { font-weight: 800; letter-spacing: -.02em; }
+:is(.big, .kpis b, .wk-lbl b, .me-stats b, .hero-grid b) { font-weight: 800; }
+:is(.pill-btn, .circle-btn) { box-shadow: var(--soft), 0 0 0 .5px var(--sep); }
+
+/* Dias da semana: cápsulas que enchem de baixo para cima à medida que comes */
+.strip { gap: 6px; margin-bottom: 16px; }
+.strip button { position: relative; overflow: hidden; background: var(--surface); border-radius: 999px; padding: 11px 0 9px; gap: 3px; box-shadow: var(--soft); transition: background .25s; }
+.strip button::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: var(--lv, 0%); background: var(--accent-soft); transition: height .8s var(--ease-expo); }
+.strip button > * { position: relative; }
+.strip .ring, .strip .sel .ring { background: none; width: auto; height: auto; }
+.strip .dn, .strip .sel .dn { background: none; width: auto; height: auto; box-shadow: none; font-size: 17px; font-weight: 700; }
+.strip .sel { background: var(--accent); }
+.strip .sel::before { background: rgba(255, 255, 255, .16); }
+.strip .sel .wd, .strip .sel .dn { color: var(--accent-ink); }
+.strip .sel .mk { color: var(--accent-ink) !important; opacity: .85; }
+.strip .train .ring::after { top: -1px; right: -9px; width: 7px; height: 7px; box-shadow: none; }
+
+/* Calorias e macros: número grande, tipo de dia à direita */
+.energy { padding: 18px 18px 20px; }
+.energy .energy-top { align-items: flex-start; }
+.energy .big { font-size: 64px; letter-spacing: -.05em; margin-top: 2px; }
+.energy .big-lbl { font-size: 15px; }
+.energy .daytype { padding-top: 6px; }
+.energy .track:not(.thin) { height: 10px; margin-top: 18px; }
+
+/* Refeições: cada uma no seu cartão, ícone com a cor da refeição e visto à direita */
+.mcards { display: grid; gap: 10px; }
+.mcards > .row { background: var(--surface); border-radius: var(--r-lg); padding: 14px; box-shadow: var(--soft); }
+.mcards > .row.tap:active { background: var(--surface-2); }
+.mcards > .add-row { background: transparent; box-shadow: none; outline: 1.5px dashed color-mix(in srgb, var(--ink-3) 55%, transparent); outline-offset: -1.5px; }
+.mrow .check { order: 9; }
+.m-ic { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; flex: none; align-self: flex-start; background: var(--slc); color: #fff; }
+.m-ic .ic { width: 21px; height: 21px; stroke-width: 1.9; }
+
+/* Água: 10 copos */
+.glasses { display: flex; gap: 4px; margin-top: 9px; }
+.glasses i { flex: 1; height: 14px; border-radius: 4px; background: var(--fill); transition: background .3s; }
+.glasses i.on { background: var(--water); }
+
+/* Barra das abas a flutuar; a aba ativa num fundo verde suave */
+.tabs {
+  left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); max-width: 560px; margin: 0 auto;
+  padding: 7px; border-radius: 28px; border-top: 0;
+  background: color-mix(in srgb, var(--surface) 90%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  box-shadow: var(--float);
+}
+.tabs button { padding: 7px 0 6px; border-radius: 21px; transition: background .25s, color .25s; }
+.tabs button.active { background: var(--accent-soft); }
+body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+.fab-wrap { bottom: calc(86px + env(safe-area-inset-bottom)); }
+.toast { bottom: calc(100px + env(safe-area-inset-bottom)); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

@@ -67,11 +67,6 @@
   const SLOT_IC = { pa: 'sunrise', lm: 'apple', almoco: 'sun', lanche: 'apple', jantar: 'moon' };
   const SLOT_COL = { pa: '#e8a317', lm: '#2f9e44', almoco: '#e2590f', lanche: '#d6336c', jantar: '#4c5fd5' };
 
-  // ================= Propostas de visual (pré-visualização: ?visual=suave|energia|minimal|bento) =================
-  const LOOKS = [['suave', 'A', 'Suave'], ['energia', 'B', 'Energia'], ['minimal', 'C', 'Linha do tempo'], ['bento', 'D', 'Bento']];
-  const LOOK = () => document.documentElement.dataset.look || '';
-  const kRing = pct => `<svg class="kring" viewBox="0 0 120 120" aria-hidden="true"><circle class="kr-bg" cx="60" cy="60" r="52"/><circle class="kr-fg ${pct > 0 ? '' : 'zero'}" cx="60" cy="60" r="52" pathLength="100" style="stroke-dasharray:${pct.toFixed(1)} 100"/></svg>`;
-
   // ================= Datas =================
   const DOW = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
   const DOW_S = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -232,9 +227,7 @@
     const t = S.profile.tema || 'light';
     document.documentElement.dataset.theme = t;
     const dark = t === 'dark' || (t === 'auto' && darkMQ.matches);
-    const look = LOOK(), onHoje = document.documentElement.dataset.tab === 'hoje';
-    const bar = dark ? '#000000' : look === 'energia' && onHoje ? '#0f2a20' : ({ suave: '#f4efe6', minimal: '#ffffff', bento: '#eceef2' })[look] || '#f2f2ef';
-    document.getElementById('themeColor').setAttribute('content', bar);
+    document.getElementById('themeColor').setAttribute('content', dark ? '#0e1013' : '#eceef2');
   }
   darkMQ.addEventListener('change', applyTheme);
   applyTheme();
@@ -307,25 +300,7 @@
   $tabs.innerHTML = TABS.map(([id, l, i]) => `<button data-tab="${id}" class="press">${ic(i)}<span>${l}</span></button>`).join('');
   $tabs.addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) go(b.dataset.tab); });
 
-  // Barra para comparar as propostas de visual (só aparece quando se abre a app com ?visual=…)
-  if (document.documentElement.dataset.preview) {
-    const root = document.documentElement, bar = document.createElement('div');
-    bar.className = 'look-bar';
-    const paint = () => { bar.innerHTML = `${[...LOOKS, ['', 'Atual', 'Visual atual']].map(([id, l, n]) => `<button class="${LOOK() === id ? 'on' : ''}" data-look="${id}" aria-label="${n}">${l}</button>`).join('')}<button class="exit" data-look="sair">Sair</button>`; };
-    paint(); document.body.appendChild(bar);
-    bar.addEventListener('click', e => {
-      const b = e.target.closest('[data-look]'); if (!b) return;
-      const v = b.dataset.look;
-      if (v === 'sair') {
-        try { localStorage.removeItem('pulso.look'); } catch (err) { /* sem armazenamento */ }
-        delete root.dataset.look; delete root.dataset.preview; bar.remove(); render('fade'); return;
-      }
-      root.dataset.look = v;
-      try { localStorage.setItem('pulso.look', v || 'atual'); } catch (err) { /* sem armazenamento */ }
-      paint(); render('fade'); window.scrollTo(0, 0);
-      const L = LOOKS.find(x => x[0] === v); toast(L ? `${L[1]} · ${L[2]}` : 'Visual atual');
-    });
-  }
+  try { localStorage.removeItem('pulso.look'); sessionStorage.removeItem('pulso.look'); } catch (e) { /* restos da pré-visualização dos visuais */ }
 
   function go(t, subpage = null) {
     if (t === 'hoje' && tab === 'hoje' && !subpage) curDay = todayKey();
@@ -336,8 +311,6 @@
   const V_ANIM = ['v-fade', 'v-push', 'v-pop', 'v-next', 'v-prev'];
   function render(anim) {
     $tabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-    document.documentElement.dataset.tab = tab;
-    applyTheme();
     // Mudar de dia (Hoje) ou de semana (Semana): o atual sai por um lado enquanto o novo entra pelo outro (carrossel)
     const slide = (tab === 'hoje' || tab === 'semana') && (anim === 'next' || anim === 'prev');
     const oldPane = slide ? $view.querySelector('.day-pane') : null;
@@ -481,41 +454,11 @@
     const mac = (lbl, cls, v, g) => `<div><div class="m-lbl"><i class="dot bg-${cls}"></i>${lbl}</div>
       <div class="m-val num"><b data-count="m-${cls}" data-v="${Math.round(v)}">${n0(v)}</b> / ${g} g</div><div class="track thin"><i class="bg-${cls}" style="width:${Math.min(100, (v / g) * 100)}%"></i></div></div>`;
 
-    const look = LOOK();
     const leftNum = `<b class="num" data-count="left" data-v="${Math.round(Math.abs(left))}">${n0(Math.abs(left))}</b>`;
     const leftLbl = left >= 0 ? 'kcal por comer' : 'kcal acima da meta';
-    const dayChip = `<span class="daychip ${isT ? 'is-train' : 'is-rest'}">${ic(isT ? 'dumbbell' : 'moon', 'sm')}${isT ? `Dia de treino · +${T.train - T.rest} kcal` : 'Dia de descanso'}</span>`;
     const eatenTxt = `<span>Comido <b data-count="eaten" data-v="${Math.round(P.done.kcal)}">${n0(P.done.kcal)}</b></span><span>Meta <b>${n0(P.goal)}</b> kcal</span>`;
-    let h;
-    if (look === 'suave') h = `
-      <section class="card en-a">
-        ${dayChip}
-        <div class="en-a-main">
-          <div class="ring-wrap">${kRing(pct)}<div class="ring-c">${leftNum}<span>${leftLbl}</span></div></div>
-          <div class="en-a-mac">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
-        </div>
-        <div class="meta num">${eatenTxt}</div>
-      </section>`;
-    else if (look === 'energia') h = `
-      <section class="en-b">
-        ${dayChip}
-        <div class="big num">${leftNum}</div><div class="big-lbl">${leftLbl}</div>
-        <div class="track"><i style="width:${pct}%"></i></div>
-        <div class="meta num">${eatenTxt}</div>
-        <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
-      </section>`;
-    else if (look === 'minimal') {
-      const seg = (v, k) => Math.min(100, (v * k / P.goal) * 100);
-      h = `
-      <section class="en-c">
-        <div class="en-c-line">${isT ? `Dia de treino · +${T.train - T.rest} kcal` : 'Dia de descanso'}</div>
-        <div class="en-c-num">${leftNum}<span>${leftLbl}</span></div>
-        <div class="stack" aria-hidden="true"><i class="bg-p" style="width:${seg(P.done.p, 4)}%"></i><i class="bg-c" style="width:${seg(P.done.c, 4)}%"></i><i class="bg-f" style="width:${seg(P.done.f, 9)}%"></i></div>
-        <div class="meta num">${eatenTxt}</div>
-        <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
-      </section>`;
-    } else if (look === 'bento') h = `
-      <section class="card en-d">
+    let h = `
+      <section class="card energy">
         <div class="energy-top">
           <div><div class="big num">${leftNum}</div><div class="big-lbl">${leftLbl}</div></div>
           <div class="daytype ${isT ? 'is-train' : 'is-rest'}">
@@ -527,48 +470,25 @@
         <div class="meta num">${eatenTxt}</div>
         <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
       </section>`;
-    else h = `
-      <section class="card">
-        <div class="energy-top">
-          <div><div class="big num" data-count="left" data-v="${Math.round(Math.abs(left))}">${n0(Math.abs(left))}</div><div class="big-lbl">${left >= 0 ? 'kcal por comer' : 'kcal acima da meta'}</div></div>
-          <div class="daytype ${isT ? 'is-train' : 'is-rest'}">
-            <span class="dt-ic">${ic(isT ? 'dumbbell' : 'moon')}</span>
-            <span><b>${isT ? 'Dia de treino' : 'Dia de descanso'}</b><small>${isT ? `+${T.train - T.rest} kcal` : 'Recuperação'}</small></span>
-          </div>
-        </div>
-        <div class="track"><i style="width:${pct}%"></i></div>
-        <div class="meta num"><span>Comido <b data-count="eaten" data-v="${Math.round(P.done.kcal)}">${n0(P.done.kcal)}</b></span><span>Meta <b>${n0(P.goal)}</b> kcal</span></div>
-        <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
-      </section>`;
     if (sc.tip) h += `<div class="note shiftnote" style="--sc:${sc.col}">${ic('clock')}<div><b>${shiftPhrase(P.shift)} · ${sc.h}</b><br>${sc.tip}</div></div>`;
     if (afterNight(curDay)) { const pn = shiftCfg('PN'); h += `<div class="note shiftnote" style="--sc:${pn.col}">${ic('moon')}<div><b>Depois de uma noite</b><br>${pn.tip}</div></div>`; }
 
-    h += `<h2 class="sec-h">Refeições <small class="num">${P.nDone} de ${P.meals.length}</small></h2><div class="${look === 'minimal' ? 'tl' : look ? 'mcards' : 'list'}">`;
+    h += `<h2 class="sec-h">Refeições <small class="num">${P.nDone} de ${P.meals.length}</small></h2><div class="mcards">`;
     for (const m of P.meals) {
       const id = m.slot.id, done = !!P.st.done[id] || !!m.fora;
       let extra = '';
       if (!m.fora && m.src) { const [k2, s2] = m.src.split('|'); extra = `<span class="lo">${ic('box')}Sobras do ${whenTxt(curDay, k2, s2)}</span>`; }
       else if (!m.fora && m.dests.length) extra = `<span class="lo">${ic('pot')}Fazer ×${m.dests.length + 1} · ${m.dests.map(([k2, s2]) => whenTxt(curDay, k2, s2)).join(' e ')}</span>`;
-      if (look) { // propostas de visual: hora e ícone da refeição, visto à direita (ou na linha do tempo)
-        h += `<div class="row tap meal-row mrow ${done ? 'done' : ''}" data-act="meal" data-slot="${id}" style="--slc:${SLOT_COL[id]}">
-          <div class="m-time num">${m.slot.t}</div><span class="m-ic">${ic(SLOT_IC[id])}</span>
-          <div class="row-main">
-            <div class="over">${m.slot.n}<span class="m-t2"> · ${m.slot.t}</span></div>
-            <div class="ttl">${m.fora ? 'Outra refeição' : esc(m.meal.n)}</div>
-            <div class="sub num">${m.fora ? `Fora do plano · ~${m.fora} kcal` : `${n0(m.tot.kcal)} kcal &nbsp;${macroLine(m.tot)}`}</div>
-            ${extra}
-          </div>
-          <button class="check ${done ? 'on' : ''}" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="Marcar ${m.slot.n} como comido">${ic('check')}</button></div>`;
-        continue;
-      }
-      h += `<div class="row tap meal-row ${done ? 'done' : ''}" data-act="meal" data-slot="${id}">
-        <button class="check ${done ? 'on' : ''}" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="Marcar ${m.slot.n} como comido">${ic('check')}</button>
+      // cada refeição num cartão: ícone com a cor da refeição, visto à direita
+      h += `<div class="row tap meal-row mrow ${done ? 'done' : ''}" data-act="meal" data-slot="${id}" style="--slc:${SLOT_COL[id]}">
+        <span class="m-ic">${ic(SLOT_IC[id])}</span>
         <div class="row-main">
           <div class="over">${m.slot.n} · ${m.slot.t}</div>
           <div class="ttl">${m.fora ? 'Outra refeição' : esc(m.meal.n)}</div>
           <div class="sub num">${m.fora ? `Fora do plano · ~${m.fora} kcal` : `${n0(m.tot.kcal)} kcal &nbsp;${macroLine(m.tot)}`}</div>
           ${extra}
-        </div>${ic('chevR', 'chev')}</div>`;
+        </div>
+        <button class="check ${done ? 'on' : ''}" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="Marcar ${m.slot.n} como comido">${ic('check')}</button></div>`;
     }
     if (!lmOn(curDay)) h += `<button class="row tap add-row" data-act="lmadd">${ic('plus')}<div class="row-main"><div class="ttl">Juntar lanche da manhã</div><div class="sub">Só hoje · as outras refeições ajustam-se</div></div></button>`;
     h += `</div>`;
@@ -579,7 +499,7 @@
       <section class="card water">
         <div class="w-ic">${ic('drop')}</div>
         <div class="row-main"><div class="num"><b style="font-size:18px">${(agua * 0.25).toLocaleString('pt-PT', { maximumFractionDigits: 2 })} L</b> <span style="color:var(--ink-3);font-size:14px">de 2,5 L</span></div>
-          ${look === 'bento' ? `<div class="glasses" aria-hidden="true">${Array.from({ length: 10 }, (_, i) => `<i class="${i < agua ? 'on' : ''}"></i>`).join('')}</div>` : `<div class="track"><i style="width:${Math.min(100, agua * 10)}%"></i></div>`}</div>
+          <div class="glasses" aria-hidden="true">${Array.from({ length: 10 }, (_, i) => `<i class="${i < agua ? 'on' : ''}"></i>`).join('')}</div></div>
         <div class="stepper"><button class="press" data-act="agua" data-d="-1" aria-label="Menos um copo">${ic('minus')}</button><button class="press" data-act="agua" data-d="1" aria-label="Mais um copo">${ic('plus')}</button></div>
       </section>`;
     // O conteúdo do dia fica num "palco" para poder deslizar de lado ao mudar de dia (a barra dos dias fica parada)
