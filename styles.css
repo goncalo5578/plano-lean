@@ -608,6 +608,25 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .esc-seg button.blocked { opacity: .3; text-decoration: line-through; }
 .row.blocked { opacity: .45; }
 
+/* ============ Perfil ============ */
+.me-card { padding: 16px; }
+.me-top { display: flex; align-items: center; gap: 12px; }
+.avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 22px; font-weight: 700; flex: none; }
+.avatar .ic { width: 26px; height: 26px; }
+.me-id { flex: 1; min-width: 0; }
+.me-id b { display: block; font-size: 18px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me-id span { display: block; font-size: 13px; color: var(--ink-3); margin-top: 1px; }
+.me-top .circle-btn { background: var(--fill); box-shadow: none; color: var(--ink-2); }
+.me-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 14px; padding-top: 14px; box-shadow: inset 0 .5px 0 var(--sep); text-align: center; }
+.me-stats > div + div { box-shadow: inset .5px 0 0 var(--sep); }
+.me-stats b { display: block; font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
+.me-stats b.down { color: var(--accent); }
+.me-stats span { font-size: 11.5px; color: var(--ink-3); }
+.hero-grid.goals span { display: flex; align-items: center; gap: 6px; }
+.nav-row .row-main > span { display: block; }
+.nav-row .ttl { font-weight: 500; }
+.nav-row .sub { font-size: 12.5px; color: var(--ink-3); margin-top: 1px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

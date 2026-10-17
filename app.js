@@ -4,7 +4,7 @@
 
   // ================= Estado =================
   const KEY = 'planoLean.v1';
-  const DEFAULT_PROFILE = { idade: 23, altura: 162, peso: 60, atividade: 1.375, defice: 12, treinoDias: [0, 2, 4], autoSobras: true, shifts: {}, tema: 'light' };
+  const DEFAULT_PROFILE = { nome: '', idade: 23, altura: 162, peso: 60, atividade: 1.375, defice: 12, treinoDias: [0, 2, 4], autoSobras: true, shifts: {}, tema: 'light' };
   const blank = () => ({ profile: { ...DEFAULT_PROFILE }, days: {}, weights: [], shop: {}, links: {}, cal: { shifts: {}, autoS: true }, recipes: { custom: [], edits: {}, removed: {}, foods: {} } });
   let S = load();
 
@@ -44,6 +44,7 @@
     fish: '<path d="M2.5 12c2.6-3.6 6.6-5.2 10.6-4.3 1.6.4 3 1.2 4.2 2.3l3.2-2.5v9l-3.2-2.5c-1.2 1.1-2.6 1.9-4.2 2.3-4 .9-8-.7-10.6-4.3z"/><path d="M7.5 11.5v.01"/>',
     egg: '<path d="M12 3.5c3.6 0 6.5 5.4 6.5 9.8a6.5 6.5 0 0 1-13 0c0-4.4 2.9-9.8 6.5-9.8z"/>',
     wheat: '<path d="M12 21V9"/><path d="M12 9c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 9c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8zM12 14c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 14c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8zM12 19c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 19c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8z"/>',
+    contrast: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/>',
     refresh: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.5H15"/>',
     dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2.5 10v4M21.5 10v4M8 12h8"/>',
     drop: '<path d="M12 3.5c3.5 4.2 6 7.6 6 10.5a6 6 0 0 1-12 0c0-2.9 2.5-6.3 6-10.5z"/>',
@@ -1093,37 +1094,62 @@
   window.addEventListener('pointercancel', stopHold);
 
   // ================= PERFIL =================
-  const GUIDE = [
-    ['turnos', 'Turnos e dias caóticos', 'clock', '#3b5bdb'],
-    ['numeros', 'Os teus números', 'gauge', '#1d5c45'],
-    ['sexo', 'Homem vs mulher', 'users', '#d6336c'],
-    ['ciclo', 'Ciclo menstrual', 'cycle', '#ae3ec9'],
-    ['micro', 'Micronutrientes', 'leaf', '#2b8a3e'],
-    ['regras', 'Regras para ficar lean', 'target', '#e2590f'],
-    ['trocas', 'Tabela de trocas', 'swap', '#1c7ed6'],
+  // [id, título, ícone, cor, descrição]
+  const PLANO = [
+    ['refeicoes', 'As minhas receitas', 'pot', '#1d5c45', 'Criar, editar e eliminar receitas'],
+    ['ajustes', 'Ajustes do plano', 'sliders', '#e2590f', 'Peso, défice, dias de treino, sobras'],
+    ['horarios', 'Turnos e horários', 'clock', '#7048e8', 'Horas das refeições em cada turno'],
+    ['calendario', 'Calendário dos turnos', 'cal', '#3b5bdb', 'Ler a escala do teu calendário'],
   ];
-  const PLANO = [['refeicoes', 'As minhas receitas', 'pot', '#1d5c45']];
-  const SETTINGS = [['calendario', 'Calendário dos turnos', 'cal', '#e2590f'], ['ajustes', 'Ajustes do plano', 'sliders', '#5c636a'], ['horarios', 'Turnos e horários', 'clock', '#5c636a'], ['dados', 'Cópia de segurança', 'box', '#5c636a'], ['fontes', 'Fontes científicas', 'doc', '#5c636a']];
-  const navRow = ([id, l, i, col]) => `<button class="row tap" data-act="sub" data-id="${id}"><span class="tile" style="background:${col}">${ic(i)}</span><span class="row-main ttl" style="font-weight:500">${l}</span>${ic('chevR', 'chev')}</button>`;
+  const GUIDE = [
+    ['turnos', 'Turnos e dias caóticos', 'clock', '#3b5bdb', 'Marmitas, noites, cantina'],
+    ['numeros', 'Os teus números', 'gauge', '#1d5c45', 'Calorias, macros e IMC'],
+    ['sexo', 'Homem vs mulher', 'users', '#d6336c', 'O que muda na dieta'],
+    ['ciclo', 'Ciclo menstrual', 'cycle', '#ae3ec9', 'Como ajustar em cada fase'],
+    ['micro', 'Micronutrientes', 'leaf', '#2b8a3e', 'Ferro, cálcio, vitamina D…'],
+    ['regras', 'Regras para ficar lean', 'target', '#e2590f', 'Treino, sono, passos'],
+    ['trocas', 'Tabela de trocas', 'swap', '#1c7ed6', 'Equivalências entre alimentos'],
+  ];
+  const SETTINGS = [
+    ['aparencia', 'Aparência', 'contrast', '#5c636a', ''],
+    ['dados', 'Cópia de segurança', 'box', '#5c636a', 'Exportar e importar os teus dados'],
+    ['fontes', 'Fontes científicas', 'doc', '#5c636a', 'De onde vêm as recomendações'],
+  ];
+  const TEMA_N = { light: 'Claro', dark: 'Escuro', auto: 'Automático' };
+  const navRow = ([id, l, i, col, d]) => `<button class="row tap nav-row" data-act="sub" data-id="${id}"><span class="tile" style="background:${col}">${ic(i)}</span>
+    <span class="row-main"><span class="ttl">${l}</span>${d ? `<span class="sub">${d}</span>` : ''}</span>${ic('chevR', 'chev')}</button>`;
 
   function renderPerfil() {
     if (sub) return renderSub(sub);
     const T = targets(), p = S.profile;
-    header(`${p.idade} anos · ${(p.altura / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 })} m · ${n1(p.peso)} kg`, 'Perfil');
+    const W = [...S.weights].sort((x, y) => x.d.localeCompare(y.d)), last = W[W.length - 1];
+    const now = last ? weeklyAvg(last.d) : p.peso, since = W.length > 1 ? now - W[0].kg : null;
+    const name = (p.nome || '').trim();
+    header('', 'Perfil');
     $view.innerHTML = `
-      <div class="hero-grid num">
-        <div><span>Dia de treino</span><b>${n0(T.train)}<small>kcal</small></b></div>
-        <div><span>Dia de descanso</span><b>${n0(T.rest)}<small>kcal</small></b></div>
-        <div><span>Proteína</span><b>${T.prot}<small>g / dia</small></b></div>
-        <div><span>Gordura mínima</span><b>${T.fat}<small>g / dia</small></b></div>
+      <section class="card me-card">
+        <div class="me-top">
+          <div class="avatar" aria-hidden="true">${name ? esc(name[0].toUpperCase()) : ic('user')}</div>
+          <div class="me-id"><b>${name ? esc(name) : 'O teu perfil'}</b><span>${p.idade} anos · ${(p.altura / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 })} m</span></div>
+          <button class="circle-btn press" data-act="sub" data-id="ajustes" aria-label="Editar os teus dados">${ic('edit', 'sm')}</button>
+        </div>
+        <div class="me-stats num">
+          <div><b>${n1(now)}</b><span>kg atuais</span></div>
+          <div><b class="${since !== null && since < 0 ? 'down' : ''}">${since === null ? '—' : (since > 0 ? '+' : since < 0 ? '−' : '') + n1(Math.abs(since))}</b><span>kg desde o início</span></div>
+          <div><b>${n1(p.peso / (p.altura / 100) ** 2)}</b><span>IMC</span></div>
+        </div>
+      </section>
+      <div class="group-label">As tuas metas diárias</div>
+      <div class="hero-grid goals num">
+        <div><span><i class="dot" style="background:var(--train)"></i>Dia de treino</span><b>${n0(T.train)}<small>kcal</small></b></div>
+        <div><span><i class="dot" style="background:var(--accent)"></i>Dia de descanso</span><b>${n0(T.rest)}<small>kcal</small></b></div>
+        <div><span><i class="dot bg-p"></i>Proteína</span><b>${T.prot}<small>g / dia</small></b></div>
+        <div><span><i class="dot bg-f"></i>Gordura mínima</span><b>${T.fat}<small>g / dia</small></b></div>
       </div>
-      <p class="cap">Défice de ${p.defice}% sobre um gasto estimado de ${n0(T.tdee)} kcal.</p>
-      <div class="group-label">Aparência</div>
-      <div class="seg full" role="group" aria-label="Tema">${[['light', 'Claro'], ['dark', 'Escuro'], ['auto', 'Automático']].map(([v, l]) => `<button class="${(p.tema || 'light') === v ? 'on' : ''}" data-act="tema" data-v="${v}" aria-pressed="${(p.tema || 'light') === v}">${l}</button>`).join('')}</div>
-      <p class="cap">Automático segue o modo claro/escuro do telemóvel.</p>
-      <div class="group-label">Plano</div><div class="list">${PLANO.map(navRow).join('')}</div>
+      <p class="cap">Défice de ${p.defice}% sobre um gasto estimado de ${n0(T.tdee)} kcal por dia.</p>
+      <div class="group-label">O teu plano</div><div class="list">${PLANO.map(navRow).join('')}</div>
       <div class="group-label">Guia</div><div class="list">${GUIDE.map(navRow).join('')}</div>
-      <div class="group-label">Definições</div><div class="list">${SETTINGS.map(navRow).join('')}</div>
+      <div class="group-label">App</div><div class="list">${SETTINGS.map(r => navRow(r[0] === 'aparencia' ? [...r.slice(0, 4), TEMA_N[p.tema || 'light']] : r)).join('')}</div>
       <p class="cap" style="margin-top:20px">Informativo — não substitui um nutricionista. Com historial de distúrbios alimentares, gravidez ou doença, procura acompanhamento profissional.</p>`;
   }
 
@@ -1161,6 +1187,11 @@
         </div>`; })()}</form>
       <div class="btn-stack"><button class="btn secondary press" data-act="resetturnos">Repor horários originais</button></div>
       <p class="cap">As refeições aparecem por esta ordem no ecrã Hoje. Horas antes das 05:00 contam como depois da meia-noite.</p>`;
+    } else if (id === 'aparencia') {
+      const cur = p.tema || 'light';
+      h = `<div class="list" style="margin-top:4px">${[['light', 'Claro', 'sun'], ['dark', 'Escuro', 'moon'], ['auto', 'Automático', 'contrast']].map(([v, l, i]) => `
+        <button class="row tap" data-act="tema" data-v="${v}" aria-pressed="${cur === v}"><span class="tile" style="background:var(--fill);color:var(--ink-2)">${ic(i)}</span><span class="row-main ttl" style="font-weight:500">${l}</span>${cur === v ? ic('check', 'ok') : ''}</button>`).join('')}</div>
+        <p class="cap">Automático segue o modo claro ou escuro do telemóvel.</p>`;
     } else if (id === 'numeros') {
       const ea = Math.round((T.train - 300) / (p.peso * 0.73));
       h = `<div class="list">${kv('Metabolismo basal', `${n0(T.bmr)} kcal`)}${kv(`Gasto diário (× ${String(p.atividade).replace('.', ',')})`, `${n0(T.tdee)} kcal`)}${kv(`Média com défice de ${p.defice}%`, `${n0(T.avg)} kcal`)}${kv('Dia de treino', `${n0(T.train)} kcal`)}${kv('Dia de descanso', `${n0(T.rest)} kcal`)}</div>
@@ -1211,7 +1242,10 @@
     } else if (id === 'ajustes') {
       const opt = (arr, cur) => arr.map(([v, l]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${l}</option>`).join('');
       h = `<form id="perfil">
-        <div class="group-label" style="margin-top:8px">Corpo</div><div class="list">
+        <div class="group-label" style="margin-top:8px">Tu</div><div class="list">
+          <div class="form-row"><label for="nome">Nome</label><input id="nome" name="nome" type="text" autocomplete="given-name" maxlength="30" value="${esc(p.nome || '')}" placeholder="O teu nome"></div>
+        </div>
+        <div class="group-label">Corpo</div><div class="list">
           <div class="form-row"><label for="idade">Idade</label><input id="idade" name="idade" type="number" min="14" max="90" value="${p.idade}" inputmode="numeric"></div>
           <div class="form-row"><label for="altura">Altura (cm)</label><input id="altura" name="altura" type="number" min="120" max="220" value="${p.altura}" inputmode="numeric"></div>
           <div class="form-row"><label for="peso">Peso (kg)</label><input id="peso" name="peso" type="number" step="0.1" min="30" max="200" value="${p.peso}" inputmode="decimal"></div>
@@ -1291,6 +1325,7 @@
     p.treinoDias = [...f.querySelectorAll('input[name=td]:checked')].map(i => +i.value);
     p.autoSobras = f.elements.autoSobras.checked;
     p.lmSempre = f.elements.lmSempre.checked;
+    p.nome = f.elements.nome.value.trim();
     save(); toast('Plano recalculado');
   }
   function saveShifts(f) {
