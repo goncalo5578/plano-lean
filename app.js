@@ -317,11 +317,11 @@
       const b = e.target.closest('[data-look]'); if (!b) return;
       const v = b.dataset.look;
       if (v === 'sair') {
-        try { sessionStorage.removeItem('pulso.look'); } catch (err) { /* sem armazenamento */ }
+        try { localStorage.removeItem('pulso.look'); } catch (err) { /* sem armazenamento */ }
         delete root.dataset.look; delete root.dataset.preview; bar.remove(); render('fade'); return;
       }
       root.dataset.look = v;
-      try { sessionStorage.setItem('pulso.look', v || 'atual'); } catch (err) { /* sem armazenamento */ }
+      try { localStorage.setItem('pulso.look', v || 'atual'); } catch (err) { /* sem armazenamento */ }
       paint(); render('fade'); window.scrollTo(0, 0);
       const L = LOOKS.find(x => x[0] === v); toast(L ? `${L[1]} · ${L[2]}` : 'Visual atual');
     });

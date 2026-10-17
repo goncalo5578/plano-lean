@@ -7,11 +7,11 @@
   <meta name="description" content="Pulso — plano alimentar para turnos e treino.">
   <meta name="theme-color" id="themeColor" content="#f2f2ef">
   <script>try { var t = JSON.parse(localStorage.getItem('planoLean.v1')).profile.tema; if (t) document.documentElement.dataset.theme = t; } catch (e) {}
-  // Propostas de visual: abrir com ?visual=suave|energia|minimal|bento (fica até carregar em "Sair")
+  // Propostas de visual: abrir com ?visual=suave|energia|minimal|bento (fica guardado, também na app instalada, até carregar em "Sair")
   try {
     var q = new URLSearchParams(location.search).get('visual');
-    if (q !== null) { sessionStorage.setItem('pulso.look', q || 'atual'); history.replaceState(history.state, '', location.pathname + location.hash); }
-    var l = sessionStorage.getItem('pulso.look');
+    if (q !== null) { localStorage.setItem('pulso.look', q || 'atual'); history.replaceState(history.state, '', location.pathname + location.hash); }
+    var l = localStorage.getItem('pulso.look');
     if (l) {
       document.documentElement.dataset.preview = '1';
       if (l !== 'atual') document.documentElement.dataset.look = l;
