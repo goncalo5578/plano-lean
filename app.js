@@ -1253,6 +1253,11 @@
       <div><span class="ws-ic" style="--sc:var(--c)">${ic('ruler')}</span><b>${cint ? n1(cint.cint) : '—'}</b><span>cintura (cm)</span></div>
     </section>
     ${guideNote(delta != null ? (delta / prevAvg) * 100 : null)}`;
+    const meds = [['cint', 'Cintura'], ...MEDIDAS].map(([k, n]) => ({ k, n, rs: W.filter(w => w[k]) })).filter(m => m.rs.length);
+    if (meds.some(m => m.k !== 'cint')) h += `<section class="meal-box shop-box med-box"><h2 class="sec-h shop-h"><span class="cat-ic" style="--cc:var(--c)">${ic('ruler')}</span><span class="cat-n">Medidas</span><small class="cat-c">cm</small></h2><div class="mcards">${meds.map(({ k, n, rs }, i) => {
+      const first = rs[0][k], lastv = rs[rs.length - 1][k], dd = lastv - first;
+      return `<div class="row mrow2 ${i === meds.length - 1 ? 'm-last' : ''}"><div class="row-main"><div class="ttl">${n}</div><div class="sub">${rs.length > 1 ? `desde ${niceDate(rs[0].d)} · <span class="${dd < 0 ? 'h-down' : ''}">${dd > 0 ? '+' : dd < 0 ? '−' : '±'}${n1(Math.abs(dd))} cm</span>` : `medido a ${niceDate(rs[0].d)}`}</div></div><b class="num m-val">${n1(lastv)}</b></div>`;
+    }).join('')}</div></section>`;
     if (Math.abs(nowAvg - S.profile.peso) >= 1) h += `<div class="btn-stack" style="margin-top:12px"><button class="btn secondary press" data-act="usepeso" data-kg="${Math.round(nowAvg * 10) / 10}">Recalcular plano para ${n1(nowAvg)} kg</button></div>`;
     // histórico num cartão como as categorias das Compras: minimizável, com os registos empilhados
     const list = W.slice(-60).reverse(), prevOf = w => W[W.indexOf(w) - 1];
@@ -1277,7 +1282,7 @@
     const from = range ? addDays(todayKey(), -range) : '0000';
     const pts = W.filter(w => w.d >= from);
     if (pts.length < 2) return `<p class="cap" style="margin:16px 0 0">O gráfico aparece a partir de 2 registos neste período.</p>`;
-    const w = 340, h = 150, pl = 4, pr = 30, pt = 10, pb = 20;
+    const w = 340, h = 150, pl = 4, pr = 38, pt = 10, pb = 20;
     const t0 = fromKey(pts[0].d).getTime(), t1 = fromKey(pts[pts.length - 1].d).getTime();
     const avgs = pts.map(p => weeklyAvg(p.d));
     const vals = pts.map(p => p.kg).concat(avgs);
@@ -1286,7 +1291,9 @@
     const Y = v => pt + (1 - (v - lo) / Math.max(0.1, hi - lo)) * (h - pt - pb);
     const step = Math.max(1, Math.ceil((hi - lo) / 3));
     let g = '';
-    for (let v = lo; v <= hi; v += step) g += `<line class="grid" x1="${pl}" x2="${w - pr}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${w - pr + 6}" y="${Y(v) + 3.5}">${v}</text>`;
+    const lastP = pts[pts.length - 1], yl = Y(lastP.kg), xl = X(fromKey(lastP.d).getTime());
+    // linhas da grelha; o número da grelha esconde-se se ficar por baixo da etiqueta do último peso
+    for (let v = lo; v <= hi; v += step) g += `<line class="grid" x1="${pl}" x2="${w - pr}" y1="${Y(v)}" y2="${Y(v)}"/>${Math.abs(Y(v) - yl) < 11 ? '' : `<text x="${w - pr + 8}" y="${Y(v) + 3.5}">${v}</text>`}`;
     const line = pts.map((p, i) => [X(fromKey(p.d).getTime()), Y(avgs[i])]);
     const path = line.map((q, i) => `${i ? 'L' : 'M'}${q[0].toFixed(1)},${q[1].toFixed(1)}`).join('');
     const area = `${path}L${line[line.length - 1][0].toFixed(1)},${h - pb}L${line[0][0].toFixed(1)},${h - pb}Z`;
@@ -1294,9 +1301,20 @@
     g += `<text x="${pl}" y="${h - 4}">${niceDate(pts[0].d)}</text><text x="${w - pr}" y="${h - 4}" text-anchor="end">${niceDate(pts[pts.length - 1].d)}</text>`;
     return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Evolução do peso">
       <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".22"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
-      ${g}<path d="${area}" fill="url(#ga)"/>${dots}<path class="avg" d="${path}"/></svg>`;
+      ${g}<path d="${area}" fill="url(#ga)"/>${dots}<path class="avg" d="${path}"/>
+      <line class="last-l" x1="${xl}" x2="${w - pr + 2}" y1="${yl}" y2="${yl}"/><circle class="last-d" cx="${xl}" cy="${yl}" r="3.6"/>
+      <rect class="last-r" x="${w - pr + 2}" y="${yl - 8.5}" width="${pr - 2}" height="17" rx="8.5"/><text class="last-t" x="${w - pr / 2 + 1}" y="${yl + 3.6}" text-anchor="middle">${n1(lastP.kg)}</text></svg>`;
   }
   let histOpen = false, wSel = null, holdT = null;
+  // Medidas além da cintura (opção "Mais medidas" ao registar): as que se costumam tirar a mulheres
+  const MEDIDAS = [
+    ['busto', 'Peito / busto', 'Na parte mais saliente, com a fita paralela ao chão'],
+    ['anca', 'Anca', 'Na parte mais larga das nádegas'],
+    ['coxa', 'Coxa', 'Na parte mais grossa, sempre na mesma perna'],
+    ['braco', 'Braço', 'A meio, entre o ombro e o cotovelo, relaxado'],
+    ['gemeo', 'Gémeo', 'Na parte mais grossa, sempre na mesma perna'],
+  ];
+  const lastOf = key => [...S.weights].reverse().find(w => w[key]);
   const lastWeight = () => (S.weights.length ? S.weights[S.weights.length - 1] : null);
   const lastHint = () => { const l = lastWeight(); return l ? `Último registo: ${n1(l.kg)} kg · ${DOW_S[dowIdx(l.d)].toLowerCase()}, ${niceDate(l.d)}` : 'O primeiro registo começa no peso do teu perfil.'; };
   function weightSheet() {
@@ -1322,6 +1340,10 @@
         </section>
         <p class="cap" id="wHint" style="text-align:center">${lastHint()}</p>
         <div class="list" style="margin-top:14px"><div class="form-row"><label for="wc">Cintura (cm)</label><input id="wc" type="text" inputmode="decimal" autocomplete="off" placeholder="${lastCint ? n1(lastCint.cint) + ' da última vez' : 'opcional'}"></div></div>
+        <button type="button" class="more-m press ${S.profile.medidasMais ? 'open' : ''}" data-act="moremed" aria-expanded="${!!S.profile.medidasMais}">${ic('ruler')}<span>Mais medidas</span>${ic('chevR', 'mm-chev')}</button>
+        <div class="mm-body ${S.profile.medidasMais ? 'open' : ''}"><div class="mm-in"><div class="list">${MEDIDAS.map(([k, n, tip]) => { const l = lastOf(k);
+          return `<div class="form-row mm-row"><label for="m_${k}">${n} (cm)<small>${tip}</small></label><input id="m_${k}" data-m="${k}" type="text" inputmode="decimal" autocomplete="off" placeholder="${l ? 'antes ' + n1(l[k]) : 'opcional'}"></div>`; }).join('')}</div>
+          <p class="cap">Fita flexível, justa mas sem apertar, sempre no mesmo sítio. Uma vez por mês chega.</p></div></div>
         <p class="cap">De manhã, em jejum, depois da casa de banho.</p>
         <div class="btn-stack"><button class="btn primary press" type="submit">Guardar</button></div></form>`;
     };
@@ -1365,6 +1387,7 @@
     if (rec) {
       sheetEl.querySelector('#wk').value = n1(rec.kg);
       sheetEl.querySelector('#wc').value = rec.cint ? n1(rec.cint) : '';
+      sheetEl.querySelectorAll('[data-m]').forEach(el => { el.value = rec[el.dataset.m] ? n1(rec[el.dataset.m]) : ''; });
       hint.textContent = `Já registaste ${n1(rec.kg)} kg neste dia — guardar substitui.`;
     } else hint.textContent = lastHint();
   }
@@ -1758,6 +1781,8 @@
     const slot = b.dataset.slot;
     const refresh = () => { save(); render(); paintSheet(); };
     switch (a) {
+      case 'moremed': { S.profile.medidasMais = !S.profile.medidasMais; save(); const on = S.profile.medidasMais;
+        b.classList.toggle('open', on); b.setAttribute('aria-expanded', on); sheetEl.querySelector('.mm-body').classList.toggle('open', on); return; }
       case 'mode': sheetEl.dataset.mode = b.dataset.v; paintSheet(); sheetBody.scrollTo({ top: sheetBody.scrollHeight, behavior: 'smooth' }); return;
       case 'pick': {
         const st = dayState(curDay);
@@ -1805,8 +1830,10 @@
     const kg = parseFloat(sheetEl.querySelector('#wk').value.replace(',', '.'));
     const c = parseFloat(sheetEl.querySelector('#wc').value.replace(',', '.'));
     if (!d || !(kg > 0)) return;
+    const extra = {};
+    sheetEl.querySelectorAll('[data-m]').forEach(el => { const v = parseFloat(el.value.replace(',', '.')); if (v > 0) extra[el.dataset.m] = v; });
     S.weights = S.weights.filter(w => w.d !== d);
-    S.weights.push({ d, kg, ...(c > 0 ? { cint: c } : {}) });
+    S.weights.push({ d, kg, ...(c > 0 ? { cint: c } : {}), ...extra });
     save(); closeSheet(); render(); toast('Registo guardado');
   }
 
