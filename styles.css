@@ -700,9 +700,9 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .m-shape { float: left; width: var(--iw); height: 104px; margin-top: -12px; shape-outside: polygon(0 0, 70.5% 0, 96.5% 100%, 0 100%); shape-margin: 6px; }
 /* Tocar na imagem marca como comido: a imagem fica mais transparente, com um visto e "Feita" por cima.
    Por fazer, um círculo vazio no canto mostra que se pode tocar. */
-.m-tap { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--iw) * .8); z-index: 2; display: grid; place-items: center; padding-right: 34px; background: none; -webkit-tap-highlight-color: transparent; }
-.m-done { display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--accent); font-size: 12.5px; font-weight: 700; opacity: 0; transform: scale(.6); transition: opacity .2s, transform .4s var(--spring); }
-.m-done .ic { width: 32px; height: 32px; stroke-width: 2.6; }
+.m-tap { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--iw) * .8); z-index: 2; display: grid; place-items: center; padding-right: 6px; background: none; -webkit-tap-highlight-color: transparent; }
+.m-done { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--accent); font-size: 13px; font-weight: 800; opacity: 0; transform: scale(.6); transition: opacity .2s, transform .4s var(--spring); }
+.m-done .ic { width: 36px; height: 36px; padding: 7px; border-radius: 50%; background: var(--accent); color: #fff; stroke-width: 3; box-shadow: 0 3px 10px rgba(18, 122, 95, .35); }
 .m-done .ic path { stroke-dasharray: 22; stroke-dashoffset: 22; transition: stroke-dashoffset .32s .1s var(--ease-out); }
 .mrow.done .m-done { opacity: 1; transform: none; }
 .mrow.done .m-done .ic path { stroke-dashoffset: 0; }
