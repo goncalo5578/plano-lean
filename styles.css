@@ -306,7 +306,7 @@ html.scrolled body::before { opacity: 1; }
 /* Semana: cartão com a semana que estás a ver, sempre visível (fica preso no topo ao fazer scroll, por baixo do degradé da barra das notificações) */
 .weeknav {
   display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 12px; padding: 10px 9px;
-  position: sticky; top: calc(env(safe-area-inset-top) + 36px); z-index: 6; /* logo abaixo do degradé do topo */
+  position: sticky; top: calc(env(safe-area-inset-top) + 30px); z-index: 6; /* logo abaixo do degradé do topo */
   background: var(--surface); border-radius: var(--r-lg); box-shadow: 0 2px 10px rgba(0, 0, 0, .05), 0 0 0 .5px var(--sep);
 }
 .weeknav .circle-btn { background: var(--fill); box-shadow: none; flex: none; }
