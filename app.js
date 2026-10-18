@@ -822,7 +822,7 @@
   function editorSheet() {
     const d = rDraft;
     if (d.view === 'food') {
-      return `<div class="over">${esc(d.n || 'Receita')}</div><h2>Adicionar ingrediente</h2>
+      return `<button type="button" class="sheet-back press" data-act="rview" data-v="edit">${ic('chevL')}${esc(d.n || 'Receita')}</button><h2>Adicionar ingrediente</h2>
         <div class="list search-row">${ic('search')}<input id="f_q" type="search" placeholder="Procurar alimento ou produto" autocomplete="off" aria-label="Procurar alimento ou produto"></div>
         <div class="list" style="margin-top:10px"><button class="row tap" data-act="rview" data-v="scan"><span class="tile" style="background:var(--accent-soft);color:var(--accent)">${ic('barcode')}</span><div class="row-main"><div class="ttl" style="font-weight:500">Ler código de barras</div><div class="sub">Da embalagem do produto</div></div>${ic('chevR', 'chev')}</button></div>
         <div id="f_list">${foodListHTML('')}</div>
@@ -833,7 +833,7 @@
     }
     if (d.view === 'scan') {
       const hasCam = 'BarcodeDetector' in window && navigator.mediaDevices;
-      return `<div class="over">${esc(d.n || 'Receita')}</div><h2>Ler código de barras</h2>
+      return `<button type="button" class="sheet-back press" data-act="rview" data-v="food">${ic('chevL')}Adicionar ingrediente</button><h2>Ler código de barras</h2>
         ${hasCam ? `<div class="scan-box"><video id="scan_v" playsinline muted></video><span class="scan-line"></span></div>
           <p class="cap" id="scan_msg" style="text-align:center">Aponta a câmara para o código de barras.</p>`
           : `<p class="cap" style="margin:0 4px 10px">Este telemóvel não deixa ler o código com a câmara dentro da app. Escreve os números que estão por baixo das barras.</p>`}
@@ -843,7 +843,7 @@
     }
     if (d.view === 'newfood') {
       const num = (id, l) => `<div class="form-row"><label for="${id}">${l}</label><input id="${id}" type="text" inputmode="decimal" autocomplete="off" placeholder="0"></div>`;
-      return `<div class="over">Novo alimento</div><h2>Alimento que não está na lista</h2>
+      return `<button type="button" class="sheet-back press" data-act="rview" data-v="food">${ic('chevL')}Adicionar ingrediente</button><h2>Alimento que não está na lista</h2>
         <div class="list"><div class="form-row"><label for="nf_n">Nome</label><input id="nf_n" type="text" autocomplete="off" placeholder="Cuscuz, cogumelos…"></div>
           <div class="form-row"><label for="nf_cat">Tipo</label><select id="nf_cat">${FOOD_CATS.map(c => `<option>${c}</option>`).join('')}</select></div></div>
         <div class="group-label">Por 100 g (vem no rótulo)</div>

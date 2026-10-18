@@ -1165,3 +1165,6 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .sheet-in:is(:has(#f_q), :has(#nf_n), :has(#bc_in)) .list.search-row { padding: 0 14px; display: flex; }
 .sheet-in:is(:has(#f_q), :has(#nf_n), :has(#bc_in)) .group-label { font-size: 16px; font-weight: 800; color: var(--ink); text-transform: none; letter-spacing: -.015em; margin: 20px 6px 8px; }
 .sheet-in:is(:has(#f_q), :has(#nf_n), :has(#bc_in)) .list .row .ttl { font-weight: 650; }
+/* Voltar atrás no topo das janelas com vários passos (ex.: adicionar ingrediente) */
+.sheet-back { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; margin: 0 0 4px -6px; padding: 6px 12px 6px 6px; border-radius: 999px; background: var(--surface); box-shadow: var(--soft); color: var(--accent); font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sheet-back .ic { width: 18px; height: 18px; stroke-width: 2.4; flex: none; }
