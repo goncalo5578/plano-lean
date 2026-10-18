@@ -662,12 +662,14 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .strip .train .ring::after { top: -1px; right: -9px; width: 7px; height: 7px; box-shadow: none; }
 
 /* Calorias e macros: número grande, tipo de dia à direita */
-.energy { padding: 18px 18px 20px; }
+.energy { padding: 15px 16px 16px; }
 .energy .energy-top { align-items: flex-start; gap: 10px; }
-.energy .big { font-size: clamp(50px, 16.5vw, 64px); letter-spacing: -.05em; margin-top: 2px; }
-.energy .big-lbl { font-size: 15px; }
-.energy .daytype { padding-top: 6px; }
-.energy .track:not(.thin) { height: 10px; margin-top: 18px; }
+.energy .big { font-size: 46px; letter-spacing: -.045em; }
+.energy .big-lbl { font-size: 13.5px; margin-top: 2px; }
+.energy .meta { margin-top: 6px; }
+.energy .macros3 { margin-top: 12px; padding-top: 12px; }
+.energy .daytype { padding-top: 2px; }
+.energy .track:not(.thin) { height: 8px; margin-top: 12px; }
 
 /* Refeições: cada uma no seu cartão, ícone com a cor da refeição e visto à direita */
 .mcards { display: grid; gap: 10px; }
@@ -708,16 +710,20 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   .strip button { padding: 9px 0 7px; }
   .strip .wd { font-size: 11px; }
   .strip .dn, .strip .sel .dn { font-size: 15.5px; }
-  .card, .energy { padding: 15px; }
+  .card { padding: 15px; }
+  .energy { padding: 13px 14px 14px; }
   .energy .energy-top { gap: 8px; }
-  .energy .big { font-size: clamp(40px, 13.5vw, 56px); }
-  .energy .big-lbl { font-size: 13.5px; }
-  .energy .daytype { gap: 7px; padding-top: 3px; }
+  .energy .big { font-size: 40px; }
+  .energy .big-lbl { font-size: 13px; }
+  .energy .daytype { gap: 7px; padding-top: 1px; }
   .energy .daytype .dt-ic { width: 30px; height: 30px; border-radius: 10px; }
   .energy .daytype .dt-ic .ic { width: 17px; height: 17px; }
   .energy .daytype b { font-size: 13px; }
   .energy .daytype small { font-size: 11.5px; }
-  .energy .track:not(.thin) { margin-top: 14px; }
+  .energy .track:not(.thin) { margin-top: 11px; height: 7px; }
+  .energy .macros3 { margin-top: 11px; padding-top: 11px; }
+  .energy .m-val { margin-top: 2px; }
+  .energy .track.thin { margin-top: 6px; height: 4px; }
   .macros3 { gap: 10px; margin-top: 14px; padding-top: 13px; }
   .m-lbl { font-size: 12px; }
   .m-val b { font-size: 15.5px; }
