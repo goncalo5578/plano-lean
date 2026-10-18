@@ -417,15 +417,17 @@
     const slide = (tab === 'hoje' || tab === 'semana') && (anim === 'next' || anim === 'prev');
     if (slide) { clearTimeout(slideT); $view.querySelectorAll('.day-pane.ghost').forEach(g => g.remove()); } // cancela a passagem anterior se ainda estava a meio
     const oldPane = slide ? $view.querySelector('.day-pane:not(.ghost)') : null;
-    if (oldPane) { oldPane.classList.remove('in-left', 'in-right'); oldPane.style.removeProperty('--dx'); }
+    // se veio de arrastar com o dedo, a saída e a entrada continuam de onde o dedo largou (lido antes de limpar)
+    const dragDx = oldPane && oldPane.dataset.drag ? oldPane.style.getPropertyValue('--dx') : '';
+    if (oldPane) { oldPane.classList.remove('in-left', 'in-right'); oldPane.style.removeProperty('--dx'); delete oldPane.dataset.drag; }
     const ghost = oldPane ? oldPane.cloneNode(true) : null;
-    const dragDx = oldPane ? oldPane.style.getPropertyValue('--dx') : ''; // se veio de arrastar com o dedo, continua daí
+    if (ghost) { ghost.style.removeProperty('transform'); ghost.style.removeProperty('transition'); if (dragDx) ghost.style.setProperty('--dx', dragDx); }
     morphNext = !anim || slide; // no carrossel só se atualiza o que muda (título e botões ficam quietos)
     ({ hoje: renderHoje, semana: renderSemana, compras: renderCompras, progresso: renderProgresso, perfil: renderPerfil })[tab]();
     morphNext = false;
     if (anim) {
       const cls = 'v-' + (anim === true ? 'fade' : anim);
-      for (const el of ghost ? (tab === 'hoje' ? [$hdr] : []) : [$view, $hdr]) { el.classList.remove(...V_ANIM); void el.offsetWidth; el.classList.add(cls); }
+      for (const el of ghost ? [$hdr, $view.querySelector('.wk-lbl')].filter(Boolean) : [$view, $hdr]) { el.classList.remove(...V_ANIM); void el.offsetWidth; el.classList.add(cls); }
       if (ghost) {
         $view.classList.remove(...V_ANIM);
         const stage = $view.querySelector('.day-stage'), pane = stage.querySelector('.day-pane');
@@ -1815,7 +1817,7 @@
     const pane = $view.querySelector('.week-pane');
     if (!wDrag || !pane) return;
     if (Math.abs(wdx) > 70) {
-      pane.style.setProperty('--dx', `${wdx}px`);
+      pane.style.setProperty('--dx', `${wdx}px`); pane.dataset.drag = '1';
       weekOffset += wdx < 0 ? 1 : -1;
       render(wdx < 0 ? 'next' : 'prev');
     } else {
