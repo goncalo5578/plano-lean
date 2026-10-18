@@ -1587,7 +1587,7 @@
         <div class="group-label">Objetivo</div><div class="list">
           <div class="form-row"><label for="defice">Défice</label><select id="defice" name="defice">${opt([[0, 'Manutenção'], [8, '8% · muito suave'], [12, '12% · suave'], [15, '15% · moderado'], [20, '20% · máximo']], p.defice)}</select></div>
           <div class="form-row"><label for="atividade">Atividade</label><select id="atividade" name="atividade">${opt([[1.2, 'Sedentária'], [1.375, 'Ligeira · 3 treinos'], [1.465, 'Moderada · 3–4 treinos + passos'], [1.55, 'Ativa · 5 treinos']], p.atividade)}</select></div>
-          <div class="form-row"><label for="extraTreino">Extra nos dias de treino</label><select id="extraTreino" name="extraTreino">${opt([[100, '+100 kcal'], [150, '+150 kcal · recomendado'], [200, '+200 kcal'], [250, '+250 kcal · treinos longos']], p.extraTreino || 150)}</select></div>
+          <div class="form-row"><label for="extraTreino">Extra nos dias de treino</label><select id="extraTreino" name="extraTreino">${opt([[100, '+100 kcal'], [150, '+150 kcal'], [200, '+200 kcal']], Math.min(p.extraTreino || 150, 200))}</select></div>
         </div>
         <div class="group-label">Refeições</div><div class="list">
           <label class="form-row" style="cursor:pointer"><span>Lanche da manhã todos os dias</span><input type="checkbox" name="lmSempre" class="sw-in" ${p.lmSempre ? 'checked' : ''}><span class="switch"></span></label>
@@ -1597,7 +1597,7 @@
         <div class="group-label">Dias de treino habituais</div><div class="list"><div class="days">
           ${DOW_S.map((d, i) => `<label><input type="checkbox" name="td" value="${i}" ${p.treinoDias.includes(i) ? 'checked' : ''}><span>${d}</span></label>`).join('')}
         </div></div>
-        <p class="cap">Ponto de partida para semanas novas — muda dia a dia em Semana → Escala. Recomendado: défice de 12% e atividade ligeira. Se ao fim de 3 semanas a média de peso e a cintura não descerem, sobe o défice um nível.</p>
+        <p class="cap">Ponto de partida para semanas novas — muda dia a dia em Semana → Escala. Recomendado: défice de 12%, atividade ligeira e +150 kcal nos dias de treino. Se ao fim de 3 semanas a média de peso e a cintura não descerem, sobe o défice um nível.</p>
       </form>`;
     } else if (id === 'refeicoes' && catSlot) {
       const list = mealsOf(catSlot.id);
