@@ -303,10 +303,10 @@ html.scrolled body::before { opacity: 1; }
 .kpis > div + div { box-shadow: inset .5px 0 0 var(--sep); }
 .kpis b { display: block; font-size: 22px; font-weight: 720; letter-spacing: -.02em; }
 .kpis span { font-size: 12.5px; color: var(--ink-3); }
-/* Semana: cartão com a semana que estás a ver, sempre visível (fica preso por baixo do título ao fazer scroll) */
+/* Semana: cartão com a semana que estás a ver, sempre visível (fica preso no topo ao fazer scroll, no sítio da pílula do título) */
 .weeknav {
   display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 12px; padding: 10px 9px;
-  position: sticky; top: calc(env(safe-area-inset-top) + 54px); z-index: 6;
+  position: sticky; top: calc(env(safe-area-inset-top) + 8px); z-index: 6;
   background: var(--surface); border-radius: var(--r-lg); box-shadow: 0 2px 10px rgba(0, 0, 0, .05), 0 0 0 .5px var(--sep);
 }
 .weeknav .circle-btn { background: var(--fill); box-shadow: none; flex: none; }
@@ -952,7 +952,6 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   .tabs .ic { width: 23px; height: 23px; }
   body { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
   .fab-wrap { bottom: calc(80px + env(safe-area-inset-bottom)); }
-  .weeknav { top: calc(env(safe-area-inset-top) + 52px); }
   .kpis b { font-size: 18px; }
   .row { padding: 12px 14px; }
   .day-date { width: 38px; }
