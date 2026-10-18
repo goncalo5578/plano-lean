@@ -108,10 +108,12 @@
   const DELETED_FOOD = { n: 'Alimento apagado', kcal: 0, p: 0, c: 0, f: 0, cat: 'Outros' };
   const food = id => FOODS[id] || R().foods[id] || DELETED_FOOD;
   const builtinSlot = id => Object.keys(MEALS).find(sl => MEALS[sl].some(m => m.id === id));
-  const slotOfMeal = id => builtinSlot(id) || (R().custom.find(m => m.id === id) || {}).slot;
+  const slotsOfCustom = m => (m.slots && m.slots.length ? m.slots : [m.slot]);
+  // refeições onde a receita aparece (uma receita tua pode servir para várias, ex.: almoço e jantar)
+  const slotsOfMeal = id => { const b = builtinSlot(id); if (b) return [b]; const c = R().custom.find(m => m.id === id); return c ? slotsOfCustom(c) : []; };
   function mealsOf(slot) {
     const r = R();
-    return [...MEALS[slot].filter(m => !r.removed[m.id]).map(m => r.edits[m.id] || m), ...r.custom.filter(m => m.slot === slot)];
+    return [...MEALS[slot].filter(m => !r.removed[m.id]).map(m => r.edits[m.id] || m), ...r.custom.filter(m => slotsOfCustom(m).includes(slot))];
   }
   const mealById = id => R().edits[id] || R().custom.find(m => m.id === id) || ALL_MEALS.find(m => m.id === id);
   // ================= Fotos das receitas (só no telemóvel, em IndexedDB; não pesam no resto dos dados) =================
@@ -239,7 +241,8 @@
   const baseKcal = o => Math.round(sumItems(o.i.map(it => ({ f: it.f, g: Array.isArray(it.g) ? it.g[0] : it.g }))).kcal);
   function recipeTags(o) {
     const r = R(), own = r.custom.some(m => m.id === o.id), edited = !!r.edits[o.id];
-    return [`~${baseKcal(o)} kcal`, o.m ? '<span class="mk-m">Marmita</span>' : '', own ? 'criada por ti' : edited ? 'editada' : ''].filter(Boolean).join(' · ');
+    const sl = slotsOfMeal(o.id), multi = sl.length > 1 ? sl.map(s => SLOTS.find(x => x.id === s).n.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' e $1') : '';
+    return [`~${baseKcal(o)} kcal`, o.m ? '<span class="mk-m">Marmita</span>' : '', multi, own ? 'criada por ti' : edited ? 'editada' : ''].filter(Boolean).join(' · ');
   }
   function mealIdAt(k, slot, depth = 0) {
     const src = depth < 3 && sourceOf(k, slot);
@@ -787,8 +790,8 @@
   const FOOD_CATS = ['Proteínas', 'Laticínios e ovos', 'Hidratos', 'Legumes', 'Fruta', 'Gorduras', 'Outros'];
   function openEditor(meal, slot, pickFor = null) {
     rDraft = meal
-      ? { id: meal.id, slot: slotOfMeal(meal.id), n: meal.n, prep: meal.prep || '', m: meal.m ? 1 : 0, i: meal.i.map(it => ({ f: it.f, g: Array.isArray(it.g) ? it.g[0] : it.g })), isNew: false }
-      : { id: null, slot: slot || 'almoco', n: '', prep: '', m: 0, i: [], isNew: true };
+      ? { id: meal.id, slots: slotsOfMeal(meal.id), n: meal.n, prep: meal.prep || '', m: meal.m ? 1 : 0, i: meal.i.map(it => ({ f: it.f, g: Array.isArray(it.g) ? it.g[0] : it.g })), isNew: false }
+      : { id: null, slots: [slot || 'almoco'], n: '', prep: '', m: 0, i: [], isNew: true };
     rDraft.pickFor = pickFor; rDraft.view = 'edit';
     if (PHOTO_URL[DRAFT_PHOTO]) { URL.revokeObjectURL(PHOTO_URL[DRAFT_PHOTO]); delete PHOTO_URL[DRAFT_PHOTO]; }
     openSheet(editorSheet);
@@ -848,8 +851,8 @@
     const t = draftTotals();
     return `<div class="over">${d.isNew ? 'Nova receita' : 'Editar receita'}</div><h2>${esc(d.n) || 'Receita sem nome'}</h2>
       <div class="list"><div class="form-row"><label for="r_n">Nome</label><input id="r_n" type="text" autocomplete="off" value="${esc(d.n)}" placeholder="Frango com arroz"></div></div>
-      <div class="group-label">Refeição</div>
-      <div class="seg full seg-slots" role="group" aria-label="Refeição">${SLOTS.map(sl => `<button type="button" class="${d.slot === sl.id ? 'on' : ''}" data-act="rslot" data-v="${sl.id}">${{ pa: 'P. almoço', lm: 'L. manhã', almoco: 'Almoço', lanche: 'Lanche', jantar: 'Jantar' }[sl.id]}</button>`).join('')}</div>
+      <div class="group-label">Refeição <small class="gl-hint">podes escolher várias</small></div>
+      <div class="seg full seg-slots" role="group" aria-label="Refeições onde aparece">${SLOTS.map(sl => `<button type="button" class="${d.slots.includes(sl.id) ? 'on' : ''}" data-act="rslot" data-v="${sl.id}" aria-pressed="${d.slots.includes(sl.id)}">${{ pa: 'P. almoço', lm: 'L. manhã', almoco: 'Almoço', lanche: 'Lanche', jantar: 'Jantar' }[sl.id]}</button>`).join('')}</div>
       <div class="group-label">Ingredientes · 1 dose</div>
       <div class="list">${d.i.map((it, idx) => `<div class="row ing-edit"><div class="row-main"><div class="ttl" style="font-weight:500">${esc(food(it.f).n)}</div><div class="sub num" data-rk="${idx}">${n0(food(it.f).kcal * it.g / 100)} kcal</div></div>
           <input class="g-in num" data-ri="${idx}" type="text" inputmode="decimal" autocomplete="off" value="${it.g ? String(it.g).replace('.', ',') : ''}" aria-label="Quantidade de ${esc(food(it.f).n)}" onfocus="this.select()"><span class="unit">${isLiquid(it.f) ? 'ml' : 'g'}</span>
@@ -859,7 +862,7 @@
       <div class="group-label">Preparação</div>
       <div class="list"><textarea id="r_prep" rows="4" placeholder="Passos, separados por pontos. Ex.: Grelhar o frango. Cozer o arroz.">${esc(d.prep)}</textarea></div>
       <div class="list" style="margin-top:12px"><label class="form-row" style="cursor:pointer"><span>Boa para marmita</span><input id="r_m" type="checkbox" class="sw-in" ${d.m ? 'checked' : ''}><span class="switch"></span></label></div>
-      <div class="group-label">Foto</div>${photoRow(d.id || DRAFT_PHOTO, d.slot)}
+      <div class="group-label">Foto</div>${photoRow(d.id || DRAFT_PHOTO, d.slots[0])}
       <p class="cap err" id="r_err"></p>
       <div class="btn-stack"><button class="btn primary press" data-act="rsave">Guardar receita</button>
         ${d.isNew ? '' : '<button class="btn danger press" data-act="rdelete">Eliminar receita</button>'}
@@ -991,15 +994,19 @@
     if (!n) return showErr('r_err', 'Dá um nome à receita.');
     if (!items.length) return showErr('r_err', 'Junta pelo menos um ingrediente com quantidade.');
     const meal = { n, m: d.m, prep: d.prep.trim(), i: items.map(it => ({ f: it.f, g: Math.round(it.g * 10) / 10, ...(roleOf(it.f) ? { r: roleOf(it.f) } : {}) })) };
-    const r = R(), bslot = d.id && builtinSlot(d.id);
+    const r = R(), bslot = d.id && builtinSlot(d.id), slots = SLOTS.map(s => s.id).filter(s => d.slots.includes(s));
+    // tirar a receita de uma refeição não pode deixar essa refeição sem receitas
+    const leaving = d.id ? slotsOfMeal(d.id).filter(s => !slots.includes(s)) : [];
+    const empty = leaving.find(s => mealsOf(s).length <= 1);
+    if (empty) return showErr('r_err', `É a única receita de ${SLOTS.find(s => s.id === empty).n.toLowerCase()}: tem de ficar lá.`);
     let id = d.id;
-    if (bslot && bslot === d.slot) r.edits[id] = { id, ...meal };
+    if (bslot && slots.length === 1 && slots[0] === bslot) r.edits[id] = { id, ...meal };
     else {
       if (bslot) { r.removed[id] = true; delete r.edits[id]; id = null; } // receita do plano mudada de refeição: passa a ser tua
-      if (id) Object.assign(r.custom.find(m => m.id === id), meal, { slot: d.slot });
-      else { id = 'u_' + Date.now().toString(36); r.custom.push({ id, slot: d.slot, ...meal }); }
+      if (id) { const c = r.custom.find(m => m.id === id); Object.assign(c, meal, { slot: slots[0], slots }); }
+      else { id = 'u_' + Date.now().toString(36); r.custom.push({ id, slot: slots[0], slots, ...meal }); }
     }
-    if (d.pickFor && d.pickFor.slot === d.slot) dayState(d.pickFor.k).swaps[d.slot] = id;
+    if (d.pickFor && slots.includes(d.pickFor.slot)) dayState(d.pickFor.k).swaps[d.pickFor.slot] = id;
     // a foto acompanha a receita (nova, ou receita do plano que mudou de refeição e ganhou outro id)
     const photo = d.photoBlob ? Promise.resolve(d.photoBlob) : d.id && id !== d.id && PHOTO_URL[d.id] ? fetch(PHOTO_URL[d.id]).then(x => x.blob()) : null;
     if (photo) photo.then(b => setPhoto(id, b)).then(() => { if (PHOTO_URL[DRAFT_PHOTO]) { URL.revokeObjectURL(PHOTO_URL[DRAFT_PHOTO]); delete PHOTO_URL[DRAFT_PHOTO]; } render(); }).catch(() => {});
@@ -1007,7 +1014,7 @@
   }
   function deleteRecipe() {
     const d = rDraft;
-    if (mealsOf(d.slot).length <= 1) return showErr('r_err', 'Tem de ficar pelo menos uma receita nesta refeição.');
+    if (slotsOfMeal(d.id).some(s => mealsOf(s).length <= 1)) return showErr('r_err', 'Tem de ficar pelo menos uma receita em cada refeição.');
     askConfirm({ title: 'Eliminar receita?', ok: 'Eliminar receita', text: `<b>${esc(d.n)}</b> deixa de aparecer no plano e é substituída por outra receita. Isto não pode ser desfeito.`,
       onOk: () => {
         const r = R();
@@ -1817,7 +1824,13 @@
         return;
       case 'raddoff': if (offHits[+b.dataset.i]) addOffFood(offHits[+b.dataset.i]); return;
       case 'bcgo': lookupBarcode(sheetEl.querySelector('#bc_in').value); return;
-      case 'rslot': syncDraftFromDom(); rDraft.slot = b.dataset.v; paintSheet(); return;
+      case 'rslot': {
+        syncDraftFromDom();
+        const v = b.dataset.v, has = rDraft.slots.includes(v);
+        if (has && rDraft.slots.length === 1) { toast('Escolhe pelo menos uma refeição'); return; }
+        rDraft.slots = has ? rDraft.slots.filter(s => s !== v) : [...rDraft.slots, v];
+        paintSheet(); return;
+      }
       case 'rdel': syncDraftFromDom(); rDraft.i.splice(+b.dataset.ri, 1); paintSheet(); return;
       case 'raddf': { const F = food(b.dataset.f); rDraft.i.push({ f: b.dataset.f, g: F.u ? F.u[0] : 100 }); rDraft.view = 'edit'; paintSheet(); const ins = sheetEl.querySelectorAll('.g-in'); if (ins.length) { ins[ins.length - 1].focus(); ins[ins.length - 1].select(); } return; }
       case 'rfoodsave': return saveNewFood();

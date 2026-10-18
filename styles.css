@@ -1126,3 +1126,5 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 [data-page="perfil"] .hero-grid { gap: 8px; background: transparent; overflow: visible; border-radius: 0; }
 [data-page="perfil"] .hero-grid > div { border-radius: 22px; box-shadow: var(--soft); }
 [data-page="perfil"] .cat-card { border-radius: 24px; box-shadow: var(--soft); }
+.group-label .gl-hint { font-size: 12px; font-weight: 500; color: var(--ink-3); text-transform: none; letter-spacing: 0; margin-left: 6px; }
+.seg-slots button.on { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
