@@ -1219,6 +1219,12 @@
   }
 
   // ================= PROGRESSO =================
+  // O peso do perfil (que conta para as metas) acompanha os registos: média dos últimos 7 dias do registo mais recente
+  function syncPesoFromWeights() {
+    if (!S.weights.length) return;
+    const last = [...S.weights].sort((x, y) => x.d.localeCompare(y.d)).pop();
+    S.profile.peso = Math.round(weeklyAvg(last.d) * 10) / 10;
+  }
   function weeklyAvg(endKey) {
     const from = addDays(endKey, -6);
     const v = S.weights.filter(w => w.d >= from && w.d <= endKey).map(w => w.kg);
@@ -1259,7 +1265,6 @@
       const first = rs[0][k], lastv = rs[rs.length - 1][k], dd = lastv - first;
       return `<div class="row mrow2 ${i === meds.length - 1 ? 'm-last' : ''}"><div class="row-main"><div class="ttl">${n}</div><div class="sub">${rs.length > 1 ? `desde ${niceDate(rs[0].d)} · <span class="${dd < 0 ? 'h-down' : ''}">${dd > 0 ? '+' : dd < 0 ? '−' : '±'}${n1(Math.abs(dd))} cm</span>` : `medido a ${niceDate(rs[0].d)}`}</div></div><b class="num m-val">${n1(lastv)}</b></div>`;
     }).join('')}</div></section>`;
-    if (Math.abs(nowAvg - S.profile.peso) >= 1) h += `<div class="btn-stack" style="margin-top:12px"><button class="btn secondary press" data-act="usepeso" data-kg="${Math.round(nowAvg * 10) / 10}">Recalcular plano para ${n1(nowAvg)} kg</button></div>`;
     // histórico num cartão como as categorias das Compras: minimizável, com os registos empilhados
     const list = W.slice(-60).reverse(), prevOf = w => W[W.indexOf(w) - 1];
     h += `<section class="meal-box shop-box hist-box ${histOpen ? '' : 'min'}"><button class="sec-h shop-h" data-act="hist" aria-expanded="${histOpen}"><span class="cat-ic" style="--cc:var(--accent)">${ic('clock')}</span><span class="cat-n">Histórico</span>
@@ -1436,8 +1441,8 @@
   function renderPerfil() {
     if (sub) return renderSub(sub);
     const T = targets(), p = S.profile;
-    const W = [...S.weights].sort((x, y) => x.d.localeCompare(y.d)), last = W[W.length - 1];
-    const now = last ? weeklyAvg(last.d) : p.peso, since = W.length > 1 ? now - W[0].kg : null;
+    const W = [...S.weights].sort((x, y) => x.d.localeCompare(y.d));
+    const now = p.peso, since = W.length > 1 ? now - W[0].kg : null;
     const name = (p.nome || '').trim();
     header('', 'Perfil');
     $view.innerHTML = `
@@ -1713,10 +1718,9 @@
         const w = S.weights.find(x => x.d === b.dataset.d); if (!w) return;
         askConfirm({ title: 'Apagar registo?', ok: 'Apagar registo',
           text: `<b class="num">${n1(w.kg)} kg${w.cint ? ` · ${n1(w.cint)} cm` : ''}</b> de ${DOW[dowIdx(w.d)].toLowerCase()}, ${niceDate(w.d)}. Isto não pode ser desfeito.`,
-          onOk: () => { S.weights = S.weights.filter(x => x.d !== w.d); save(); render(); toast('Registo apagado'); } });
+          onOk: () => { S.weights = S.weights.filter(x => x.d !== w.d); syncPesoFromWeights(); save(); render(); toast('Registo apagado'); } });
         return;
       }
-      case 'usepeso': S.profile.peso = +b.dataset.kg; save(); toast(`Plano recalculado para ${n1(+b.dataset.kg)} kg`); break;
       // Perfil
       case 'sub': sub = b.dataset.id; subParent = b.dataset.parent || null; recCat = null; render('push'); window.scrollTo(0, 0); return;
       case 'back': sub = null; subParent = null; recCat = null; render('pop'); window.scrollTo(0, 0); return;
@@ -1835,6 +1839,7 @@
     sheetEl.querySelectorAll('[data-m]').forEach(el => { const v = parseFloat(el.value.replace(',', '.')); if (v > 0) extra[el.dataset.m] = v; });
     S.weights = S.weights.filter(w => w.d !== d);
     S.weights.push({ d, kg, ...(c > 0 ? { cint: c } : {}), ...extra });
+    syncPesoFromWeights();
     save(); closeSheet(); render(); toast('Registo guardado');
   }
 
