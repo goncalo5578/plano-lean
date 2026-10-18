@@ -381,6 +381,10 @@
   const TABS = [['hoje', 'Hoje', 'plate'], ['semana', 'Semana', 'cal'], ['compras', 'Compras', 'bag'], ['progresso', 'Progresso', 'chart'], ['perfil', 'Perfil', 'user']];
   let tab = 'hoje', sub = null, curDay = todayKey(), weekOffset = 0, shopMode = 'w0', range = 30;
   let semBack = null; // dia do Hoje guardado enquanto há uma refeição da Semana aberta
+  // Percurso: os ecrãs por onde passaste (para o "voltar" refazer o caminho ao contrário).
+  // screenDay: o dia com que o Hoje atual foi aberto (hoje, ou o dia que abriste na Semana)
+  let navStack = [], screenDay = todayKey();
+  const navSnap = () => ({ tab, sub, subParent, recCat, curDay: semBack ?? curDay, weekOffset, shopMode, range, screenDay, y: Math.round(window.scrollY) });
   const NAV_KEY = 'planoLean.nav';
 
   $tabs.innerHTML = TABS.map(([id, l, i]) => `<button data-tab="${id}" class="press">${ic(i)}<span>${l}</span></button>`).join('');
@@ -397,7 +401,9 @@
   try { localStorage.removeItem('pulso.look'); sessionStorage.removeItem('pulso.look'); } catch (e) { /* restos da pré-visualização dos visuais */ }
 
   function go(t, subpage = null) {
+    if (t !== tab || subpage) navStack.push(navSnap());
     if (t === 'hoje' && tab === 'hoje' && !subpage) curDay = todayKey();
+    if (t === 'hoje') screenDay = curDay;
     if (t === 'semana' && tab !== 'semana') weekOffset = 1; // a Semana serve para preparar a próxima: abre sempre nela
     tab = t; sub = subpage;
     render('fade'); window.scrollTo(0, 0);
@@ -435,7 +441,7 @@
     animateCounts(!!anim); // só conta ao marcar refeições, água, etc. (no mesmo dia)
     onScroll();
     syncGuard();
-    try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, subParent, recCat, curDay: semBack ?? curDay, weekOffset, shopMode, range, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
+    try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, subParent, recCat, curDay: semBack ?? curDay, weekOffset, shopMode, range, screenDay, stack: navStack, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
   }
   function header(over, title, actions = '') {
     $hdr.innerHTML = `<div><div class="over">${over}</div><h1>${title}</h1></div><div class="hdr-actions">${actions}</div>`;
@@ -1882,8 +1888,8 @@
   const sheetOpen = () => !!(sheetEl && sheetEl.classList.contains('open'));
   // Profundidade atual da interface (0 = ecrã Hoje, no dia de hoje, sem nada aberto)
   function uiDepth() {
-    let d = 0;
-    if (tab !== 'hoje') d++; else if (curDay !== todayKey()) d++;
+    let d = navStack.length;
+    if (tab !== 'hoje') { if (!navStack.length) d++; } else if (curDay !== screenDay) d++;
     if (sub) d++;
     if (sub && subParent) d++;
     if (sub && recCat) d++;
@@ -1896,12 +1902,15 @@
   }
   // O histórico do browser acompanha a profundidade. As entradas novas só são criadas durante um toque
   // (o Chrome do Android salta entradas criadas sem toque), e o "voltar" só desfaz — nunca cria.
-  let histD = (history.state && history.state.d) || 0, pendingPops = 0, inPop = false;
+  let histD = (history.state && history.state.d) || 0, expectD = null, expectT = 0, inPop = false;
   function syncGuard() {
-    if (inPop) return;
+    if (inPop || expectD !== null) return; // à espera de um recuo pedido pela app: acerta quando ele chegar
     const t = uiDepth();
     while (histD < t) { histD++; history.pushState({ d: histD }, ''); }
-    if (t < histD) { pendingPops++; history.go(t - histD); histD = t; } // fechaste algo pela app: tira as entradas a mais
+    if (t < histD) { // fechaste algo pela app: tira as entradas a mais (um recuo de cada vez)
+      expectD = t; history.go(t - histD);
+      expectT = setTimeout(() => { if (expectD === null) return; expectD = null; histD = (history.state && history.state.d) || 0; syncGuard(); }, 700);
+    }
   }
   function backStep() {
     if (sheetOpen()) {
@@ -1912,17 +1921,24 @@
     if (tab === 'perfil' && recCat) { recCat = null; render('pop'); window.scrollTo(0, 0); return; }
     if (sub && subParent) { sub = subParent; subParent = null; render('pop'); window.scrollTo(0, 0); return; }
     if (sub) { sub = null; recCat = null; render('pop'); window.scrollTo(0, 0); return; }
-    if (tab !== 'hoje') { tab = 'hoje'; render('fade'); window.scrollTo(0, 0); return; }
-    if (curDay !== todayKey()) { const dir = todayKey() > curDay ? 'next' : 'prev'; curDay = todayKey(); render(dir); }
+    if (tab === 'hoje' && curDay !== screenDay) { const dir = screenDay > curDay ? 'next' : 'prev'; curDay = screenDay; render(dir); return; }
+    if (navStack.length) { // volta ao ecrã anterior, como estava (incluindo onde estavas na página)
+      const s = navStack.pop();
+      ({ tab, sub, subParent, recCat, curDay, weekOffset, shopMode, range, screenDay } = s);
+      render('fade');
+      window.scrollTo(0, s.y || 0); requestAnimationFrame(() => window.scrollTo(0, s.y || 0));
+      return;
+    }
+    if (tab !== 'hoje') { tab = 'hoje'; render('fade'); window.scrollTo(0, 0); }
   }
   window.addEventListener('popstate', e => {
     const d = (e.state && e.state.d) || 0;
-    if (pendingPops > 0) { pendingPops--; histD = d; syncGuard(); return; }
+    if (expectD !== null) { clearTimeout(expectT); expectD = null; histD = d; syncGuard(); return; }
     inPop = true;
-    for (let n = 0; n < 10 && uiDepth() > d; n++) backStep();
+    for (let n = 0; n < Math.min(10, histD - d); n++) backStep(); // um passo por cada entrada recuada
     inPop = false;
     histD = d;
-    if (uiDepth() < d) syncGuard(); // recuou mais do que um passo de uma vez
+    syncGuard();
   });
   // iPhone (app no ecrã principal): não há gesto de voltar do sistema — deslizar do bordo esquerdo para a direita
   if (/iPhone|iPad|iPod/.test(navigator.userAgent) && navigator.standalone) {
@@ -1944,6 +1960,7 @@
       tab = nav.tab;
       if (tab === 'perfil' && PAGES.some(x => x[0] === nav.sub)) { sub = nav.sub; subParent = HUB_ITEMS[nav.subParent] ? nav.subParent : null; recCat = SLOTS.some(x => x.id === nav.recCat) ? nav.recCat : null; }
       if (nav.on === todayKey() && /^\d{4}-\d{2}-\d{2}$/.test(nav.curDay || '')) curDay = nav.curDay;
+      if (nav.on === todayKey() && Array.isArray(nav.stack)) { navStack = nav.stack; if (/^\d{4}-\d{2}-\d{2}$/.test(nav.screenDay || '')) screenDay = nav.screenDay; }
       weekOffset = +nav.weekOffset || 0; shopMode = ['w0', 'w1', 'm0', 'm1'].includes(nav.shopMode) ? nav.shopMode : 'w0'; range = [0, 30, 90].includes(nav.range) ? nav.range : 30;
     }
   } catch (e) { /* começa no Hoje */ }
@@ -2007,7 +2024,7 @@
   document.addEventListener('visibilitychange', () => {
     reloadIfNew();
     if (document.visibilityState !== 'visible') return;
-    if (todayKey() !== lastToday) { lastToday = curDay = todayKey(); render(); }
+    if (todayKey() !== lastToday) { lastToday = curDay = screenDay = todayKey(); navStack = []; render(); }
     syncCal().catch(() => {});
   });
   syncCal().catch(() => {});
