@@ -595,9 +595,8 @@
       let h = `<div class="ms-hero ${done ? 'done' : ''}">
         ${m.fora ? mealPic(null, slotId, 'ms-pic') : `<button class="ms-tap" data-act="msdone" data-slot="${slotId}" aria-pressed="${done}" aria-label="${done ? 'Desmarcar' : 'Marcar'} como comido">${mealPic(mid, slotId, 'ms-pic')}<span class="m-done">${ic('check')}<span>Feita</span></span><span class="m-hollow"></span></button>`}
         ${m.fora ? '' : `<label class="ms-photo">${ic('camera')}${PHOTO_URL[mid] ? 'Mudar foto' : 'Foto'}<input type="file" accept="image/*" hidden data-photo="${mid}"></label>`}
-      </div>
-      <div class="over">${m.slot.n} · ${m.slot.t}</div><h2>${esc(m.meal.n)}</h2>`;
-      if (m.meal.m) h += `<div><span class="tag-pill">${ic('box')}Marmita</span></div>`;
+        <div class="ms-cap"><div class="over">${m.slot.n} · ${m.slot.t}${m.meal.m ? ` <span class="ms-tag">${ic('box')}Marmita</span>` : ''}</div><h2>${esc(m.meal.n)}</h2></div>
+      </div>`;
       if (m.fora) h += `<div class="note" style="margin:0 0 12px">${ic('info')}<div>Registaste outra refeição (~${m.fora} kcal). <button class="link" data-act="unfora" data-slot="${slotId}">Desfazer</button></div></div>`;
 
       // Calorias e macros como no cartão do Hoje: a barra mostra quanto esta refeição dá da meta do dia

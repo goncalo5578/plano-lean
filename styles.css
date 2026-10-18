@@ -223,12 +223,13 @@ main { max-width: 600px; margin: 0 auto; padding: 0 16px 24px; outline: none; }
 /* ============ Sheet ============ */
 .backdrop { position: fixed; inset: 0; z-index: 30; background: rgba(0, 0, 0, .35); opacity: 0; transition: opacity .3s; }
 .backdrop.open { opacity: 1; }
+/* Janelas que sobem de baixo: a flutuar, com os cantos todos arredondados */
 .sheet {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; max-width: 600px; margin: 0 auto;
-  max-height: 92vh; overflow-y: auto; overscroll-behavior: contain;
-  background: var(--bg); border-radius: 22px 22px 0 0;
-  padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
-  transform: translateY(100%); transition: transform .38s var(--ease);
+  position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 31; max-width: 600px; margin: 0 auto;
+  max-height: calc(92vh - env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--bg); border-radius: 28px;
+  padding: 8px 16px 18px;
+  transform: translateY(calc(100% + 24px)); transition: transform .38s var(--ease);
 }
 .sheet.open { transform: none; }
 .grabber { width: 38px; height: 5px; border-radius: 99px; background: var(--ink-3); opacity: .45; margin: 0 auto 14px; }
@@ -748,21 +749,28 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .meal-box .mcards > .add-row { margin-top: 5px; border-radius: 20px; }
 
 /* ============ Detalhes da refeição (mesmo estilo do Hoje) ============ */
-.ms-hero { position: relative; height: 150px; border-radius: 22px; overflow: hidden; margin: 2px 0 14px; }
+.ms-hero { position: relative; height: 240px; overflow: hidden; margin: -8px -16px 14px; } /* a imagem ocupa a largura toda, no topo da janela */
+.ms-hero::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(to top, rgba(0, 0, 0, .55), rgba(0, 0, 0, .15) 45%, transparent 70%); }
+.sheet:has(> .ms-hero) .grabber { position: absolute; left: 50%; top: 8px; margin: 0 0 0 -19px; z-index: 3; background: #fff; opacity: .85; }
+.ms-cap { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 2; color: #fff; pointer-events: none; }
+.ms-cap .over { color: rgba(255, 255, 255, .85); margin: 0 0 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ms-cap h2 { color: #fff; margin: 0; font-size: 24px; text-shadow: 0 1px 12px rgba(0, 0, 0, .25); }
+.ms-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; background: rgba(255, 255, 255, .22); color: #fff; font-size: 11px; letter-spacing: .02em; }
+.ms-tag .ic { width: 12px; height: 12px; stroke-width: 2.2; }
 .ms-tap { position: absolute; inset: 0; display: grid; place-items: center; z-index: 1; -webkit-tap-highlight-color: transparent; }
 .ms-pic { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; transition: opacity .25s;
   background: radial-gradient(circle at 92% -10%, rgba(255, 255, 255, .16) 0 70px, transparent 71px), radial-gradient(circle at -2% 110%, rgba(255, 255, 255, .12) 0 56px, transparent 57px), linear-gradient(135deg, var(--g1), var(--g2)); }
-.ms-pic .ic { width: 58px; height: 58px; stroke-width: 1.5; transition: opacity .2s; }
+.ms-pic .ic { width: 64px; height: 64px; stroke-width: 1.5; margin-bottom: 40px; transition: opacity .2s; }
 .ms-pic.has-photo { background: none; }
 .ms-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.ms-hero .m-done { position: relative; z-index: 1; }
-.ms-hero .m-hollow { left: 12px; bottom: 12px; }
+.ms-hero .m-done { position: relative; z-index: 2; margin-bottom: 40px; }
+.ms-hero .m-hollow { left: 16px; top: 16px; bottom: auto; z-index: 2; }
 .ms-hero.done .ms-pic { opacity: .4; }
 .ms-hero.done .ms-pic .ic { opacity: 0; }
 .ms-hero.done .m-done { opacity: 1; transform: none; }
 .ms-hero.done .m-done .ic path { stroke-dashoffset: 0; }
 .ms-hero.done .m-hollow { opacity: 0; }
-.ms-photo { position: absolute; right: 10px; bottom: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px 6px 9px; border-radius: 999px;
+.ms-photo { position: absolute; right: 14px; top: 14px; z-index: 3; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px 6px 9px; border-radius: 999px;
   background: rgba(0, 0, 0, .28); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #fff; font-size: 12.5px; font-weight: 700; cursor: pointer; }
 .ms-photo .ic { width: 16px; height: 16px; stroke-width: 2; }
 .ms-macros { margin-top: 14px; padding: 15px 16px 16px; }
