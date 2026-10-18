@@ -283,16 +283,10 @@
   // Abrir/fechar: o Chrome já anima sozinho a mudança de cor da barra; se a mudarmos a cada imagem ele
   // recomeça essa animação e fica para trás. Por isso damos logo a cor final, ao mesmo tempo que o fundo começa.
   function barTo(on) { cancelAnimationFrame(barAnim); setBar(on ? 1 : 0); }
-  // Ao arrastar: segue o fundo tal como está a ser desenhado (lê a opacidade real)
-  function dimBar(_on, ms = 500) {
-    cancelAnimationFrame(barAnim);
-    const t0 = performance.now();
-    const step = now => {
-      if (backEl) setBar(parseFloat(getComputedStyle(backEl).opacity) || 0);
-      if (now - t0 < ms) barAnim = requestAnimationFrame(step);
-    };
-    barAnim = requestAnimationFrame(step);
-  }
+  // Ao arrastar: a barra segue o fundo, mas no máximo ~12 vezes por segundo
+  // (mudar a cor da barra do sistema é pesado para o Android; a cada toque fazia o arrastar engasgar)
+  let barLast = 0;
+  function barDrag(level) { const now = performance.now(); if (now - barLast < 80) return; barLast = now; setBar(level); }
   darkMQ.addEventListener('change', applyTheme);
   applyTheme();
 
@@ -418,7 +412,7 @@
   }
 
   // ================= Folha (bottom sheet) =================
-  let sheetEl = null, sheetBody = null, backEl = null, sheetRender = null; // sheetBody: a parte de dentro, a que desliza
+  let sheetEl = null, sheetBody = null, backEl = null, sheetRender = null, dragging = false; // sheetBody: a parte de dentro, a que desliza
   let sheetNoClose = false;
   function openSheet(renderFn, { noClose = false } = {}) {
     sheetRender = renderFn; sheetNoClose = noClose;
@@ -443,13 +437,17 @@
         holdT = setTimeout(() => { holdT = setInterval(() => stepWeight(d), 70); }, 450);
       });
       let y0 = null;
-      sheetEl.addEventListener('touchstart', e => { y0 = sheetBody.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
+      sheetEl.addEventListener('touchstart', e => { y0 = sheetBody.scrollTop <= 0 ? e.touches[0].clientY : null; dragging = false; }, { passive: true });
       sheetEl.addEventListener('touchmove', e => {
         if (y0 == null) return; const dy = e.touches[0].clientY - y0;
-        if (dy > 0) { sheetEl.style.transition = 'none'; sheetEl.style.transform = `translateY(${dy}px)`; backEl.style.transition = 'none'; backEl.style.opacity = String(Math.max(0, 1 - dy / 450)); dimBar(true, 60); }
+        if (dy <= 0) return;
+        if (!dragging) { dragging = true; sheetEl.style.transition = 'none'; backEl.style.transition = 'none'; sheetEl.style.willChange = 'transform'; }
+        const lv = Math.max(0, 1 - dy / 450);
+        sheetEl.style.transform = `translateY(${dy}px)`; backEl.style.opacity = String(lv); barDrag(lv);
       }, { passive: true });
       sheetEl.addEventListener('touchend', e => {
         if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null;
+        dragging = false; sheetEl.style.willChange = '';
         sheetEl.style.transition = ''; sheetEl.style.transform = ''; backEl.style.transition = ''; backEl.style.opacity = '';
         if (dy <= 110) barTo(true); // não fechou: volta a escurecer com o fundo
         if (dy > 110) closeSheet();
