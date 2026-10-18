@@ -1185,9 +1185,10 @@
     for (const c of CAT_ORDER) {
       if (!cats[c]) continue;
       const [icon, col] = CAT_STYLE[c] || ['box', 'var(--ink-3)'];
-      const n = cats[c].length, cGot = cats[c].filter(it => got[it.f]).length, complete = cGot === n;
-      h += `<section class="meal-box shop-box" style="--cc:${col}"><h2 class="sec-h shop-h"><span class="cat-ic">${ic(icon)}</span><span class="cat-n">${c}</span>
-        <small class="cat-c num ${complete ? 'ok' : ''}">${complete ? `${ic('check')}Tudo` : `${cGot} de ${n}`}</small></h2><div class="mcards">`;
+      const n = cats[c].length, cGot = cats[c].filter(it => got[it.f]).length, complete = cGot === n, min = !!(S.profile.shopMin || {})[c];
+      // tocar no título da categoria minimiza / abre os artigos (fica guardado)
+      h += `<section class="meal-box shop-box ${min ? 'min' : ''}" style="--cc:${col}"><button class="sec-h shop-h" data-act="shopcat" data-c="${c}" aria-expanded="${!min}"><span class="cat-ic">${ic(icon)}</span><span class="cat-n">${c}</span>
+        <small class="cat-c num ${complete ? 'ok' : ''}">${complete ? `${ic('check')}Tudo` : `${cGot} de ${n}`}</small>${ic('chevR', 'sh-chev')}</button><div class="shop-body"><div class="mcards">`;
       cats[c].forEach((it, i) => {
         const A = amountTxt(it.f, it.g), on = !!got[it.f];
         h += `<button class="row tap shop-row ${on ? 'got' : ''} ${i === n - 1 ? 'm-last' : ''}" data-act="got" data-f="${it.f}" aria-pressed="${on}">
@@ -1195,7 +1196,7 @@
           <span class="row-main"><span class="ttl">${esc(food(it.f).n)}</span>${A.h ? `<span class="sub">${A.h}</span>` : ''}</span>
           <span class="amt num">${A.a}</span></button>`;
       });
-      h += `</div></section>`;
+      h += `</div></div></section>`;
     }
     if (r.month) h += `<div class="note">${ic('info')}<div>Fruta, legumes, carne e peixe frescos aguentam poucos dias: congela-os ou compra-os semana a semana.</div></div>`;
     h += `<p class="cap">Inclui as trocas de refeições feitas para esse período. Temperos (alho, cebola, limão, ervas, especiarias, vinagre, molho de soja, tomate pelado) não estão na lista.</p>`;
@@ -1648,6 +1649,7 @@
       case 'escala': openSheet(escalaSheet()); return;
       case 'done': animSlot = b.dataset.slot; toggleDone(b.dataset.slot); if (sheetEl && sheetEl.classList.contains('open')) closeSheet(); break;
       case 'meal': if (sheetEl) delete sheetEl.dataset.mode; msDoses = 1; openSheet(mealSheet(b.dataset.slot)); return;
+      case 'shopcat': { const m = S.profile.shopMin ||= {}; if (m[b.dataset.c]) delete m[b.dataset.c]; else m[b.dataset.c] = true; save(); break; }
       case 'shiftnote': {
         const m = S.profile.notaMin ||= (S.profile.notaTurnoMin ? { turno: true, pn: true } : {});
         delete S.profile.notaTurnoMin;

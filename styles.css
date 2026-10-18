@@ -1003,7 +1003,15 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .shop-nav .seg button.on { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
 .shop-sum .daytype small { white-space: nowrap; }
 .shop-box { margin-top: 12px; }
-.shop-box .shop-h { display: flex; align-items: center; gap: 10px; }
+.shop-box { transition: padding-bottom .3s var(--ease-out); }
+.shop-box .shop-h { display: flex; align-items: center; gap: 10px; width: calc(100% - 16px); text-align: left; transition: margin-bottom .3s var(--ease-out); }
+.shop-h .sh-chev { width: 16px; height: 16px; color: var(--ink-3); flex: none; margin-left: -2px; transform: rotate(-90deg); transition: transform .3s var(--ease-out); stroke-width: 2.2; }
+.shop-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .3s var(--ease-out); }
+.shop-body > .mcards { min-height: 0; overflow: hidden; }
+.shop-box.min { padding-bottom: 14px; }
+.shop-box.min .shop-h { margin-bottom: 0; }
+.shop-box.min .sh-chev { transform: rotate(90deg); }
+.shop-box.min .shop-body { grid-template-rows: 0fr; }
 .shop-h .cat-ic { width: 32px; height: 32px; border-radius: 11px; display: grid; place-items: center; flex: none; color: var(--cc); background: color-mix(in srgb, var(--cc) 14%, transparent); }
 .shop-h .cat-ic .ic { width: 18px; height: 18px; stroke-width: 2; }
 .shop-h .cat-n { flex: 1; min-width: 0; font-size: 18px; }
