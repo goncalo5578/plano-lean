@@ -696,8 +696,10 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .energy .energy-top { align-items: flex-start; gap: 10px; }
 .energy .big { font-size: 46px; letter-spacing: -.045em; }
 .energy .big-lbl { font-size: 13.5px; margin-top: 2px; }
-.energy .meta { margin-top: 6px; }
-.energy .macros3 { margin-top: 12px; padding-top: 12px; }
+/* Comido / Meta: números com o mesmo peso que o resto do cartão, "kcal" mais leve, e um pouco mais de ar à volta */
+.energy .meta { margin-top: 10px; align-items: baseline; font-size: 12.5px; color: var(--ink-3); }
+.energy .meta b { font-size: 15px; font-weight: 750; color: var(--ink); letter-spacing: -.01em; margin: 0 1px; }
+.energy .macros3 { margin-top: 14px; padding-top: 14px; }
 .energy .daytype { padding-top: 2px; }
 .energy .track:not(.thin) { height: 8px; margin-top: 12px; }
 
@@ -878,7 +880,7 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   .energy .daytype b { font-size: 13px; }
   .energy .daytype small { font-size: 11.5px; }
   .energy .track:not(.thin) { margin-top: 11px; height: 7px; }
-  .energy .macros3 { margin-top: 11px; padding-top: 11px; }
+  .energy .macros3 { margin-top: 13px; padding-top: 13px; }
   .energy .m-val { margin-top: 2px; }
   .energy .track.thin { margin-top: 6px; height: 4px; }
   .macros3 { gap: 10px; margin-top: 14px; padding-top: 13px; }
