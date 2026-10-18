@@ -53,6 +53,8 @@
     drop: '<path d="M12 3.5c3.5 4.2 6 7.6 6 10.5a6 6 0 0 1-12 0c0-2.9 2.5-6.3 6-10.5z"/>',
     flame: '<path d="M12 21c-3.9 0-6.5-2.6-6.5-6.2 0-3.4 2.3-5.4 3.9-7.6.4 1.6 1.3 2.7 2.4 3.2-.2-3 1.3-5.9 3.4-7.4.1 3.3 3.3 5.6 3.3 9.8 0 4.4-2.6 8.2-6.5 8.2z"/>',
     info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>',
+    alert: '<path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.2M12 17h.01"/>',
+    repeat: '<path d="M17 2.5l3 3-3 3"/><path d="M4 11.5v-1a5 5 0 0 1 5-5h11"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 12.5v1a5 5 0 0 1-5 5H4"/>',
     gauge: '<path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-5"/>',
     users: '<circle cx="9" cy="9" r="3.25"/><circle cx="16.5" cy="10" r="2.5"/><path d="M3.5 19c.9-3 3-4.5 5.5-4.5s4.6 1.5 5.5 4.5M15 14.6c2.4-.3 4.6.9 5.5 3.9"/>',
     cycle: '<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4"/>',
@@ -513,11 +515,11 @@
     syncGuard();
   }
   let pendingConfirm = null;
-  function askConfirm({ title, text, ok, onOk }) {
+  function askConfirm({ title, text, ok, onOk, okCls = 'danger-fill' }) {
     pendingConfirm = onOk;
     openSheet(() => `<div class="over">Confirmar</div><h2>${title}</h2>
       <div class="prose"><p>${text}</p></div>
-      <div class="btn-stack"><button class="btn danger-fill press" data-act="confirm-ok">${ok}</button>
+      <div class="btn-stack"><button class="btn ${okCls} press" data-act="confirm-ok">${ok}</button>
       <button class="btn secondary press" data-act="close">Cancelar</button></div>`, { noClose: true });
   }
   function closeSheet() {
@@ -1025,6 +1027,37 @@
 
   // ================= SEMANA =================
   const weekMon = () => addDays(mondayOf(todayKey()), weekOffset * 7);
+  // Avisos da semana: pratos que se repetem muito e turnos sem marmita (sobras) para levar
+  function weekWarnings(plans) {
+    const out = [], count = {};
+    plans.forEach(P => P.meals.forEach(m => {
+      if (m.src || m.fora || (m.slot.id !== 'almoco' && m.slot.id !== 'jantar')) return;
+      (count[m.meal.id] ||= { n: m.meal.n, c: 0 }).c++;
+    }));
+    Object.values(count).filter(x => x.c >= 3).forEach(x => out.push(`<b>${esc(x.n)}</b> aparece ${x.c} vezes`));
+    if (S.profile.autoSobras !== false) plans.forEach((P, i) => {
+      const slot = P.shift === 'M' ? 'almoco' : P.shift === 'T' ? 'jantar' : null;
+      const m = slot && P.meals.find(x => x.slot.id === slot);
+      if (m && !m.src && !m.fora) out.push(`<b>${DOW[i]}</b>: ${m.slot.n.toLowerCase()} sem marmita, é para preparar à parte`);
+    });
+    return out;
+  }
+  // Copia as refeições da semana anterior (trocas, sobras feitas à mão e lanche da manhã) para a semana que estás a ver
+  function repeatPrevWeek() {
+    const mon = weekMon(), prev = addDays(mon, -7), inPrev = k => k >= prev && k < mon, inCur = k => k >= mon && k < addDays(mon, 7);
+    for (let i = 0; i < 7; i++) {
+      const from = peekDay(addDays(prev, i)), st = dayState(addDays(mon, i));
+      st.swaps = { ...(from.swaps || {}) };
+      if ('lm' in from) st.lm = from.lm; else delete st.lm;
+    }
+    S.links ||= {};
+    for (const key of Object.keys(S.links)) if (inCur(key.split('|')[0])) delete S.links[key];
+    for (const [key, v] of Object.entries({ ...S.links })) {
+      const [k, s] = key.split('|'); if (!inPrev(k)) continue;
+      S.links[LK(addDays(k, 7), s)] = v === 'none' ? 'none' : LK(addDays(v.split('|')[0], 7), v.split('|')[1]);
+    }
+    save(); render(); toast('Refeições repetidas');
+  }
   function renderSemana() {
     const mon = weekMon();
     const lbl = weekOffset === 0 ? 'Esta semana' : weekOffset === 1 ? 'Próxima semana' : weekOffset === -1 ? 'Semana passada'
@@ -1045,7 +1078,7 @@
         return `<span class="wks ${P.shift !== 'F' ? 'work' : ''} ${P.k === todayKey() ? 'today' : ''}" style="--sc:${c.col}" aria-hidden="true">
           <span class="wks-c">${ic(SHIFT_IC[P.shift] || 'leaf')}${P.type === 'T' ? `<span class="wks-tr">${ic('dumbbell')}</span>` : ''}</span><small>${P.k === todayKey() ? 'Hoje' : DOW_S[i]}</small></span>`;
       }).join('')}</div></section>
-      <section class="meal-box week-box"><h2 class="sec-h">Refeições principais <small>toca para trocar</small></h2><div class="mcards">`;
+      <section class="meal-box week-box"><h2 class="sec-h">Refeições principais <button class="wk-rep press" data-act="wkrepeat">${ic('repeat')}Repetir<span class="rp-x"> anterior</span></button></h2><div class="mcards">`;
     plans.forEach((P, i) => {
       const c = shiftCfg(P.shift), isToday = P.k === todayKey();
       const main = P.meals.filter(m => m.slot.id === 'almoco' || m.slot.id === 'jantar' || m.src || m.dests.length);
@@ -1061,7 +1094,9 @@
           <div class="wmeals">${main.map(line).join('')}</div>
         </div></div>`;
     });
-    h += `</div></section>${calStatus()}<p class="cap">Abre sempre na próxima semana, para a deixares pronta. Toca nos turnos para os mudar, numa refeição para a trocar ou no dia para o veres todo. As marmitas e o cozinhar a dobrar ajustam-se sozinhos aos turnos.</p></div></div>`;
+    const warns = weekWarnings(plans);
+    h += `</div></section>${warns.length ? `<section class="card wk-warn"><span class="wi">${ic('alert')}</span><div><b>${warns.length === 1 ? '1 coisa a ver' : `${warns.length} coisas a ver`}</b><ul>${warns.map(w => `<li>${w}</li>`).join('')}</ul></div></section>`
+      : `<p class="cap wk-ok">${ic('check', 'sm')}Nada a apontar nesta semana.</p>`}${calStatus()}</div></div>`;
     $view.innerHTML = h;
   }
 
@@ -1613,6 +1648,12 @@
       case 'wk': weekOffset += +b.dataset.d; render(+b.dataset.d > 0 ? 'next' : 'prev'); return;
       case 'open': curDay = b.dataset.k; go('hoje'); return;
       // refeição de outro dia aberta na Semana: os detalhes usam esse dia e, ao fechar, o Hoje volta ao dia em que estava
+      case 'wkrepeat': {
+        const mon = weekMon(), prev = addDays(mon, -7);
+        askConfirm({ title: 'Repetir a semana anterior?', ok: 'Repetir refeições', okCls: 'primary', onOk: repeatPrevWeek,
+          text: `As refeições de <b>${niceDate(mon)} a ${niceDate(addDays(mon, 6))}</b> passam a ser iguais às de ${niceDate(prev)} a ${niceDate(addDays(prev, 6))}. As trocas que já fizeste nesta semana são substituídas. Os turnos e os treinos ficam como estão.` });
+        return;
+      }
       case 'wmeal': if (semBack === null) semBack = curDay; curDay = b.dataset.k; if (sheetEl) delete sheetEl.dataset.mode; msDoses = 1; openSheet(mealSheet(b.dataset.slot)); return;
       // Compras
       case 'sw': shopMode = b.dataset.w; break;

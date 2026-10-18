@@ -866,6 +866,23 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .wr-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: var(--ink-3); background: var(--fill); }
 .wr-tag .ic { width: 12px; height: 12px; stroke-width: 2.2; }
 .wr-tag.train { color: var(--train); background: var(--train-soft); }
+.wk-rep { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px 6px 9px; border-radius: 999px; background: var(--fill); color: var(--accent); font-size: 12.5px; font-weight: 700; letter-spacing: 0; }
+.wk-rep .ic { width: 15px; height: 15px; stroke-width: 2; }
+.wk-rep, .week-box .sec-h { white-space: nowrap; }
+.wk-rep { flex: none; }
+@media (max-width: 389px) { .wk-rep .rp-x { display: none; } }
+/* Avisos no fim da página */
+.wk-warn { display: flex; gap: 12px; align-items: flex-start; margin-top: 12px; padding: 14px 16px 14px 14px; }
+.wk-warn .wi { width: 34px; height: 34px; border-radius: 11px; flex: none; display: grid; place-items: center; background: color-mix(in srgb, #e09a00 15%, transparent); color: #c27c00; }
+.wk-warn .wi .ic { width: 18px; height: 18px; stroke-width: 1.9; }
+.wk-warn b { font-weight: 750; }
+.wk-warn > div > b { display: block; font-size: 14.5px; margin-top: 1px; }
+.wk-warn ul { margin: 5px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 12.5px; color: var(--ink-2); line-height: 1.4; }
+.wk-warn li { padding-left: 11px; position: relative; }
+.wk-warn li::before { content: ''; position: absolute; left: 0; top: .6em; width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3); }
+.wk-warn li b { color: var(--ink); font-weight: 650; }
+.wk-ok { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 14px; }
+.wk-ok .ic { color: var(--accent); }
 /* Refeições principais do dia: hora, nome e (se for o caso) marmita / cozinhar a dobrar */
 .wmeals { display: grid; gap: 1px; margin: 5px 0 0 -6px; }
 .wm { display: flex; align-items: flex-start; gap: 8px; min-width: 0; width: 100%; padding: 5px 6px; border-radius: 10px; text-align: left; font-size: 12.5px; color: var(--ink-2); }
