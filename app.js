@@ -568,13 +568,14 @@
     if (P.foraK) h += `<p class="cap">Refeições fora do plano contam só nas calorias (estimativa). Não faz mal — o que conta é a média da semana.</p>`;
 
     const agua = P.st.agua || 0;
-    h += `<h2 class="sec-h">Hidratação</h2>
-      <section class="card water">
-        <div class="w-ic">${ic('drop')}</div>
-        <div class="row-main"><div class="num"><b style="font-size:18px">${(agua * 0.25).toLocaleString('pt-PT', { maximumFractionDigits: 2 })} L</b> <span style="color:var(--ink-3);font-size:14px">de 2,5 L</span></div>
+    // Hidratação no mesmo estilo das refeições: cartão branco com título e o bloco dos copos por dentro
+    h += `<section class="meal-box water-box"><h2 class="sec-h">Hidratação <small class="num">${agua} de 10 copos</small></h2>
+      <div class="water-in">
+        <span class="w-pic">${ic('drop')}</span>
+        <div class="row-main"><div class="num w-amt"><b>${(agua * 0.25).toLocaleString('pt-PT', { maximumFractionDigits: 2 })} L</b> <span>de 2,5 L</span></div>
           <div class="glasses" aria-hidden="true">${Array.from({ length: 10 }, (_, i) => `<i class="${i < agua ? 'on' : ''}"></i>`).join('')}</div></div>
         <div class="stepper"><button class="press" data-act="agua" data-d="-1" aria-label="Menos um copo">${ic('minus')}</button><button class="press" data-act="agua" data-d="1" aria-label="Mais um copo">${ic('plus')}</button></div>
-      </section>`;
+      </div></section>`;
     // O conteúdo do dia fica num "palco" para poder deslizar de lado ao mudar de dia (a barra dos dias fica parada)
     $view.innerHTML = `${strip}<div class="day-stage"><div class="day-pane">${h}</div></div>`;
     fitMealCards();

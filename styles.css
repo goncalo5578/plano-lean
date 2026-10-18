@@ -798,6 +798,16 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .ms-act { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 13px 4px 12px; border-radius: 18px; background: var(--surface); color: var(--accent); font-size: 13px; font-weight: 650; box-shadow: var(--soft); }
 .ms-act .ic { width: 22px; height: 22px; }
 
+/* Hidratação no estilo do cartão das refeições */
+.water-box { margin-top: 12px; }
+.water-in { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 20px; background: var(--surface-2); }
+.w-pic { width: 48px; height: 48px; border-radius: 15px; flex: none; display: grid; place-items: center; color: #fff;
+  background: radial-gradient(circle at 90% -10%, rgba(255, 255, 255, .2) 0 22px, transparent 23px), linear-gradient(135deg, #74c0fc, #1c7ed6); }
+.w-pic .ic { width: 24px; height: 24px; stroke-width: 1.9; }
+.w-amt b { font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+.w-amt span { font-size: 13px; color: var(--ink-3); }
+.water-in .stepper button { background: var(--surface); box-shadow: var(--soft), 0 0 0 .5px var(--sep); }
+
 /* Água: 10 copos */
 .glasses { display: flex; gap: 4px; margin-top: 9px; }
 .glasses i { flex: 1; height: 14px; border-radius: 4px; background: var(--fill); transition: background .3s; }
