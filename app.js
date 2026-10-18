@@ -280,8 +280,10 @@
     const k = 1 - 0.35 * level;
     document.getElementById('themeColor').setAttribute('content', '#' + [1, 3, 5].map(n => Math.round(parseInt(base.slice(n, n + 2), 16) * k).toString(16).padStart(2, '0')).join(''));
   }
-  // Segue o fundo escurecido tal como ele está a ser desenhado (lê a opacidade real em cada imagem),
-  // por isso a barra muda exatamente ao mesmo ritmo, seja na animação de abrir/fechar seja ao arrastar
+  // Abrir/fechar: o Chrome já anima sozinho a mudança de cor da barra; se a mudarmos a cada imagem ele
+  // recomeça essa animação e fica para trás. Por isso damos logo a cor final, ao mesmo tempo que o fundo começa.
+  function barTo(on) { cancelAnimationFrame(barAnim); setBar(on ? 1 : 0); }
+  // Ao arrastar: segue o fundo tal como está a ser desenhado (lê a opacidade real)
   function dimBar(_on, ms = 500) {
     cancelAnimationFrame(barAnim);
     const t0 = performance.now();
@@ -446,14 +448,14 @@
       sheetEl.addEventListener('touchend', e => {
         if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null;
         sheetEl.style.transition = ''; sheetEl.style.transform = ''; backEl.style.transition = ''; backEl.style.opacity = '';
-        if (dy <= 110) dimBar(true); // não fechou: volta a escurecer com o fundo
+        if (dy <= 110) barTo(true); // não fechou: volta a escurecer com o fundo
         if (dy > 110) closeSheet();
       });
     }
     sheetFresh = true; paintSheet(); sheetFresh = false;
     backEl.hidden = sheetEl.hidden = false;
     void sheetEl.offsetHeight; // garante a animação de entrada depois de display:none
-    backEl.classList.add('open'); sheetEl.classList.add('open'); dimBar(true);
+    backEl.classList.add('open'); sheetEl.classList.add('open'); barTo(true);
     sheetEl.scrollTop = 0;
     document.body.style.overflow = 'hidden';
     syncGuard();
@@ -477,7 +479,7 @@
   function closeSheet() {
     if (typeof stopScan === 'function') stopScan();
     if (!sheetEl) return;
-    backEl.classList.remove('open'); sheetEl.classList.remove('open'); dimBar(false);
+    backEl.classList.remove('open'); sheetEl.classList.remove('open'); barTo(false);
     syncGuard();
     document.body.style.overflow = '';
     setTimeout(() => { if (!sheetEl.classList.contains('open')) { backEl.hidden = sheetEl.hidden = true; } }, 380);
