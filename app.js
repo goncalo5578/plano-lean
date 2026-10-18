@@ -1448,7 +1448,7 @@
     <span class="row-main"><span class="ttl">${l}</span>${d ? `<span class="sub">${d}</span>` : ''}</span>${ic('chevR', 'chev')}</button>`;
 
   function renderPerfil() {
-    if (sub) return renderSub(sub);
+    if (sub) { renderSub(sub); if (sub === 'refeicoes' && recCat) fitMealCards(); return; }
     const T = targets(), p = S.profile;
     const W = [...S.weights].sort((x, y) => x.d.localeCompare(y.d));
     const now = p.peso, since = W.length > 1 ? now - W[0].kg : null;
@@ -1601,14 +1601,23 @@
       </form>`;
     } else if (id === 'refeicoes' && catSlot) {
       const list = mealsOf(catSlot.id);
-      h = `<div class="group-label" style="margin-top:8px">${list.length} ${list.length === 1 ? 'receita' : 'receitas'}</div><div class="list">${list.map(o => `
-          <button class="row tap" data-act="redit" data-id="${o.id}"><div class="row-main"><div class="ttl" style="font-weight:500">${esc(o.n)}</div><div class="sub">${recipeTags(o)}</div></div>${ic('chevR', 'chev')}</button>`).join('')}</div>
+      // cada receita num cartão com a foto (ou a imagem da refeição), como as refeições no Hoje
+      h = `<section class="meal-box rec-box"><h2 class="sec-h">Receitas <small class="num">${list.length}</small></h2><div class="mcards">${list.map((o, i) => {
+        const t = sumItems(o.i.map(it => ({ f: it.f, g: Array.isArray(it.g) ? it.g[0] : it.g })));
+        const tags = recipeTags(o).split(' · ').slice(1).join(' · ');
+        return `<div class="row tap meal-row mrow ${i === list.length - 1 ? 'm-last' : ''}" data-act="redit" data-id="${o.id}">
+          ${mealPic(o.id, catSlot.id)}${mealPic(o.id, catSlot.id, 'm-band')}
+          <div class="row-main"><span class="m-shape" aria-hidden="true"></span>
+            ${tags ? `<div class="over">${tags}</div>` : ''}
+            <div class="ttl">${esc(o.n)}</div>
+            <div class="sub num">${n0(t.kcal)} kcal &nbsp;${macroLine(t)}</div>
+          </div>${ic('chevR', 'chev-r')}</div>`; }).join('')}</div></section>
         <div class="fab-wrap"><button class="fab-add" data-act="rnew" data-slot="${catSlot.id}">${ic('plus')}<span>Nova receita</span></button></div>`;
     } else if (id === 'refeicoes') {
       const r = R(), changed = Object.keys(r.edits).length + Object.keys(r.removed).length;
       h = `<div class="btn-stack" style="margin-top:4px"><button class="btn primary press" data-act="rnew" data-slot="almoco">${ic('plus')} Nova receita</button></div>
-        <div class="group-label">Refeições</div><div class="cat-cards">${SLOTS.map(sl => { const n = mealsOf(sl.id).length; return `
-          <button class="row tap cat-card press" data-act="rcat" data-slot="${sl.id}"><span class="tile" style="background:var(--accent-soft);color:var(--accent)">${ic(SLOT_IC[sl.id] || 'apple')}</span><div class="row-main"><div class="ttl" style="font-weight:500">${sl.n}</div><div class="sub">${n} ${n === 1 ? 'receita' : 'receitas'}</div></div>${ic('chevR', 'chev')}</button>`; }).join('')}</div>
+        <section class="meal-box rcat-box"><h2 class="sec-h">Refeições</h2><div class="mcards">${SLOTS.map((sl, i) => { const n = mealsOf(sl.id).length; return `
+          <button class="row tap rcat-row ${i === SLOTS.length - 1 ? 'm-last' : ''}" data-act="rcat" data-slot="${sl.id}"><span class="rc-pic" style="${imgVars(sl.id)}">${ic(SLOT_IC[sl.id] || 'apple')}</span><div class="row-main"><div class="ttl">${sl.n}</div><div class="sub">${n} ${n === 1 ? 'receita' : 'receitas'}</div></div>${ic('chevR', 'chev-r')}</button>`; }).join('')}</div></section>
 ` +
         (changed ? `<div class="btn-stack"><button class="btn secondary press" data-act="rreset">Repor as receitas originais</button></div>` : '');
     } else if (id === 'calendario') {

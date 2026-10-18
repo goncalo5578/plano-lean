@@ -1129,3 +1129,16 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 [data-page="perfil"] .cat-card { border-radius: 24px; box-shadow: var(--soft); }
 .group-label .gl-hint { font-size: 12px; font-weight: 500; color: var(--ink-3); text-transform: none; letter-spacing: 0; margin-left: 6px; }
 .seg-slots button.on { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
+
+/* As minhas receitas no estilo do Hoje */
+.rcat-box, .rec-box { margin-top: 12px; }
+.rcat-box .mcards { grid-template-columns: minmax(0, 1fr); }
+.rcat-box .mcards > .rcat-row { background: var(--surface-2); display: flex; align-items: center; gap: 12px; padding: 10px 8px 10px 10px; min-height: 0; text-align: left; }
+.rcat-box .mcards > .rcat-row.m-last { border-radius: 8px 8px 20px 20px; }
+.rcat-box .mcards > .rcat-row.tap:active { background: color-mix(in srgb, var(--ink) 7%, var(--surface)); }
+.rc-pic { width: 52px; height: 52px; border-radius: 16px; flex: none; display: grid; place-items: center; color: #fff;
+  background: radial-gradient(circle at 90% -10%, rgba(255, 255, 255, .22) 0 22px, transparent 23px), linear-gradient(135deg, var(--g1), var(--g2)); }
+.rc-pic .ic { width: 25px; height: 25px; stroke-width: 1.9; }
+.rcat-row .ttl { font-size: 16px; font-weight: 700; }
+.rcat-row .sub { font-size: 12.5px; color: var(--ink-3); margin-top: 1px; }
+.rcat-row > .chev-r, .rec-box .chev-r { width: 18px; height: 18px; color: var(--ink-3); flex: none; }
