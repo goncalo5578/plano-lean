@@ -725,6 +725,20 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .ph-thumb .m-pic { clip-path: none; width: 100%; padding: 0; }
 .ph-thumb .m-pic .ic { width: 22px; height: 22px; }
 
+/* Refeições num só cartão branco: título, barra de progresso por refeição e cartões encaixados */
+.meal-box { background: var(--surface); border-radius: 28px; padding: 14px 8px 8px; margin-top: 22px; box-shadow: var(--soft); }
+.meal-box .sec-h { margin: 0 8px 10px; }
+.meal-prog { display: flex; gap: 4px; margin: 0 8px 12px; }
+.meal-prog i { flex: 1; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--c1) 22%, transparent); transition: background .35s; }
+.meal-prog i.on { background: var(--c1); }
+.meal-box .mcards { gap: 3px; }
+.meal-box .mcards > .row { border-radius: 8px; box-shadow: none; }
+.meal-box .mcards > .mrow { background: var(--surface-2); }
+.meal-box .mcards > .mrow.tap:active { background: color-mix(in srgb, var(--ink) 7%, var(--surface)); }
+.meal-box .mcards > .row:first-child { border-radius: 20px 20px 8px 8px; }
+.meal-box .mcards > .mrow.m-last { border-radius: 8px 8px 20px 20px; }
+.meal-box .mcards > .add-row { margin-top: 5px; border-radius: 20px; }
+
 /* Água: 10 copos */
 .glasses { display: flex; gap: 4px; margin-top: 9px; }
 .glasses i { flex: 1; height: 14px; border-radius: 4px; background: var(--fill); transition: background .3s; }

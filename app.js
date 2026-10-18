@@ -514,8 +514,10 @@
     if (sc.tip) h += `<div class="note shiftnote" style="--sc:${sc.col}">${ic('clock')}<div><b>${shiftPhrase(P.shift)} · ${sc.h}</b><br>${sc.tip}</div></div>`;
     if (afterNight(curDay)) { const pn = shiftCfg('PN'); h += `<div class="note shiftnote" style="--sc:${pn.col}">${ic('moon')}<div><b>Depois de uma noite</b><br>${pn.tip}</div></div>`; }
 
-    h += `<h2 class="sec-h">Refeições <small class="num">${P.nDone} de ${P.meals.length}</small></h2><div class="mcards">`;
-    for (const m of P.meals) {
+    // Refeições num só cartão: título, barra com uma parte por refeição (enche ao marcar) e os cartões encaixados
+    h += `<section class="meal-box"><h2 class="sec-h">Refeições <small class="num">${P.nDone} de ${P.meals.length}</small></h2>
+      <div class="meal-prog" aria-hidden="true">${P.meals.map(m => `<i class="${P.st.done[m.slot.id] || m.fora ? 'on' : ''}" style="--c1:${SLOT_GRAD[m.slot.id][1]}"></i>`).join('')}</div><div class="mcards">`;
+    P.meals.forEach((m, mi) => {
       const id = m.slot.id, done = !!P.st.done[id] || !!m.fora;
       let extra = '';
       if (!m.fora && m.src) { const [k2, s2] = m.src.split('|'); extra = `<span class="lo">${ic('box')}Sobras do ${whenTxt(curDay, k2, s2)}</span>`; }
@@ -523,7 +525,7 @@
       // cada refeição num cartão: imagem à esquerda com recorte na diagonal e faixa; o texto acompanha o recorte.
       // Tocar na imagem marca como comido; o resto do cartão (com a seta) abre a receita.
       const mid = m.fora ? null : m.meal.id;
-      h += `<div class="row tap meal-row mrow ${done ? 'done' : ''}" data-act="meal" data-slot="${id}">
+      h += `<div class="row tap meal-row mrow ${done ? 'done' : ''} ${mi === P.meals.length - 1 ? 'm-last' : ''}" data-act="meal" data-slot="${id}">
         ${mealPic(mid, id)}${mealPic(mid, id, 'm-band')}
         <button class="m-tap" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="${done ? 'Desmarcar' : 'Marcar'} ${m.slot.n} como comido"><span class="m-done">${ic('check')}<span>Feita</span></span><span class="m-hollow"></span></button>
         <div class="row-main"><span class="m-shape" aria-hidden="true"></span>
@@ -533,9 +535,9 @@
           ${extra}
         </div>
         ${ic('chevR', 'chev-r')}</div>`;
-    }
+    });
     if (!lmOn(curDay)) h += `<button class="row tap add-row" data-act="lmadd">${ic('plus')}<div class="row-main"><div class="ttl">Juntar lanche da manhã</div><div class="sub">Só hoje · as outras refeições ajustam-se</div></div></button>`;
-    h += `</div>`;
+    h += `</div></section>`;
     if (P.foraK) h += `<p class="cap">Refeições fora do plano contam só nas calorias (estimativa). Não faz mal — o que conta é a média da semana.</p>`;
 
     const agua = P.st.agua || 0;
