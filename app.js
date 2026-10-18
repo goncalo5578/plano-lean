@@ -271,11 +271,20 @@
     const dark = t === 'dark' || (t === 'auto' && darkMQ.matches);
     document.getElementById('themeColor').setAttribute('content', dark ? '#0e1013' : '#eceef2');
   }
-  // Com uma janela aberta, o fundo escurece (preto a 35%): a barra das notificações escurece igual
-  function dimBar(on) {
-    const base = document.documentElement.dataset.theme === 'dark' || (document.documentElement.dataset.theme === 'auto' && darkMQ.matches) ? '#0e1013' : '#eceef2';
-    const c = on ? '#' + [1, 3, 5].map(i => Math.round(parseInt(base.slice(i, i + 2), 16) * 0.65).toString(16).padStart(2, '0')).join('') : base;
-    document.getElementById('themeColor').setAttribute('content', c);
+  // Com uma janela aberta, o fundo escurece (preto a 35%): a barra das notificações acompanha o fundo,
+  // também enquanto a janela abre, fecha ou é arrastada para baixo (level: 0 = normal, 1 = escurecido)
+  let barLevel = 0, barAnim = 0;
+  function setBar(level) {
+    barLevel = level;
+    const t = document.documentElement.dataset.theme, base = t === 'dark' || (t === 'auto' && darkMQ.matches) ? '#0e1013' : '#eceef2';
+    const k = 1 - 0.35 * level;
+    document.getElementById('themeColor').setAttribute('content', '#' + [1, 3, 5].map(n => Math.round(parseInt(base.slice(n, n + 2), 16) * k).toString(16).padStart(2, '0')).join(''));
+  }
+  function dimBar(on, ms = 300) {
+    cancelAnimationFrame(barAnim);
+    const from = barLevel, to = on ? 1 : 0, t0 = performance.now();
+    const step = now => { const p = Math.min(1, (now - t0) / ms); setBar(from + (to - from) * p); if (p < 1) barAnim = requestAnimationFrame(step); };
+    barAnim = requestAnimationFrame(step);
   }
   darkMQ.addEventListener('change', applyTheme);
   applyTheme();
@@ -427,11 +436,12 @@
       sheetEl.addEventListener('touchstart', e => { y0 = sheetEl.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
       sheetEl.addEventListener('touchmove', e => {
         if (y0 == null) return; const dy = e.touches[0].clientY - y0;
-        if (dy > 0) { sheetEl.style.transition = 'none'; sheetEl.style.transform = `translateY(${dy}px)`; backEl.style.transition = 'none'; backEl.style.opacity = String(Math.max(0, 1 - dy / 450)); }
+        if (dy > 0) { sheetEl.style.transition = 'none'; sheetEl.style.transform = `translateY(${dy}px)`; backEl.style.transition = 'none'; backEl.style.opacity = String(Math.max(0, 1 - dy / 450)); cancelAnimationFrame(barAnim); setBar(Math.max(0, 1 - dy / 450)); }
       }, { passive: true });
       sheetEl.addEventListener('touchend', e => {
         if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null;
         sheetEl.style.transition = ''; sheetEl.style.transform = ''; backEl.style.transition = ''; backEl.style.opacity = '';
+        if (dy <= 110) dimBar(true, 200); // não fechou: volta a escurecer
         if (dy > 110) closeSheet();
       });
     }
