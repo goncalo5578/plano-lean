@@ -649,17 +649,18 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 :is(.pill-btn, .circle-btn) { box-shadow: var(--soft), 0 0 0 .5px var(--sep); }
 
 /* Dias da semana: cápsulas que enchem de baixo para cima à medida que comes */
-.strip { gap: 6px; margin-bottom: 16px; }
-.strip button { position: relative; overflow: hidden; background: var(--surface); border-radius: 999px; padding: 11px 0 9px; gap: 3px; box-shadow: var(--soft); transition: background .25s; }
-.strip button::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: var(--lv, 0%); background: var(--accent-soft); transition: height .8s var(--ease-expo); }
-.strip button > * { position: relative; }
-.strip .ring, .strip .sel .ring { background: none; width: auto; height: auto; }
-.strip .dn, .strip .sel .dn { background: none; width: auto; height: auto; box-shadow: none; font-size: 17px; font-weight: 700; }
-.strip .sel { background: var(--accent); }
-.strip .sel::before { background: rgba(255, 255, 255, .16); }
-.strip .sel .wd, .strip .sel .dn { color: var(--accent-ink); }
-.strip .sel .mk { color: var(--accent-ink) !important; opacity: .85; }
-.strip .train .ring::after { top: -1px; right: -9px; width: 7px; height: 7px; box-shadow: none; }
+.strip { gap: 4px; margin-bottom: 14px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.strip button { gap: 5px; padding: 2px 0; }
+.strip .ring, .strip .sel .ring { background: none; width: 44px; max-width: 100%; height: auto; aspect-ratio: 1; }
+.strip .dn, .strip .sel .dn {
+  position: relative; isolation: isolate; overflow: hidden; width: 100%; height: 100%;
+  background: var(--surface); box-shadow: var(--soft); font-size: 16px; font-weight: 700; transition: background-color .25s, color .25s;
+}
+/* o círculo enche de baixo para cima à medida que comes */
+.strip .dn::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; z-index: -1; height: var(--lv, 0%); background: color-mix(in srgb, var(--accent) 22%, transparent); transition: height .8s var(--ease-expo); }
+.strip .sel .dn { background: var(--accent); color: var(--accent-ink); }
+.strip .sel .dn::before { background: rgba(255, 255, 255, .18); }
+.strip .train .ring::after { top: 0; right: 0; width: 9px; height: 9px; z-index: 1; box-shadow: 0 0 0 2px var(--bg); }
 
 /* Calorias e macros: número grande, tipo de dia à direita */
 .energy { padding: 15px 16px 16px; }
@@ -706,10 +707,9 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   .pill-btn { height: 32px; padding: 0 12px; font-size: 13.5px; }
   .day-stage { margin: 0 -12px; padding: 0 12px; }
   .day-pane.ghost { left: 12px; right: 12px; }
-  .strip { gap: 4px; margin-bottom: 12px; }
-  .strip button { padding: 9px 0 7px; }
+  .strip { gap: 3px; margin-bottom: 12px; }
   .strip .wd { font-size: 11px; }
-  .strip .dn, .strip .sel .dn { font-size: 15.5px; }
+  .strip .dn, .strip .sel .dn { font-size: 15px; }
   .card { padding: 15px; }
   .energy { padding: 13px 14px 14px; }
   .energy .energy-top { gap: 8px; }
