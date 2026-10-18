@@ -752,7 +752,7 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .meal-box .mcards > .add-row { margin-top: 5px; border-radius: 20px; }
 
 /* ============ Detalhes da refeição (mesmo estilo do Hoje) ============ */
-.ms-hero { position: relative; height: 240px; overflow: hidden; margin: -8px -16px 14px; } /* a imagem ocupa a largura toda, no topo da janela */
+.ms-hero { position: relative; height: 240px; overflow: hidden; margin: -8px -16px 14px; border-radius: 0 0 28px 28px; } /* a imagem ocupa a largura toda, no topo da janela */
 .ms-hero::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(to top, rgba(0, 0, 0, .55), rgba(0, 0, 0, .15) 45%, transparent 70%); }
 .sheet:has(> .ms-hero) .grabber { position: absolute; left: 50%; top: 8px; margin: 0 0 0 -19px; z-index: 3; background: #fff; opacity: .85; }
 .ms-cap { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 2; color: #fff; pointer-events: none; }
