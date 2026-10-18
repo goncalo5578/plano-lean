@@ -1142,3 +1142,26 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .rcat-row .ttl { font-size: 16px; font-weight: 700; }
 .rcat-row .sub { font-size: 12.5px; color: var(--ink-3); margin-top: 1px; }
 .rcat-row > .chev-r, .rec-box .chev-r { width: 18px; height: 18px; color: var(--ink-3); flex: none; }
+
+/* Editor de receitas no estilo dos detalhes da refeição */
+.ms-photo-del { right: auto; left: 14px; }
+.r-name { padding: 4px 12px 10px; min-height: 0; }
+.r-name input { width: 100%; border: 0; outline: none; border-radius: 14px; background: var(--fill); padding: 12px 14px; font-size: 16px; font-weight: 650; color: var(--ink); }
+.r-name input:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.r-slots { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 12px 12px; }
+.r-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px 8px 10px; border-radius: 999px; background: var(--fill); color: var(--ink-2); font-size: 13.5px; font-weight: 650; transition: background .2s, color .2s; }
+.r-chip .ic { width: 16px; height: 16px; stroke-width: 2.1; color: var(--g2); }
+.r-chip.on { color: #fff; background: radial-gradient(circle at 90% -20%, rgba(255, 255, 255, .22) 0 14px, transparent 15px), linear-gradient(135deg, var(--g1), var(--g2)); }
+.r-chip.on .ic { color: #fff; stroke-width: 2.6; }
+.ms-sec .ing-edit .ttl { font-weight: 650; }
+.ms-sec textarea#r_prep { width: 100%; border: 0; outline: none; resize: vertical; border-radius: 14px; background: var(--fill); padding: 12px 14px; margin: 4px 0 8px; font: inherit; font-size: 15px; color: var(--ink); }
+.ms-sec .list:has(#r_prep) { padding: 0 12px 4px; }
+/* Adicionar ingrediente / novo alimento / código de barras: listas em cartões com linhas empilhadas */
+.sheet-in:is(:has(#f_q), :has(#nf_n), :has(#bc_in)) .list { background: var(--surface); border-radius: 24px; padding: 6px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; box-shadow: var(--soft); }
+.sheet-in:is(:has(#f_q), :has(#nf_n), :has(#bc_in)) .list > :is(.row, .form-row) { background: var(--surface-2); border-radius: 8px; box-shadow: none; }
+.sheet-in:is(:has(#f_q), :has(#nf_n), :has(#bc_in)) .list > :first-child { border-radius: 18px 18px 8px 8px; }
+.sheet-in:is(:has(#f_q), :has(#nf_n), :has(#bc_in)) .list > :last-child { border-radius: 8px 8px 18px 18px; }
+.sheet-in:is(:has(#f_q), :has(#nf_n), :has(#bc_in)) .list > :only-child { border-radius: 18px; }
+.sheet-in:is(:has(#f_q), :has(#nf_n), :has(#bc_in)) .list.search-row { padding: 0 14px; display: flex; }
+.sheet-in:is(:has(#f_q), :has(#nf_n), :has(#bc_in)) .group-label { font-size: 16px; font-weight: 800; color: var(--ink); text-transform: none; letter-spacing: -.015em; margin: 20px 6px 8px; }
+.sheet-in:is(:has(#f_q), :has(#nf_n), :has(#bc_in)) .list .row .ttl { font-weight: 650; }

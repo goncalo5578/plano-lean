@@ -804,7 +804,11 @@
     sheetEl.querySelectorAll('.g-in').forEach(el => { const v = parseFloat(el.value.replace(',', '.')); rDraft.i[+el.dataset.ri].g = v > 0 ? v : 0; });
   }
   const draftTotals = () => sumItems(rDraft.i.filter(it => it.g > 0));
-  const totalsHTML = t => `<div><b>${n0(t.kcal)}</b><span>kcal</span></div><div><b style="color:var(--p)">${n0(t.p)}</b><span>proteína</span></div><div><b style="color:var(--c)">${n0(t.c)}</b><span>hidratos</span></div><div><b style="color:var(--f)">${n0(t.f)}</b><span>gordura</span></div>`;
+  function recMacros(t) {
+    const T = targets(), mac = (lbl, cls, v, g) => `<div><div class="m-lbl"><i class="dot bg-${cls}"></i>${lbl}</div><div class="m-val num"><b>${n0(v)}</b> g</div><div class="track thin"><i class="bg-${cls}" style="width:${Math.min(100, (v / g) * 100)}%"></i></div></div>`;
+    return `<div class="ms-kcal num"><b>${n0(t.kcal)}</b><span>kcal por dose · ${Math.round((t.kcal / T.rest) * 100)}% do dia</span></div>
+      <div class="macros3">${mac('Proteína', 'p', t.p, T.prot)}${mac('Hidratos', 'c', t.c, T.cD)}${mac('Gordura', 'f', t.f, T.fat)}</div>`;
+  }
   function foodListHTML(q) {
     const all = { ...FOODS, ...R().foods }, nq = normTxt(q.trim());
     const hits = Object.keys(all).filter(f => !nq || normTxt(all[f].n).includes(nq));
@@ -848,21 +852,24 @@
         <div class="btn-stack"><button class="btn primary press" data-act="rfoodsave">Guardar e juntar à receita</button>
         <button class="btn secondary press" data-act="rview" data-v="food">Voltar</button></div>`;
     }
-    const t = draftTotals();
-    return `<div class="over">${d.isNew ? 'Nova receita' : 'Editar receita'}</div><h2>${esc(d.n) || 'Receita sem nome'}</h2>
-      <div class="list"><div class="form-row"><label for="r_n">Nome</label><input id="r_n" type="text" autocomplete="off" value="${esc(d.n)}" placeholder="Frango com arroz"></div></div>
-      <div class="group-label">Refeição <small class="gl-hint">podes escolher várias</small></div>
-      <div class="seg full seg-slots" role="group" aria-label="Refeições onde aparece">${SLOTS.map(sl => `<button type="button" class="${d.slots.includes(sl.id) ? 'on' : ''}" data-act="rslot" data-v="${sl.id}" aria-pressed="${d.slots.includes(sl.id)}">${{ pa: 'P. almoço', lm: 'L. manhã', almoco: 'Almoço', lanche: 'Lanche', jantar: 'Jantar' }[sl.id]}</button>`).join('')}</div>
-      <div class="group-label">Ingredientes · 1 dose</div>
-      <div class="list">${d.i.map((it, idx) => `<div class="row ing-edit"><div class="row-main"><div class="ttl" style="font-weight:500">${esc(food(it.f).n)}</div><div class="sub num" data-rk="${idx}">${n0(food(it.f).kcal * it.g / 100)} kcal</div></div>
+    // No estilo dos detalhes da refeição: imagem grande com a foto, secções em cartões e calorias/macros como no Hoje
+    const t = draftTotals(), pid = d.id || DRAFT_PHOTO, has = hasPhoto(pid) || !!PHOTO_URL[pid], slot0 = d.slots[0], col = SLOT_GRAD[slot0][1];
+    const sec = (title, body) => `<section class="ms-sec" style="--slc:${col}"><h3>${title}</h3>${body}</section>`;
+    return `<div class="ms-hero">
+        ${mealPic(pid, slot0, 'ms-pic')}
+        <label class="ms-photo">${ic('camera')}${has ? 'Mudar foto' : 'Foto'}<input type="file" accept="image/*" hidden data-photo="${pid}"></label>
+        ${has ? `<button type="button" class="ms-photo ms-photo-del press" data-act="photodel" data-id="${pid}">${ic('trash')}Remover</button>` : ''}
+        <div class="ms-cap"><div class="over">${d.isNew ? 'Nova receita' : 'Editar receita'}</div><h2 id="r_title">${esc(d.n) || 'Receita sem nome'}</h2></div>
+      </div>
+      ${sec('Nome', `<div class="list"><div class="row r-name"><input id="r_n" type="text" autocomplete="off" value="${esc(d.n)}" placeholder="Frango com arroz" aria-label="Nome da receita"></div></div>`)}
+      ${sec('Refeição <small>podes escolher várias</small>', `<div class="r-slots" role="group" aria-label="Refeições onde aparece">${SLOTS.map(sl => { const on = d.slots.includes(sl.id); return `<button type="button" class="r-chip press ${on ? 'on' : ''}" style="${imgVars(sl.id)}" data-act="rslot" data-v="${sl.id}" aria-pressed="${on}">${ic(on ? 'check' : SLOT_IC[sl.id])}${sl.n}</button>`; }).join('')}</div>`)}
+      ${sec('Ingredientes <small>1 dose</small>', `<div class="list">${d.i.map((it, idx) => `<div class="row ing-edit"><div class="row-main"><div class="ttl">${esc(food(it.f).n)}</div><div class="sub num" data-rk="${idx}">${n0(food(it.f).kcal * it.g / 100)} kcal</div></div>
           <input class="g-in num" data-ri="${idx}" type="text" inputmode="decimal" autocomplete="off" value="${it.g ? String(it.g).replace('.', ',') : ''}" aria-label="Quantidade de ${esc(food(it.f).n)}" onfocus="this.select()"><span class="unit">${isLiquid(it.f) ? 'ml' : 'g'}</span>
           <button type="button" class="mini" data-act="rdel" data-ri="${idx}" aria-label="Tirar ${esc(food(it.f).n)}">${ic('x')}</button></div>`).join('')}
-        <button class="row tap add-row" data-act="rview" data-v="food">${ic('plus')}<div class="row-main"><div class="ttl">Adicionar ingrediente</div></div></button></div>
-      <div class="stat4 num" id="r_tot" style="margin-top:12px">${totalsHTML(t)}</div>
-      <div class="group-label">Preparação</div>
-      <div class="list"><textarea id="r_prep" rows="4" placeholder="Passos, separados por pontos. Ex.: Grelhar o frango. Cozer o arroz.">${esc(d.prep)}</textarea></div>
-      <div class="list" style="margin-top:12px"><label class="form-row" style="cursor:pointer"><span>Boa para marmita</span><input id="r_m" type="checkbox" class="sw-in" ${d.m ? 'checked' : ''}><span class="switch"></span></label></div>
-      <div class="group-label">Foto</div>${photoRow(d.id || DRAFT_PHOTO, d.slots[0])}
+        <button class="row tap add-row" data-act="rview" data-v="food">${ic('plus')}<div class="row-main"><div class="ttl">Adicionar ingrediente</div></div></button></div>`)}
+      <section class="card ms-macros" id="r_tot">${recMacros(t)}</section>
+      ${sec('Preparação', `<div class="list"><textarea id="r_prep" rows="4" placeholder="Passos, separados por pontos. Ex.: Grelhar o frango. Cozer o arroz.">${esc(d.prep)}</textarea></div>`)}
+      ${sec('Marmita', `<div class="list"><label class="form-row" style="cursor:pointer"><span>Boa para levar numa marmita</span><input id="r_m" type="checkbox" class="sw-in" ${d.m ? 'checked' : ''}><span class="switch"></span></label></div>`)}
       <p class="cap err" id="r_err"></p>
       <div class="btn-stack"><button class="btn primary press" data-act="rsave">Guardar receita</button>
         ${d.isNew ? '' : '<button class="btn danger press" data-act="rdelete">Eliminar receita</button>'}
@@ -871,13 +878,6 @@
   }
   // ---- Foto da receita ----
   const DRAFT_PHOTO = '__nova'; // receita nova ainda sem id: a foto fica à espera até guardar
-  function photoRow(id, slot) {
-    const has = hasPhoto(id) || !!PHOTO_URL[id];
-    return `<div class="list"><label class="row tap photo-row"><span class="ph-thumb">${mealPic(id, slot)}</span>
-      <div class="row-main"><div class="ttl" style="font-weight:500">${has ? 'Mudar foto' : 'Adicionar foto'}</div><div class="sub">${has ? 'Aparece no Hoje em vez da cor da refeição' : 'Da galeria ou da câmara'}</div></div>${ic('chevR', 'chev')}
-      <input type="file" accept="image/*" hidden data-photo="${id}"></label>
-      ${has ? `<button class="row tap" data-act="photodel" data-id="${id}"><div class="row-main"><div class="ttl" style="font-weight:500;color:var(--danger)">Remover foto</div></div></button>` : ''}</div>`;
-  }
   async function onPhotoPicked(el) {
     const file = el.files && el.files[0], id = el.dataset.photo;
     if (!file) return;
@@ -907,9 +907,9 @@
       const idx = +el.dataset.ri, v = parseFloat(el.value.replace(',', '.'));
       rDraft.i[idx].g = v > 0 ? v : 0;
       const k = sheetEl.querySelector(`[data-rk="${idx}"]`); if (k) k.textContent = `${n0(food(rDraft.i[idx].f).kcal * rDraft.i[idx].g / 100)} kcal`;
-      sheetEl.querySelector('#r_tot').innerHTML = totalsHTML(draftTotals());
+      sheetEl.querySelector('#r_tot').innerHTML = recMacros(draftTotals());
     }
-    if (el.id === 'r_n') rDraft.n = el.value;
+    if (el.id === 'r_n') { rDraft.n = el.value; const tt = sheetEl.querySelector('#r_title'); if (tt) tt.textContent = el.value.trim() || 'Receita sem nome'; }
   }
   // ---- Produtos do supermercado (Open Food Facts, através do Worker) ----
   const FOOD_API = 'https://plano-lean-calendario.goncalo5578.workers.dev';
