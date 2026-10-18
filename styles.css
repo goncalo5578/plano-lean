@@ -692,7 +692,11 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .m-pic.has-photo, .m-band.has-photo { padding: 0; background: none; }
 .m-pic img, .m-band img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .mrow > .row-main { display: block; align-self: stretch; padding: 12px 4px 8px 0; overflow: hidden; }
-.mrow > .row-main > :not(.m-shape) { zoom: var(--z, 1); } /* letra mais pequena quando há muito texto (fitMealCards) */
+.mrow > .row-main > :not(.m-shape) { zoom: var(--z, 1); }
+/* tamanho máximo do texto nos cartões (mesmo com espaço não passa disto) */
+.mrow > .row-main .over { font-size: 11.5px; }
+.mrow > .row-main .ttl { font-size: 14px; line-height: 1.28; }
+.mrow > .row-main .sub, .mrow > .row-main .lo { font-size: 12px; } /* letra mais pequena quando há muito texto (fitMealCards) */
 .m-shape { float: left; width: var(--iw); height: 104px; margin-top: -12px; shape-outside: polygon(0 0, 70.5% 0, 96.5% 100%, 0 100%); shape-margin: 6px; }
 .mrow > .check { margin: 0 14px 0 8px; flex: none; }
 .mrow.done .m-pic { opacity: .5; }
