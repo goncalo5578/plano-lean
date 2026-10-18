@@ -1266,12 +1266,11 @@
   }
 
   function guideNote(pctW) {
-    let t = 'Objetivo: −0,25 a −0,5 kg por semana. Compara médias semanais, não dias soltos.', cls = '';
-    if (pctW != null) {
-      if (pctW < -0.8) t = 'Estás a descer depressa (mais de 0,8% por semana). Para proteger músculo e hormonas, reduz o défice em Perfil → Ajustes.';
-      else if (pctW <= -0.2) { t = 'Ritmo ideal. Mantém o plano.'; cls = 'good'; }
-      else t = 'Média estável — normal na fase lútea ou se estás a ganhar músculo; confirma pela cintura. Se ficar igual 3 semanas seguidas, aumenta o défice em Ajustes ou junta ~2000 passos por dia.';
-    }
+    if (pctW == null) return ''; // sem ritmo calculado ainda: não mostra nada
+    let t, cls = '';
+    if (pctW < -0.8) t = 'Estás a descer depressa (mais de 0,8% por semana). Para proteger músculo e hormonas, reduz o défice em Perfil → Ajustes.';
+    else if (pctW <= -0.2) { t = 'Ritmo ideal. Mantém o plano.'; cls = 'good'; }
+    else t = 'Média estável — normal na fase lútea ou se estás a ganhar músculo; confirma pela cintura. Se ficar igual 3 semanas seguidas, aumenta o défice em Ajustes ou junta ~2000 passos por dia.';
     return `<div class="note ${cls}">${ic(cls ? 'check' : 'info')}<div>${t}</div></div>`;
   }
   function chart(W) {
