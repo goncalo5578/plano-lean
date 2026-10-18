@@ -362,14 +362,13 @@ a { color: var(--accent); text-decoration: none; }
 
 /* ============ Turnos, sobras ============ */
 .shift-pill { display: inline-flex; align-items: center; gap: 7px; }
-/* Botão do turno no topo do Hoje: círculo com o ícone e a cor do turno (como na janela do turno) + nome e horas */
-.shift-btn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 10px 0 4px; border-radius: 999px; background: var(--surface); box-shadow: var(--soft), 0 0 0 .5px var(--sep); text-align: left; }
-.sb-ic { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--sc); color: #fff; }
-.sb-ic .ic { width: 18px; height: 18px; stroke-width: 2; }
-.sb-t b { display: block; font-size: 13.5px; font-weight: 700; line-height: 1.15; }
-.sb-t small { display: block; font-size: 11px; color: var(--ink-3); line-height: 1.2; }
-.hdr-actions .pill-btn { height: 42px; padding: 0 16px; box-shadow: var(--soft), 0 0 0 .5px var(--sep); } /* mesma altura do botão do turno */
-.sb-chev { width: 14px; height: 14px; color: var(--ink-3); transform: rotate(90deg); stroke-width: 2.4; }
+/* Botão do turno no topo do Hoje: círculo com o ícone e a cor do turno (como na janela do turno) + nome */
+.shift-btn { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 9px 0 3px; border-radius: 999px; background: var(--surface); box-shadow: var(--soft), 0 0 0 .5px var(--sep); text-align: left; }
+.sb-ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--sc); color: #fff; }
+.sb-ic .ic { width: 16px; height: 16px; stroke-width: 2; }
+.sb-t b { display: block; font-size: 13.5px; font-weight: 700; }
+.hdr-actions .pill-btn { height: 36px; padding: 0 14px; box-shadow: var(--soft), 0 0 0 .5px var(--sep); } /* mesma altura do botão do turno */
+.sb-chev { width: 13px; height: 13px; color: var(--ink-3); transform: rotate(90deg); stroke-width: 2.4; }
 .shift-pill i, .shift i { width: 8px; height: 8px; border-radius: 50%; background: var(--sc); display: inline-block; flex: none; }
 .sdot { width: 12px; height: 12px; border-radius: 50%; background: var(--sc); display: inline-block; flex: none; }
 .shift { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 650; color: var(--ink); }
