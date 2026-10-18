@@ -830,6 +830,55 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .train-card .row-main b { display: block; font-size: 15px; font-weight: 700; }
 .train-card .row-main span { font-size: 12.5px; color: var(--ink-3); }
 
+/* ============ Semana (no estilo do Hoje) ============ */
+.wk-sum .big-lbl { font-size: 13.5px; }
+.wk-stats { display: grid; gap: 8px; padding-top: 4px; }
+.wk-stat { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
+.wk-stat b { font-size: 15px; font-weight: 750; color: var(--ink); margin-right: -3px; }
+.ws-ic { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; flex: none; color: var(--sc); background: color-mix(in srgb, var(--sc) 13%, transparent); }
+.ws-ic .ic { width: 16px; height: 16px; stroke-width: 2; }
+.wk-bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 14px; padding-top: 14px; box-shadow: inset 0 .5px 0 var(--sep); }
+.wk-bar { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.wb-col { position: relative; width: 100%; max-width: 30px; height: 48px; border-radius: 8px; background: color-mix(in srgb, var(--sc) 12%, transparent); overflow: hidden; }
+.wb-col i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 8px; background: var(--sc); transition: height .6s var(--ease-expo); }
+.wk-bar small { font-size: 11px; font-weight: 700; color: var(--ink-3); }
+.wk-bar.today small { color: var(--accent); }
+.week-box { margin-top: 12px; }
+.week-box .mcards > .wrow { background: var(--surface-2); display: flex; align-items: center; gap: 12px; padding: 12px 6px 12px 12px; min-height: 0; }
+.week-box .mcards > .wrow.m-last { border-radius: 8px 8px 20px 20px; }
+.week-box .mcards > .wrow.tap:active { background: color-mix(in srgb, var(--ink) 7%, var(--surface)); }
+.wr-date { width: 46px; height: 54px; flex: none; border-radius: 14px; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: var(--soft); }
+.wr-date .wd { font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .03em; }
+.wr-date b { font-size: 19px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.is-today .wr-date { background: var(--accent); }
+.is-today .wr-date .wd, .is-today .wr-date b { color: var(--accent-ink); }
+.wr-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.wr-shift { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 750; color: var(--ink); }
+.wr-ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--sc); color: #fff; }
+.wr-ic .ic { width: 13px; height: 13px; stroke-width: 2.2; }
+.wr-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: var(--ink-3); background: var(--fill); }
+.wr-tag .ic { width: 12px; height: 12px; stroke-width: 2.2; }
+.wr-tag.train { color: var(--train); background: var(--train-soft); }
+.wr-meals { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; line-height: 1.35; }
+.wr-meals em { font-style: normal; color: var(--accent); font-weight: 600; }
+.wr-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--ink-3); }
+.wr-prog { flex: 1; height: 5px; border-radius: 3px; background: var(--fill); overflow: hidden; max-width: 120px; }
+.wr-prog i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.wrow > .chev-r { width: 18px; height: 18px; color: var(--ink-3); flex: none; }
+/* Escala da semana: círculos pequenos por dia */
+.esc-sec { padding: 6px 4px; }
+.row.esc2 { gap: 10px; padding: 8px 10px; min-height: 0; }
+.esc-c { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center; }
+.ec { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--sc); background: color-mix(in srgb, var(--sc) 12%, transparent); transition: background .2s, color .2s, box-shadow .2s; }
+.ec .ic { width: 18px; height: 18px; stroke-width: 2; }
+.ec.on { background: var(--sc); color: #fff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--sc) 22%, transparent); }
+.ec.blocked { opacity: .3; }
+.ec-train { flex: none; border-radius: 12px; }
+.esc-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 12px 4px 0; font-size: 12px; color: var(--ink-2); }
+.esc-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.esc-legend i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--sc) 14%, transparent); color: var(--sc); }
+.esc-legend .ic { width: 12px; height: 12px; stroke-width: 2.2; }
+
 /* Hidratação no estilo do cartão das refeições */
 .water-box { margin-top: 12px; }
 .water-in { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 20px; background: var(--surface-2); }

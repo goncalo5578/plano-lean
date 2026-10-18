@@ -1025,44 +1025,62 @@
       : weekOffset > 1 ? `Daqui a ${weekOffset} semanas` : `Há ${-weekOffset} semanas`;
     const m0 = fromKey(mon), m6 = fromKey(addDays(mon, 6));
     const range = m0.getMonth() === m6.getMonth() ? `${m0.getDate()} – ${m6.getDate()} ${MON[m6.getMonth()]}` : `${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`;
-    header(`${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`, 'Semana', `<button class="pill-btn press" data-act="escala">Escala</button>`);
+    header(`${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`, 'Semana', `<button class="shift-btn press" style="--sc:var(--accent)" data-act="escala" aria-label="Escala da semana: turnos e treinos"><span class="sb-ic">${ic('cal')}</span><span class="sb-t"><b>Escala</b></span>${ic('chevR', 'sb-chev')}</button>`);
     const plans = Array.from({ length: 7 }, (_, i) => dayPlan(addDays(mon, i)));
     const avg = plans.reduce((a, p) => a + p.tot.kcal, 0) / 7;
     const nT = plans.filter(p => p.type === 'T').length;
     const nTurnos = plans.filter(p => ['M', 'T', 'N'].includes(p.shift)).length;
+    // Resumo no estilo do cartão das calorias do Hoje: média em grande e, ao lado, turnos e treinos;
+    // por baixo, uma barra por dia (cor do turno) que enche com o que já comeste desse dia
     let h = `<div class="weeknav">
         <button class="circle-btn press" data-act="wk" data-d="-1" aria-label="Semana anterior">${ic('chevL', 'sm')}</button>
         <div class="wk-lbl" aria-live="polite"><b>${lbl}</b><span class="num">${range}</span></div>
         <button class="circle-btn press" data-act="wk" data-d="1" aria-label="Semana seguinte">${ic('chevR', 'sm')}</button></div>
       <div class="day-stage"><div class="day-pane week-pane">
-      <section class="card kpis kpis-sm num"><div><b>${n0(avg)}</b><span>kcal / dia</span></div><div><b>${nTurnos}</b><span>turnos</span></div><div><b>${nT}</b><span>treinos</span></div></section>
-      <div class="list">`;
+      <section class="card energy wk-sum">
+        <div class="energy-top">
+          <div><div class="big num">${n0(avg)}</div><div class="big-lbl">kcal por dia, em média</div></div>
+          <div class="wk-stats num">
+            <span class="wk-stat"><span class="ws-ic" style="--sc:var(--p)">${ic('clock')}</span><b>${nTurnos}</b> ${nTurnos === 1 ? 'turno' : 'turnos'}</span>
+            <span class="wk-stat"><span class="ws-ic" style="--sc:var(--train)">${ic('dumbbell')}</span><b>${nT}</b> ${nT === 1 ? 'treino' : 'treinos'}</span>
+          </div>
+        </div>
+        <div class="wk-bars" aria-hidden="true">${plans.map((P, i) => `<div class="wk-bar ${P.k === todayKey() ? 'today' : ''}" style="--sc:${shiftCfg(P.shift).col}"><span class="wb-col"><i style="height:${Math.min(100, Math.round((P.done.kcal / P.goal) * 100))}%"></i></span><small>${DOW_S[i].slice(0, 1)}</small></div>`).join('')}</div>
+      </section>
+      <section class="meal-box week-box"><h2 class="sec-h">Dias <small class="num">${plans.filter(P => P.nDone === P.meals.length && P.meals.length).length} de 7 completos</small></h2><div class="mcards">`;
     plans.forEach((P, i) => {
-      const isT = P.type === 'T', c = shiftCfg(P.shift);
-      h += `<div class="row tap ${P.k === todayKey() ? 'is-today' : ''}" data-act="open" data-k="${P.k}">
-        <div class="day-date"><div class="wd">${DOW_S[i]}</div><div class="dn num">${dayNum(P.k)}</div></div>
+      const isT = P.type === 'T', c = shiftCfg(P.shift), isToday = P.k === todayKey();
+      const pct = P.meals.length ? Math.round((P.nDone / P.meals.length) * 100) : 0;
+      h += `<div class="row tap wrow ${isToday ? 'is-today' : ''} ${i === 6 ? 'm-last' : ''}" data-act="open" data-k="${P.k}" style="--sc:${c.col}">
+        <div class="wr-date"><span class="wd">${isToday ? 'Hoje' : DOW_S[i]}</span><b class="num">${dayNum(P.k)}</b></div>
         <div class="row-main">
-          <div class="tagline"><span class="shift" style="--sc:${c.col}"><i></i>${c.n}</span>${afterNight(P.k) ? `<span class="tag rest">${ic('moon', 'sm')}Depois da noite</span>` : ''}${isT ? `<span class="tag train">${ic('flame', 'sm')}Treino</span>` : ''}<span class="num" style="color:var(--ink-3);font-size:12.5px">${n0(P.tot.kcal)} kcal</span></div>
-          <div class="sub clamp">${P.meals.map(m => esc(m.meal.n) + (m.src ? ' <em>(sobras)</em>' : '')).join(' · ')}</div>
-        </div>${ic('chevR', 'chev')}</div>`;
+          <div class="wr-top"><span class="wr-shift"><span class="wr-ic">${ic(SHIFT_IC[P.shift] || 'leaf')}</span>${c.n}</span>${afterNight(P.k) ? `<span class="wr-tag">${ic('moon')}Depois da noite</span>` : ''}${isT ? `<span class="wr-tag train">${ic('dumbbell')}Treino</span>` : ''}</div>
+          <div class="wr-meals clamp">${P.meals.map(m => esc(m.meal.n) + (m.src ? ' <em>(sobras)</em>' : '')).join(' · ')}</div>
+          <div class="wr-foot num"><span>${n0(P.tot.kcal)} kcal</span><span class="wr-prog"><i style="width:${pct}%"></i></span><span>${P.nDone}/${P.meals.length}</span></div>
+        </div>${ic('chevR', 'chev-r')}</div>`;
     });
-    h += `</div>${calStatus()}<p class="cap">Marca os turnos e os treinos em <b>Escala</b>. Os horários e as sobras para a marmita ajustam-se sozinhos. Arrasta para o lado para mudar de semana.</p></div></div>`;
+    h += `</div></section>${calStatus()}<p class="cap">Marca os turnos e os treinos em <b>Escala</b>. Os horários e as sobras para a marmita ajustam-se sozinhos. Arrasta para o lado para mudar de semana.</p></div></div>`;
     $view.innerHTML = h;
   }
+
   function escalaSheet() {
     return () => {
       const mon = weekMon();
-      let h = `<div class="over">${niceDate(mon)} – ${niceDate(addDays(mon, 6))}</div><h2>Escala da semana</h2><div class="list">`;
+      // Escala no estilo da janela do turno: em cada dia, os quatro turnos em círculos pequenos e o haltere do treino
+      let h = `<div class="over">${niceDate(mon)} – ${niceDate(addDays(mon, 6))}</div><h2>Escala da semana</h2><section class="ms-sec esc-sec"><div class="list">`;
       for (let i = 0; i < 7; i++) {
         const k = addDays(mon, i), cur = shiftOf(k), isT = dayType(k) === 'T';
-        h += `<div class="row esc"><div class="day-date"><div class="wd">${DOW_S[i]}</div><div class="dn num">${dayNum(k)}</div></div>
-          <div class="seg esc-seg" role="group" aria-label="Turno de ${DOW[i]}">${SHIFT_ORDER.map(id => { const blocked = id === 'M' && afterNight(k); return `<button class="${cur === id ? 'on' : ''} ${blocked ? 'blocked' : ''}" style="--sc:${SHIFTS[id].col}" data-act="setshift" data-k="${k}" data-v="${id}" aria-label="${SHIFTS[id].n}${blocked ? ' (não dá depois de uma noite)' : ''}" aria-pressed="${cur === id}" ${blocked ? 'aria-disabled="true"' : ''}>${id}</button>`; }).join('')}</div>
-          <button class="train-tg ${isT ? 'on' : ''}" data-act="settrain" data-k="${k}" aria-label="Treino em ${DOW[i]}" aria-pressed="${isT}">${ic('dumbbell')}</button></div>`;
+        h += `<div class="row esc2 ${k === todayKey() ? 'is-today' : ''}"><div class="wr-date"><span class="wd">${k === todayKey() ? 'Hoje' : DOW_S[i]}</span><b class="num">${dayNum(k)}</b></div>
+          <div class="esc-c" role="group" aria-label="Turno de ${DOW[i]}">${SHIFT_ORDER.map(id => { const blocked = id === 'M' && afterNight(k); return `<button class="ec press ${cur === id ? 'on' : ''} ${blocked ? 'blocked' : ''}" style="--sc:${SHIFTS[id].col}" data-act="setshift" data-k="${k}" data-v="${id}" aria-label="${SHIFTS[id].n}${blocked ? ' (não dá depois de uma noite)' : ''}" aria-pressed="${cur === id}" ${blocked ? 'aria-disabled="true"' : ''}>${ic(SHIFT_IC[id])}</button>`; }).join('')}</div>
+          <button class="ec ec-train press ${isT ? 'on' : ''}" style="--sc:var(--train)" data-act="settrain" data-k="${k}" aria-label="Treino em ${DOW[i]}" aria-pressed="${isT}">${ic('dumbbell')}</button></div>`;
       }
-      return h + `</div><p class="cap"><b>M</b> manhã · <b>T</b> tarde · <b>N</b> noite · <b>F</b> folga. Depois de uma noite não dá para fazer manhã, e a app ajusta a manhã desse dia sozinha. O haltere marca os dias de treino.${S.cal && S.cal.url ? ' Os turnos vêm do calendário; o que mudares aqui fica por cima.' : ''}</p>
+      return h + `</div></section>
+        <div class="esc-legend">${SHIFT_ORDER.map(id => `<span style="--sc:${SHIFTS[id].col}"><i>${ic(SHIFT_IC[id])}</i>${SHIFTS[id].n}</span>`).join('')}<span style="--sc:var(--train)"><i>${ic('dumbbell')}</i>Treino</span></div>
+        <p class="cap">Depois de uma noite não dá para fazer manhã, e a app ajusta a manhã desse dia sozinha.${S.cal && S.cal.url ? ' Os turnos vêm do calendário; o que mudares aqui fica por cima.' : ''}</p>
         <div class="btn-stack"><button class="btn primary press" data-act="close">Feito</button></div>`;
     };
   }
+
 
   // ================= COMPRAS =================
   // Período das compras: w0 esta semana · w1 próxima semana · m0 de hoje até ao fim do mês · m1 o mês seguinte inteiro
