@@ -513,7 +513,7 @@
     const sc = shiftCfg(P.shift);
     header(`${DOW[dowIdx(curDay)]}, ${niceDate(curDay)}`, dayTitle(curDay),
       (isToday ? '' : `<button class="pill-btn press" data-act="today">Hoje</button>`) +
-      `<button class="pill-btn press shift-pill" style="--sc:${sc.col}" data-act="dayset" aria-label="Turno e treino do dia"><i></i>${sc.n}</button>`);
+      `<button class="shift-btn press" style="--sc:${sc.col}" data-act="dayset" aria-label="Turno do dia: ${sc.n}, ${sc.h}. Mudar turno e treino"><span class="sb-ic">${ic(SHIFT_IC[P.shift] || 'leaf')}</span><span class="sb-t"><b>${sc.n}</b><small>${sc.h}</small></span>${ic('chevR', 'sb-chev')}</button>`);
 
     const mon = mondayOf(curDay);
     let strip = '<div class="strip" id="strip">';
