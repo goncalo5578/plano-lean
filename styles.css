@@ -92,6 +92,9 @@ body {
   overscroll-behavior-y: none;
   overflow-x: clip; /* a app nunca desliza para os lados */
 }
+/* Sem barras de scroll visíveis (no ecrã e nas janelas); continua a dar para deslizar */
+html, body, .sheet, * { scrollbar-width: none; }
+::-webkit-scrollbar { display: none; width: 0; height: 0; }
 button, input, select { font: inherit; color: inherit; letter-spacing: inherit; }
 button { cursor: pointer; background: none; border: 0; padding: 0; }
 .num { font-variant-numeric: tabular-nums; }
