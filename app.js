@@ -278,15 +278,15 @@
     barLevel = level;
     const t = document.documentElement.dataset.theme, base = t === 'dark' || (t === 'auto' && darkMQ.matches) ? '#0e1013' : '#eceef2';
     const k = 1 - 0.35 * level;
-    document.getElementById('themeColor').setAttribute('content', '#' + [1, 3, 5].map(n => Math.round(parseInt(base.slice(n, n + 2), 16) * k).toString(16).padStart(2, '0')).join(''));
+    const hex = '#' + [1, 3, 5].map(n => Math.round(parseInt(base.slice(n, n + 2), 16) * k).toString(16).padStart(2, '0')).join('');
+    const meta = document.getElementById('themeColor');
+    if (meta.getAttribute('content') !== hex) meta.setAttribute('content', hex);
   }
   // Abrir/fechar: o Chrome já anima sozinho a mudança de cor da barra; se a mudarmos a cada imagem ele
   // recomeça essa animação e fica para trás. Por isso damos logo a cor final, ao mesmo tempo que o fundo começa.
   function barTo(on) { cancelAnimationFrame(barAnim); setBar(on ? 1 : 0); }
-  // Ao arrastar: a barra segue o fundo, mas no máximo ~12 vezes por segundo
-  // (mudar a cor da barra do sistema é pesado para o Android; a cada toque fazia o arrastar engasgar)
-  let barLast = 0;
-  function barDrag(level) { const now = performance.now(); if (now - barLast < 80) return; barLast = now; setBar(level); }
+  // Ao arrastar: a barra muda ao mesmo tempo que o fundo, em cada movimento do dedo
+  function barDrag(level) { setBar(level); }
   darkMQ.addEventListener('change', applyTheme);
   applyTheme();
 
