@@ -699,7 +699,7 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .mrow > .row-main .sub, .mrow > .row-main .lo { font-size: 12px; }
 /* a linha das kcal também acompanha o recorte (fica em linha, não em caixa); macros ao centro das kcal */
 .mrow > .row-main .sub .macro-inline { line-height: 1; vertical-align: 1px; margin-left: 2px; } /* letra mais pequena quando há muito texto (fitMealCards) */
-.m-shape { float: left; width: var(--iw); height: 104px; margin-top: -12px; shape-outside: polygon(0 0, 70.5% 0, 96.5% 100%, 0 100%); shape-margin: 6px; }
+.m-shape { float: left; width: var(--iw); height: 104px; margin-top: -12px; shape-outside: polygon(0 0, 70.5% 0, 96.5% 100%, 0 100%); shape-margin: 7px; }
 /* Tocar na imagem marca como comido: a imagem fica mais transparente, com um visto e "Feita" por cima.
    Por fazer, um círculo translúcido com um visto no canto mostra que se pode tocar. */
 .m-tap { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--iw) * .8); z-index: 2; display: grid; place-items: center; padding-right: 6px; background: none; -webkit-tap-highlight-color: transparent; }
