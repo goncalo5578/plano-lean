@@ -111,27 +111,50 @@
   const mealById = id => R().edits[id] || R().custom.find(m => m.id === id) || ALL_MEALS.find(m => m.id === id);
   // ================= Fotos das receitas (só no telemóvel, em IndexedDB; não pesam no resto dos dados) =================
   const PHOTO_URL = {}; // id da receita → endereço da foto já carregada
+  // Miniaturas das fotos guardadas logo no arranque (localStorage): os cartões mostram a foto certa desde o primeiro
+  // instante, em vez da imagem por defeito durante os milissegundos que a foto grande demora a carregar
+  const THUMB_KEY = 'pulso.miniaturas';
+  let THUMB = {};
+  try { THUMB = JSON.parse(localStorage.getItem(THUMB_KEY)) || {}; } catch (e) { THUMB = {}; }
+  const saveThumbs = () => { try { localStorage.setItem(THUMB_KEY, JSON.stringify(THUMB)); } catch (e) { /* sem espaço: fica só a foto grande */ } };
+  async function makeThumb(blob) {
+    const src = await createImageBitmap(blob);
+    const k = Math.min(1, 360 / Math.max(src.width, src.height));
+    const cv = document.createElement('canvas'); cv.width = Math.round(src.width * k); cv.height = Math.round(src.height * k);
+    cv.getContext('2d').drawImage(src, 0, 0, cv.width, cv.height);
+    return cv.toDataURL('image/jpeg', 0.72);
+  }
+  const hasPhoto = id => !!(id && (PHOTO_URL[id] || THUMB[id]));
   let photoDB = null;
   const idb = () => (photoDB ||= new Promise((ok, ko) => {
     const r = indexedDB.open('pulso', 1);
     r.onupgradeneeded = () => r.result.createObjectStore('fotos');
     r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
   }));
+  // devolve true se mudou alguma coisa que se vê (miniaturas novas ou apagadas)
   async function loadPhotos() {
+    const blobs = {};
     try {
       const db = await idb();
       await new Promise(ok => {
         const tx = db.transaction('fotos'), req = tx.objectStore('fotos').openCursor();
-        req.onsuccess = () => { const c = req.result; if (!c) return; PHOTO_URL[c.key] = URL.createObjectURL(c.value); c.continue(); };
+        req.onsuccess = () => { const c = req.result; if (!c) return; PHOTO_URL[c.key] = URL.createObjectURL(c.value); blobs[c.key] = c.value; c.continue(); };
         tx.oncomplete = ok; tx.onerror = ok;
       });
-    } catch (e) { /* sem IndexedDB: ficam as imagens por defeito */ }
+    } catch (e) { return false; /* sem IndexedDB: ficam as imagens por defeito */ }
+    let changed = false;
+    for (const id of Object.keys(THUMB)) if (!blobs[id]) { delete THUMB[id]; changed = true; }
+    for (const id of Object.keys(blobs)) if (!THUMB[id]) { try { THUMB[id] = await makeThumb(blobs[id]); changed = true; } catch (e) { /* fica a foto grande */ } }
+    if (changed) saveThumbs();
+    return changed;
   }
   async function setPhoto(id, blob) {
     const db = await idb();
     await new Promise((ok, ko) => { const tx = db.transaction('fotos', 'readwrite'); const st = tx.objectStore('fotos'); blob ? st.put(blob, id) : st.delete(id); tx.oncomplete = ok; tx.onerror = () => ko(tx.error); });
     if (PHOTO_URL[id]) URL.revokeObjectURL(PHOTO_URL[id]);
     if (blob) PHOTO_URL[id] = URL.createObjectURL(blob); else delete PHOTO_URL[id];
+    if (blob) { try { THUMB[id] = await makeThumb(blob); } catch (e) { delete THUMB[id]; } } else delete THUMB[id];
+    saveThumbs();
   }
   // Reduz a foto (máx. 720 px) para ocupar pouco espaço no telemóvel
   async function shrinkPhoto(file) {
@@ -146,8 +169,10 @@
   // Imagem de cada refeição: a tua foto, ou um degradé com o ícone do tipo de refeição
   const SLOT_GRAD = { pa: ['#ffd36b', '#f59f00'], lm: ['#8ce99a', '#2f9e44'], almoco: ['#ffa94d', '#e8590c'], lanche: ['#faa2c1', '#d6336c'], jantar: ['#91a7ff', '#4c5fd5'] };
   const imgVars = slot => `--g1:${SLOT_GRAD[slot][0]};--g2:${SLOT_GRAD[slot][1]}`;
-  const mealPic = (id, slot, cls = 'm-pic') => PHOTO_URL[id]
-    ? `<span class="${cls} has-photo"><img src="${PHOTO_URL[id]}" alt=""></span>`
+  // cartões usam a miniatura (já está em memória no arranque); a imagem grande dos detalhes usa a foto inteira
+  const photoSrc = (id, big) => (big ? PHOTO_URL[id] || THUMB[id] : THUMB[id] || PHOTO_URL[id]);
+  const mealPic = (id, slot, cls = 'm-pic') => id && photoSrc(id, cls === 'ms-pic')
+    ? `<span class="${cls} has-photo"><img src="${photoSrc(id, cls === 'ms-pic')}" alt=""></span>`
     : `<span class="${cls}" style="${imgVars(slot)}">${cls !== 'm-band' ? ic(SLOT_IC[slot]) : ''}</span>`;
 
   const dayState = k => (S.days[k] ||= { swaps: {}, done: {}, agua: 0 });
@@ -632,7 +657,7 @@
       // Imagem grande (a tua foto ou a cor da refeição); aqui não mostra se já foi comida
       let h = `<div class="ms-hero">
         ${mealPic(mid, slotId, 'ms-pic')}
-        ${m.fora ? '' : `<label class="ms-photo">${ic('camera')}${PHOTO_URL[mid] ? 'Mudar foto' : 'Foto'}<input type="file" accept="image/*" hidden data-photo="${mid}"></label>`}
+        ${m.fora ? '' : `<label class="ms-photo">${ic('camera')}${hasPhoto(mid) ? 'Mudar foto' : 'Foto'}<input type="file" accept="image/*" hidden data-photo="${mid}"></label>`}
         <div class="ms-cap"><div class="over">${m.slot.n} · ${m.slot.t}${m.meal.m ? ` <span class="ms-tag">${ic('box')}Marmita</span>` : ''}</div><h2>${esc(m.meal.n)}</h2></div>
       </div>`;
       if (m.fora) h += `<div class="note" style="margin:0 0 12px">${ic('info')}<div>Registaste outra refeição (~${m.fora} kcal). <button class="link" data-act="unfora" data-slot="${slotId}">Desfazer</button></div></div>`;
@@ -820,7 +845,7 @@
   // ---- Foto da receita ----
   const DRAFT_PHOTO = '__nova'; // receita nova ainda sem id: a foto fica à espera até guardar
   function photoRow(id, slot) {
-    const has = !!PHOTO_URL[id];
+    const has = hasPhoto(id) || !!PHOTO_URL[id];
     return `<div class="list"><label class="row tap photo-row"><span class="ph-thumb">${mealPic(id, slot)}</span>
       <div class="row-main"><div class="ttl" style="font-weight:500">${has ? 'Mudar foto' : 'Adicionar foto'}</div><div class="sub">${has ? 'Aparece no Hoje em vez da cor da refeição' : 'Da galeria ou da câmara'}</div></div>${ic('chevR', 'chev')}
       <input type="file" accept="image/*" hidden data-photo="${id}"></label>
@@ -1916,6 +1941,6 @@
     syncCal().catch(() => {});
   });
   syncCal().catch(() => {});
-  loadPhotos().then(() => { if (Object.keys(PHOTO_URL).length) render(); });
+  loadPhotos().then(changed => { if (changed) render(); });
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
