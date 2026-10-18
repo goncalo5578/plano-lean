@@ -1089,3 +1089,40 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .mrow2 .sub { font-size: 12.5px; color: var(--ink-3); }
 .mrow2 .sub .h-down { color: var(--accent); font-weight: 650; }
 .mrow2 .m-val { font-size: 19px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+
+/* ============ Perfil no estilo do Hoje ============ */
+/* listas: cartão branco com as linhas empilhadas (como as refeições) */
+[data-page="perfil"] #view .list { background: var(--surface); border-radius: 28px; padding: 8px; display: grid; gap: 3px; box-shadow: var(--soft); overflow: visible; }
+[data-page="perfil"] #view .list > :is(.row, .form-row, .days, .swap-list) { background: var(--surface-2); border-radius: 8px; box-shadow: none; }
+[data-page="perfil"] #view .list > :first-child { border-radius: 20px 20px 8px 8px; }
+[data-page="perfil"] #view .list > :last-child { border-radius: 8px 8px 20px 20px; }
+[data-page="perfil"] #view .list > :only-child { border-radius: 20px; }
+[data-page="perfil"] #view .list > .row.tap:active { background: color-mix(in srgb, var(--ink) 7%, var(--surface)); }
+[data-page="perfil"] #view .list > .swap-list { background: transparent; display: grid; gap: 3px; }
+[data-page="perfil"] #view .swap-list li { background: var(--surface-2); border-radius: 8px; box-shadow: none; }
+[data-page="perfil"] #view .swap-list li:first-child { border-radius: 20px 20px 8px 8px; }
+[data-page="perfil"] #view .swap-list li:last-child { border-radius: 8px 8px 20px 20px; }
+[data-page="perfil"] #view .group-label { font-size: 16px; font-weight: 800; color: var(--ink); text-transform: none; letter-spacing: -.015em; margin: 22px 8px 9px; }
+[data-page="perfil"] #view .nav-row .ttl { font-weight: 650; }
+/* textos do Guia: cada tema num cartão empilhado */
+[data-page="perfil"] #view .prose { border-radius: 28px; padding: 8px; box-shadow: var(--soft); }
+[data-page="perfil"] #view .prose > p { margin: 10px 8px; }
+[data-page="perfil"] #view .prose:has(.item) { display: grid; gap: 3px; }
+[data-page="perfil"] #view .prose .item { background: var(--surface-2); border-radius: 8px; padding: 14px 16px; box-shadow: none; }
+[data-page="perfil"] #view .prose .item:first-child { border-radius: 20px 20px 8px 8px; }
+[data-page="perfil"] #view .prose .item:last-child { border-radius: 8px 8px 20px 20px; }
+[data-page="perfil"] #view .prose .item h4 { font-weight: 750; }
+/* ícones coloridos com um brilho, como as imagens das refeições */
+[data-page="perfil"] #view .tile { position: relative; overflow: hidden; width: 38px; height: 38px; border-radius: 12px; }
+[data-page="perfil"] #view .tile::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 90% -10%, rgba(255, 255, 255, .28) 0 14px, transparent 15px), linear-gradient(135deg, rgba(255, 255, 255, .18), transparent 60%); pointer-events: none; }
+[data-page="perfil"] #view .tile .ic { width: 20px; height: 20px; }
+/* início do Perfil */
+[data-page="perfil"] .me-card { border-radius: 28px; box-shadow: var(--soft); }
+[data-page="perfil"] .avatar { background: radial-gradient(circle at 90% -10%, rgba(255, 255, 255, .22) 0 22px, transparent 23px), linear-gradient(135deg, #38d9a9, var(--accent)); }
+[data-page="perfil"] .ptile { border-radius: 24px; box-shadow: var(--soft); }
+[data-page="perfil"] #view .ptile .tile { width: 42px; height: 42px; border-radius: 14px; }
+[data-page="perfil"] #view .ptile .tile .ic { width: 22px; height: 22px; }
+/* Metas */
+[data-page="perfil"] .hero-grid { gap: 8px; background: transparent; overflow: visible; border-radius: 0; }
+[data-page="perfil"] .hero-grid > div { border-radius: 22px; box-shadow: var(--soft); }
+[data-page="perfil"] .cat-card { border-radius: 24px; box-shadow: var(--soft); }

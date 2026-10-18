@@ -414,6 +414,7 @@
   let slideT = 0;
   function render(anim) {
     $tabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.documentElement.dataset.page = tab; // estilos próprios de cada aba (ex.: Perfil)
     // Mudar de dia (Hoje) ou de semana (Semana): o atual sai por um lado enquanto o novo entra pelo outro (carrossel)
     const slide = (tab === 'hoje' || tab === 'semana') && (anim === 'next' || anim === 'prev');
     if (slide) { clearTimeout(slideT); $view.querySelectorAll('.day-pane.ghost').forEach(g => g.remove()); } // cancela a passagem anterior se ainda estava a meio
