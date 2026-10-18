@@ -433,7 +433,7 @@
     animateCounts(!!anim); // só conta ao marcar refeições, água, etc. (no mesmo dia)
     onScroll();
     syncGuard();
-    try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, subParent, recCat, curDay, weekOffset, shopMode, range, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
+    try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab, sub, subParent, recCat, curDay: semBack ?? curDay, weekOffset, shopMode, range, on: todayKey() })); } catch (e) { /* sem armazenamento */ }
   }
   function header(over, title, actions = '') {
     $hdr.innerHTML = `<div><div class="over">${over}</div><h1>${title}</h1></div><div class="hdr-actions">${actions}</div>`;
@@ -542,7 +542,7 @@
   }
   function renderHoje() {
     const P = dayPlan(curDay), T = P.T, isT = P.type === 'T';
-    const isToday = curDay === todayKey();
+    const isToday = curDay === todayKey(), future = curDay > todayKey();
     const sc = shiftCfg(P.shift);
     header(`${DOW[dowIdx(curDay)]}, ${niceDate(curDay)}`, dayTitle(curDay),
       (isToday ? '' : `<button class="pill-btn press" data-act="today">Hoje</button>`) +
@@ -597,11 +597,11 @@
       if (!m.fora && m.src) { const [k2, s2] = m.src.split('|'); extra = `<span class="lo">${ic('box')}Sobras do ${whenTxt(curDay, k2, s2)}</span>`; }
       else if (!m.fora && m.dests.length) extra = `<span class="lo">${ic('pot')}Fazer ×${m.dests.length + 1} · ${m.dests.map(([k2, s2]) => whenTxt(curDay, k2, s2)).join(' e ')}</span>`;
       // cada refeição num cartão: imagem à esquerda com recorte na diagonal e faixa; o texto acompanha o recorte.
-      // Tocar na imagem marca como comido; o resto do cartão (com a seta) abre a receita.
+      // Tocar na imagem marca como comido; o resto do cartão (com a seta) abre a receita. Em dias que ainda não chegaram não se marca.
       const mid = m.fora ? null : m.meal.id;
       h += `<div class="row tap meal-row mrow ${done ? 'done' : ''} ${id === anim ? 'm-anim' : ''} ${mi === P.meals.length - 1 ? 'm-last' : ''}" data-act="meal" data-slot="${id}">
         ${mealPic(mid, id)}${mealPic(mid, id, 'm-band')}
-        <button class="m-tap" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="${done ? 'Desmarcar' : 'Marcar'} ${m.slot.n} como comido"><span class="m-done">${ic('check')}<span>Feita</span></span><span class="m-hollow"></span></button>
+        ${future && !done ? '' : `<button class="m-tap" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="${done ? 'Desmarcar' : 'Marcar'} ${m.slot.n} como comido"><span class="m-done">${ic('check')}<span>Feita</span></span><span class="m-hollow"></span></button>`}
         <div class="row-main"><span class="m-shape" aria-hidden="true"></span>
           <div class="over">${m.slot.n} · ${m.slot.t}</div>
           <div class="ttl">${m.fora ? 'Outra refeição' : esc(m.meal.n)}</div>
@@ -658,7 +658,7 @@
   function mealSheet(slotId) {
     return () => {
       const P = dayPlan(curDay), m = P.meals.find(x => x.slot.id === slotId), isT = P.type === 'T', T = P.T;
-      const done = !!P.st.done[slotId] || !!m.fora;
+      const done = !!P.st.done[slotId] || !!m.fora, future = curDay > todayKey();
       const mode = sheetEl.dataset.mode;
       const col = SLOT_GRAD[slotId][1], mid = m.fora ? null : m.meal.id;
       const sec = (title, body, extra = '') => `<section class="ms-sec" style="--slc:${col}"><h3>${title}</h3>${body}</section>${extra}`;
@@ -729,9 +729,10 @@
       // Ações: marcar em destaque; as outras em quadrados lado a lado
       const acts = [
         mode === 'alts' ? '' : `<button class="ms-act press" data-act="mode" data-v="alts">${ic('swap')}<span>Trocar</span></button>`,
-        m.fora || mode === 'fora' ? '' : `<button class="ms-act press" data-act="mode" data-v="fora">${ic('plate')}<span>Comi outra</span></button>`,
+        m.fora || mode === 'fora' || future ? '' : `<button class="ms-act press" data-act="mode" data-v="fora">${ic('plate')}<span>Comi outra</span></button>`,
       ].filter(Boolean);
-      h += `<div class="btn-stack">${m.fora ? '' : `<button class="btn primary press" data-act="done" data-slot="${slotId}">${done ? 'Desmarcar' : ic('check') + ' Marcar como comido'}</button>`}</div>
+      // dias que ainda não chegaram: dá para trocar, mas não para marcar como comido nem registar outra coisa
+      h += `<div class="btn-stack">${m.fora || (future && !done) ? '' : `<button class="btn primary press" data-act="done" data-slot="${slotId}">${done ? 'Desmarcar' : ic('check') + ' Marcar como comido'}</button>`}</div>
         ${acts.length ? `<div class="ms-actions" style="--n:${acts.length}">${acts.join('')}</div>` : ''}
         ${slotId === 'lm' ? `<div class="btn-stack" style="margin-top:10px"><button class="btn danger press" data-act="lmrem">Hoje não faço lanche da manhã</button></div>` : ''}`;
       return h;
