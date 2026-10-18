@@ -356,7 +356,14 @@
   const NAV_KEY = 'planoLean.nav';
 
   $tabs.innerHTML = TABS.map(([id, l, i]) => `<button data-tab="${id}" class="press">${ic(i)}<span>${l}</span></button>`).join('');
-  $tabs.addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) go(b.dataset.tab); });
+  $tabs.addEventListener('click', e => {
+    const b = e.target.closest('[data-tab]'); if (!b) return;
+    const t = b.dataset.tab;
+    if (t !== tab) return go(t);
+    // Tocar na aba em que já estás não volta a abrir a mesma página. Só faz algo útil quando há para onde voltar:
+    if (sub) { sub = null; subParent = null; recCat = null; render('pop'); window.scrollTo(0, 0); return; } // numa página do Perfil → início do Perfil
+    if (t === 'hoje' && curDay !== todayKey()) { const dir = todayKey() > curDay ? 'next' : 'prev'; curDay = todayKey(); render(dir); } // noutro dia → hoje
+  });
 
   try { localStorage.removeItem('pulso.look'); sessionStorage.removeItem('pulso.look'); } catch (e) { /* restos da pré-visualização dos visuais */ }
 
