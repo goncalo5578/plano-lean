@@ -4,7 +4,7 @@
 
   // ================= Estado =================
   const KEY = 'planoLean.v1';
-  const DEFAULT_PROFILE = { nome: '', idade: 23, altura: 162, peso: 60, atividade: 1.375, defice: 12, treinoDias: [0, 2, 4], autoSobras: true, shifts: {}, tema: 'light' };
+  const DEFAULT_PROFILE = { nome: '', idade: 23, altura: 162, peso: 60, atividade: 1.375, defice: 12, extraTreino: 150, treinoDias: [0, 2, 4], autoSobras: true, shifts: {}, tema: 'light' };
   const blank = () => ({ profile: { ...DEFAULT_PROFILE }, days: {}, weights: [], shop: {}, links: {}, cal: { shifts: {}, autoS: true }, recipes: { custom: [], edits: {}, removed: {}, foods: {} } });
   let S = load();
 
@@ -92,9 +92,9 @@
     const bmr = 10 * p.peso + 6.25 * p.altura - 5 * p.idade - 161; // Mifflin-St Jeor (mulher)
     const tdee = bmr * p.atividade;
     const avg = tdee * (1 - p.defice / 100);
-    // valores fixos: dia de descanso = gasto com o défice; dia de treino = +200 kcal (hidratos).
+    // valores fixos: dia de descanso = gasto com o défice; dia de treino = + extra (150 kcal por defeito, quase tudo hidratos).
     // Não dependem de quantos treinos há na semana — menos treinos, menos calorias no total
-    const diff = 200;
+    const diff = p.extraTreino || 150;
     const rest = r10(avg);
     const train = rest + diff;
     const prot = Math.round(2.0 * p.peso);
@@ -771,7 +771,7 @@
             <span class="s4-c">${ic(SHIFT_IC[id])}</span><b>${c.n}</b><small>${blocked ? 'Depois da noite' : c.h}</small></button>`;
         }).join('')}</div></section>
         <button class="train-card press" data-act="settrain" data-k="${k}" aria-pressed="${isT}"><span class="tc-ic">${ic('dumbbell')}</span>
-          <span class="row-main"><b>Dia de treino</b><span>+200 kcal, sobretudo hidratos</span></span><span class="switch ${isT ? 'on' : ''}"></span></button>
+          <span class="row-main"><b>Dia de treino</b><span>+${S.profile.extraTreino || 150} kcal, sobretudo hidratos</span></span><span class="switch ${isT ? 'on' : ''}"></span></button>
         ${calNote(k)}
         <p class="cap">Os horários das refeições mudam com o turno. Podes ajustá-los em Perfil → Turnos e horários.</p>
         <div class="btn-stack"><button class="btn primary press" data-act="close">Feito</button></div>`;
@@ -1519,7 +1519,7 @@
           <div><span><i class="dot bg-p"></i>Proteína</span><b>${T.prot}<small>g / dia</small></b></div>
           <div><span><i class="dot bg-f"></i>Gordura mínima</span><b>${T.fat}<small>g / dia</small></b></div>
         </div>
-        <div class="prose" style="margin-top:12px"><p>Nos <b>dias de treino</b> comes mais 200 kcal, quase tudo em hidratos, para teres energia e recuperares. A <b>proteína</b> é igual todos os dias (2 g por kg) para manter o músculo enquanto perdes gordura. A <b>gordura</b> nunca desce deste mínimo, porque é precisa para as hormonas e o ciclo. Os <b>hidratos</b> ocupam o resto das calorias e são o que a app ajusta em cada refeição.</p></div>
+        <div class="prose" style="margin-top:12px"><p>Nos <b>dias de treino</b> comes mais ${T.train - T.rest} kcal, quase tudo em hidratos, para teres energia e recuperares. A <b>proteína</b> é igual todos os dias (2 g por kg) para manter o músculo enquanto perdes gordura. A <b>gordura</b> nunca desce deste mínimo, porque é precisa para as hormonas e o ciclo. Os <b>hidratos</b> ocupam o resto das calorias e são o que a app ajusta em cada refeição.</p></div>
         <div class="group-label">Como são calculadas</div>
         <div class="list">${kv('Metabolismo basal', `${n0(T.bmr)} kcal`)}${kv(`Gasto diário (× ${String(p.atividade).replace('.', ',')})`, `${n0(T.tdee)} kcal`)}${kv(`Com défice de ${p.defice}%`, `${n0(T.avg)} kcal`)}${kv('Dia de treino', `${n0(T.train)} kcal`)}${kv('Dia de descanso', `${n0(T.rest)} kcal`)}</div>
         <div class="group-label">Macronutrientes</div><div class="list">${kv('<i class="dot bg-p"></i>&nbsp; Proteína · 2,0 g/kg', `${T.prot} g`)}${kv('<i class="dot bg-f"></i>&nbsp; Gordura · 0,9 g/kg', `${T.fat} g`)}${kv('<i class="dot bg-c"></i>&nbsp; Hidratos treino / descanso', `${T.cT} / ${T.cD} g`)}${kv('IMC', n1(p.peso / (p.altura / 100) ** 2))}</div>
@@ -1580,6 +1580,7 @@
         <div class="group-label">Objetivo</div><div class="list">
           <div class="form-row"><label for="defice">Défice</label><select id="defice" name="defice">${opt([[0, 'Manutenção'], [8, '8% · muito suave'], [12, '12% · suave'], [15, '15% · moderado'], [20, '20% · máximo']], p.defice)}</select></div>
           <div class="form-row"><label for="atividade">Atividade</label><select id="atividade" name="atividade">${opt([[1.2, 'Sedentária'], [1.375, 'Ligeira · 3 treinos'], [1.465, 'Moderada · 3–4 treinos + passos'], [1.55, 'Ativa · 5 treinos']], p.atividade)}</select></div>
+          <div class="form-row"><label for="extraTreino">Extra nos dias de treino</label><select id="extraTreino" name="extraTreino">${opt([[100, '+100 kcal'], [150, '+150 kcal · recomendado'], [200, '+200 kcal'], [250, '+250 kcal · treinos longos']], p.extraTreino || 150)}</select></div>
         </div>
         <div class="group-label">Refeições</div><div class="list">
           <label class="form-row" style="cursor:pointer"><span>Lanche da manhã todos os dias</span><input type="checkbox" name="lmSempre" class="sw-in" ${p.lmSempre ? 'checked' : ''}><span class="switch"></span></label>
@@ -1637,7 +1638,7 @@
     const num = n => parseFloat(f.elements[n].value);
     const p = S.profile;
     for (const k of ['idade', 'altura', 'peso']) if (num(k) > 0) p[k] = num(k);
-    p.defice = num('defice'); p.atividade = num('atividade');
+    p.defice = num('defice'); p.atividade = num('atividade'); p.extraTreino = num('extraTreino');
     p.treinoDias = [...f.querySelectorAll('input[name=td]:checked')].map(i => +i.value);
     p.autoSobras = f.elements.autoSobras.checked;
     p.lmSempre = f.elements.lmSempre.checked;
