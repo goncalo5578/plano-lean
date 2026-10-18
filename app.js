@@ -438,19 +438,23 @@
       });
       let y0 = null;
       sheetEl.addEventListener('touchstart', e => { y0 = sheetBody.scrollTop <= 0 ? e.touches[0].clientY : null; dragging = false; }, { passive: true });
+      // Arrastar a janela para baixo (só a partir do topo do conteúdo). Enquanto se arrasta, o conteúdo não desliza:
+      // assim, ao voltar a subir o dedo, a janela só regressa ao sítio (antes também fazia scroll ao mesmo tempo).
       sheetEl.addEventListener('touchmove', e => {
         if (y0 == null) return; const dy = e.touches[0].clientY - y0;
-        if (dy <= 0) return;
+        if (!dragging && dy <= 0) return; // a subir desde o início: é scroll normal do conteúdo
+        if (e.cancelable) e.preventDefault();
         if (!dragging) { dragging = true; sheetEl.style.transition = 'none'; backEl.style.transition = 'none'; sheetEl.style.willChange = 'transform'; }
-        const lv = Math.max(0, 1 - dy / 450);
-        sheetEl.style.transform = `translateY(${dy}px)`; backEl.style.opacity = String(lv); barDrag(lv);
-      }, { passive: true });
+        const d = Math.max(0, dy), lv = Math.max(0, 1 - d / 450);
+        sheetEl.style.transform = `translateY(${d}px)`; backEl.style.opacity = String(lv); barDrag(lv);
+      }, { passive: false });
       sheetEl.addEventListener('touchend', e => {
-        if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null;
-        dragging = false; sheetEl.style.willChange = '';
+        if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0, wasDrag = dragging; y0 = null;
+        dragging = false;
+        if (!wasDrag) return; // foi só scroll do conteúdo
+        sheetEl.style.willChange = '';
         sheetEl.style.transition = ''; sheetEl.style.transform = ''; backEl.style.transition = ''; backEl.style.opacity = '';
-        if (dy <= 110) barTo(true); // não fechou: volta a escurecer com o fundo
-        if (dy > 110) closeSheet();
+        if (dy > 110) closeSheet(); else barTo(true); // não fechou: volta ao sítio e a barra volta a escurecer
       });
     }
     sheetFresh = true; paintSheet(); sheetFresh = false;
