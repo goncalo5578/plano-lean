@@ -46,6 +46,7 @@
     wheat: '<path d="M12 21V9"/><path d="M12 9c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 9c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8zM12 14c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 14c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8zM12 19c-2.2-.6-3.5-2.4-3.5-4.8 2.2.4 3.5 2 3.5 4.8zM12 19c2.2-.6 3.5-2.4 3.5-4.8-2.2.4-3.5 2-3.5 4.8z"/>',
     book: '<path d="M4.5 5.5A2 2 0 0 1 6.5 3.5H19v14H6.5a2 2 0 0 0-2 2z"/><path d="M4.5 19.5a2 2 0 0 0 2 2H19v-4"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4.2 7.5l2.1 1.2M17.7 15.3l2.1 1.2M4.2 16.5l2.1-1.2M17.7 8.7l2.1-1.2"/><circle cx="12" cy="12" r="7"/>',
+    camera: '<path d="M4 8.5h3.2l1.6-2.5h6.4l1.6 2.5H20V19H4z"/><circle cx="12" cy="13.2" r="3.4"/>',
     contrast: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/>',
     refresh: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.5H15"/>',
     dumbbell: '<rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M2.5 10v4M21.5 10v4M8 12h8"/>',
@@ -147,7 +148,7 @@
   const imgVars = slot => `--g1:${SLOT_GRAD[slot][0]};--g2:${SLOT_GRAD[slot][1]}`;
   const mealPic = (id, slot, cls = 'm-pic') => PHOTO_URL[id]
     ? `<span class="${cls} has-photo"><img src="${PHOTO_URL[id]}" alt=""></span>`
-    : `<span class="${cls}" style="${imgVars(slot)}">${cls === 'm-pic' ? ic(SLOT_IC[slot]) : ''}</span>`;
+    : `<span class="${cls}" style="${imgVars(slot)}">${cls !== 'm-band' ? ic(SLOT_IC[slot]) : ''}</span>`;
 
   const dayState = k => (S.days[k] ||= { swaps: {}, done: {}, agua: 0 });
   const peekDay = k => S.days[k] || { swaps: {}, done: {}, agua: 0 };
@@ -584,14 +585,26 @@
 
   function mealSheet(slotId) {
     return () => {
-      const P = dayPlan(curDay), m = P.meals.find(x => x.slot.id === slotId), isT = P.type === 'T';
+      const P = dayPlan(curDay), m = P.meals.find(x => x.slot.id === slotId), isT = P.type === 'T', T = P.T;
       const done = !!P.st.done[slotId] || !!m.fora;
       const mode = sheetEl.dataset.mode;
-      let h = `<div class="over">${m.slot.n} · ${m.slot.t}</div><h2>${esc(m.meal.n)}</h2>`;
+      const col = SLOT_GRAD[slotId][1], mid = m.fora ? null : m.meal.id;
+      const sec = (title, body, extra = '') => `<section class="ms-sec" style="--slc:${col}"><h3>${title}</h3>${body}</section>${extra}`;
+
+      // Imagem grande (a tua foto ou a cor da refeição): tocar marca como comido, como no Hoje
+      let h = `<div class="ms-hero ${done ? 'done' : ''}">
+        ${m.fora ? mealPic(null, slotId, 'ms-pic') : `<button class="ms-tap" data-act="msdone" data-slot="${slotId}" aria-pressed="${done}" aria-label="${done ? 'Desmarcar' : 'Marcar'} como comido">${mealPic(mid, slotId, 'ms-pic')}<span class="m-done">${ic('check')}<span>Feita</span></span><span class="m-hollow"></span></button>`}
+        ${m.fora ? '' : `<label class="ms-photo">${ic('camera')}${PHOTO_URL[mid] ? 'Mudar foto' : 'Foto'}<input type="file" accept="image/*" hidden data-photo="${mid}"></label>`}
+      </div>
+      <div class="over">${m.slot.n} · ${m.slot.t}</div><h2>${esc(m.meal.n)}</h2>`;
       if (m.meal.m) h += `<div><span class="tag-pill">${ic('box')}Marmita</span></div>`;
       if (m.fora) h += `<div class="note" style="margin:0 0 12px">${ic('info')}<div>Registaste outra refeição (~${m.fora} kcal). <button class="link" data-act="unfora" data-slot="${slotId}">Desfazer</button></div></div>`;
-      h += `<div class="stat4 num"><div><b>${n0(m.tot.kcal)}</b><span>kcal</span></div><div><b style="color:var(--p)">${n0(m.tot.p)}</b><span>proteína</span></div>
-        <div><b style="color:var(--c)">${n0(m.tot.c)}</b><span>hidratos</span></div><div><b style="color:var(--f)">${n0(m.tot.f)}</b><span>gordura</span></div></div>`;
+
+      // Calorias e macros como no cartão do Hoje: a barra mostra quanto esta refeição dá da meta do dia
+      const cG = isT ? T.cT : T.cD;
+      const mac = (lbl, cls, v, g) => `<div><div class="m-lbl"><i class="dot bg-${cls}"></i>${lbl}</div><div class="m-val num"><b>${n0(v)}</b> g</div><div class="track thin"><i class="bg-${cls}" style="width:${Math.min(100, (v / g) * 100)}%"></i></div></div>`;
+      h += `<section class="card ms-macros"><div class="ms-kcal num"><b>${n0(m.tot.kcal)}</b><span>kcal · ${Math.round((m.tot.kcal / P.goal) * 100)}% do dia</span></div>
+        <div class="macros3">${mac('Proteína', 'p', m.tot.p, T.prot)}${mac('Hidratos', 'c', m.tot.c, cG)}${mac('Gordura', 'f', m.tot.f, T.fat)}</div></section>`;
 
       // Totais a cozinhar quando esta refeição também serve outras
       const cook = {};
@@ -607,45 +620,47 @@
       }
       if (isT && m.meal.treino && !m.src) h += `<div class="note train">${ic('flame')}<div>${esc(m.meal.treino)}</div></div>`;
 
-      h += `<div class="group-label">${m.src ? 'A tua dose' : 'Ingredientes · 1 dose'}</div><div class="list">${m.items.map(it => {
+      h += sec(m.src ? 'A tua dose' : 'Ingredientes <small>1 dose</small>', `<div class="list">${m.items.map(it => {
         const hint = cook[it.f] ? `cozinhar ${qty(it.f, cook[it.f])}` : unitHint(it.f, it.g);
         return `<div class="row ing"><div class="row-main">${esc(food(it.f).n)}</div><div class="q num">${qty(it.f, it.g)}${hint ? `<small>${hint}</small>` : ''}</div></div>`;
-      }).join('')}</div>`;
-      if (!m.src) h += `<div class="group-label">Preparação</div><div class="list"><ol class="steps">${steps(m.meal.prep)}</ol></div>`;
+      }).join('')}</div>`);
+      if (!m.src) h += sec('Preparação', `<div class="list"><ol class="steps">${steps(m.meal.prep)}</ol></div>`);
 
       // Cozinhar a dobrar
       if (!m.src && !m.fora && (slotId === 'almoco' || slotId === 'jantar')) {
-        h += `<div class="group-label">Cozinhar a dobrar</div><div class="list">${destCandidates(curDay, slotId).map(([k2, s2]) => {
+        h += sec('Cozinhar a dobrar', `<div class="list">${destCandidates(curDay, slotId).map(([k2, s2]) => {
           const on = sourceOf(k2, s2) === LK(curDay, slotId);
           const sh = shiftOf(k2), info = slotInfo(k2, s2, false);
           return `<button class="row tap" data-act="link" data-slot="${slotId}" data-dk="${k2}" data-ds="${s2}" aria-pressed="${on}">
             <div class="row-main"><div class="ttl" style="font-weight:500">Para o ${whenTxt(curDay, k2, s2)}</div>
             <div class="sub">${info.n} · ${info.t}${sh !== 'F' ? ` · ${shiftPhrase(sh).toLowerCase()}` : ''}</div></div>
             <span class="switch ${on ? 'on' : ''}"></span></button>`;
-        }).join('')}</div><p class="cap">A refeição de destino passa a ser a mesma e a lista de compras conta as duas doses.</p>`;
+        }).join('')}</div><p class="cap">A refeição de destino passa a ser a mesma e a lista de compras conta as duas doses.</p>`);
       }
 
       if (mode === 'alts') {
         const noTurno = /turno/i.test(m.slot.n);
         const opts = mealsOf(slotId).map((o, i) => ({ o, i })).sort((a, b) => (noTurno ? (b.o.m ? 1 : 0) - (a.o.m ? 1 : 0) : 0) || a.i - b.i).map(x => x.o);
-        h += `<div class="group-label">Escolher outra opção${noTurno ? ' · marmitas primeiro' : ''}</div><div class="list">${opts.map(o => {
+        h += sec(`Escolher outra opção${noTurno ? ' <small>marmitas primeiro</small>' : ''}`, `<div class="list">${opts.map(o => {
           const sel = o.id === m.meal.id;
           return `<button class="row tap alt ${sel ? 'sel' : ''}" data-act="pick" data-slot="${slotId}" data-id="${o.id}"><div class="row-main"><div class="ttl">${esc(o.n)}</div><div class="sub">${recipeTags(o)}</div></div>${sel ? ic('check', 'ok') : ''}</button>`;
-        }).join('')}<button class="row tap add-row" data-act="rnew" data-slot="${slotId}" data-pick="1">${ic('plus')}<div class="row-main"><div class="ttl">Nova receita</div><div class="sub">Fica logo escolhida para este dia</div></div></button></div>`;
+        }).join('')}<button class="row tap add-row" data-act="rnew" data-slot="${slotId}" data-pick="1">${ic('plus')}<div class="row-main"><div class="ttl">Nova receita</div><div class="sub">Fica logo escolhida para este dia</div></div></button></div>`);
       }
       if (mode === 'fora') {
-        h += `<div class="group-label">Comi outra coisa — quanto, mais ou menos?</div><div class="list">${FORA.map(o => `
+        h += sec('Comi outra coisa <small>quanto, mais ou menos?</small>', `<div class="list">${FORA.map(o => `
           <button class="row tap" data-act="fora" data-slot="${slotId}" data-kcal="${o.kcal}"><div class="row-main"><div class="ttl">${o.n} <span class="num" style="color:var(--ink-3);font-weight:500">· ~${o.kcal} kcal</span></div><div class="sub">${o.d}</div></div></button>`).join('')}</div>
-          <p class="cap">Não precisa de ser exato. Se puderes, escolhe algo com proteína (carne, peixe, ovos, iogurte).</p>`;
+          <p class="cap">Não precisa de ser exato. Se puderes, escolhe algo com proteína (carne, peixe, ovos, iogurte).</p>`);
       }
-      if (!m.fora) h += `<div class="group-label">Foto</div>${photoRow(m.meal.id, slotId)}`;
-      h += `<div class="btn-stack">
-        ${m.fora ? '' : `<button class="btn primary press" data-act="done" data-slot="${slotId}">${done ? 'Desmarcar' : ic('check') + ' Marcar como comido'}</button>`}
-        ${mode === 'alts' ? '' : `<button class="btn secondary press" data-act="mode" data-v="alts">${ic('swap')} Trocar refeição</button>`}
-        ${m.src || m.fora ? '' : `<button class="btn secondary press" data-act="redit" data-id="${m.meal.id}">${ic('edit')} Editar receita</button>`}
-        ${m.fora || mode === 'fora' ? '' : `<button class="btn secondary press" data-act="mode" data-v="fora">${ic('plate')} Comi outra coisa</button>`}
-        ${slotId === 'lm' ? `<button class="btn danger press" data-act="lmrem">Hoje não faço lanche da manhã</button>` : ''}
-      </div>`;
+
+      // Ações: marcar em destaque; as outras em quadrados lado a lado
+      const acts = [
+        mode === 'alts' ? '' : `<button class="ms-act press" data-act="mode" data-v="alts">${ic('swap')}<span>Trocar</span></button>`,
+        m.src || m.fora ? '' : `<button class="ms-act press" data-act="redit" data-id="${m.meal.id}">${ic('edit')}<span>Editar</span></button>`,
+        m.fora || mode === 'fora' ? '' : `<button class="ms-act press" data-act="mode" data-v="fora">${ic('plate')}<span>Comi outra</span></button>`,
+      ].filter(Boolean);
+      h += `<div class="btn-stack">${m.fora ? '' : `<button class="btn primary press" data-act="done" data-slot="${slotId}">${done ? 'Desmarcar' : ic('check') + ' Marcar como comido'}</button>`}</div>
+        ${acts.length ? `<div class="ms-actions" style="--n:${acts.length}">${acts.join('')}</div>` : ''}
+        ${slotId === 'lm' ? `<div class="btn-stack" style="margin-top:10px"><button class="btn danger press" data-act="lmrem">Hoje não faço lanche da manhã</button></div>` : ''}`;
       return h;
     };
   }
@@ -1574,6 +1589,7 @@
     if (a === 'wdate') { toggleWCal(false); return selectWDate(b.dataset.k); }
     if (a === 'wother') return toggleWCal();
     if (a === 'photodel') return removePhoto(b.dataset.id);
+    if (a === 'msdone') { toggleDone(b.dataset.slot); render(); paintSheet(); return; }
     if (a === 'wcalday') { selectWDate(b.dataset.k); return toggleWCal(false); }
     if (a === 'wcalnav') { const d = fromKey(wcalMonth); wcalMonth = keyOf(new Date(d.getFullYear(), d.getMonth() + +b.dataset.d, 1)); return renderWCal(); }
     const slot = b.dataset.slot;
