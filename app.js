@@ -511,8 +511,11 @@
         <div class="meta num">${eatenTxt}</div>
         <div class="macros3">${mac('Proteína', 'p', P.done.p, T.prot)}${mac('Hidratos', 'c', P.done.c, cG)}${mac('Gordura', 'f', P.done.f, T.fat)}</div>
       </section>`;
-    if (sc.tip) h += `<div class="note shiftnote" style="--sc:${sc.col}">${ic('clock')}<div><b>${shiftPhrase(P.shift)} · ${sc.h}</b><br>${sc.tip}</div></div>`;
-    if (afterNight(curDay)) { const pn = shiftCfg('PN'); h += `<div class="note shiftnote" style="--sc:${pn.col}">${ic('moon')}<div><b>Depois de uma noite</b><br>${pn.tip}</div></div>`; }
+    // Notas dos turnos: tocar minimiza (fica só o título) ou volta a mostrar a dica; a escolha fica guardada
+    const noteMin = !!S.profile.notaTurnoMin;
+    const shiftNote = (col, icon, title, tip) => `<button class="note shiftnote ${noteMin ? 'min' : ''}" style="--sc:${col}" data-act="shiftnote" aria-expanded="${!noteMin}">${ic(icon)}<div><b>${title}</b><span class="sn-tip">${tip}</span></div>${ic('chevR', 'sn-chev')}</button>`;
+    if (sc.tip) h += shiftNote(sc.col, 'clock', `${shiftPhrase(P.shift)} · ${sc.h}`, sc.tip);
+    if (afterNight(curDay)) { const pn = shiftCfg('PN'); h += shiftNote(pn.col, 'moon', 'Depois de uma noite', pn.tip); }
 
     // Refeições num só cartão: título, barra com uma parte por refeição (enche ao marcar) e os cartões encaixados
     h += `<section class="meal-box"><h2 class="sec-h">Refeições <small class="num">${P.nDone} de ${P.meals.length}</small></h2>
@@ -1490,6 +1493,7 @@
       case 'escala': openSheet(escalaSheet()); return;
       case 'done': toggleDone(b.dataset.slot); if (sheetEl && sheetEl.classList.contains('open')) closeSheet(); break;
       case 'meal': if (sheetEl) delete sheetEl.dataset.mode; openSheet(mealSheet(b.dataset.slot)); return;
+      case 'shiftnote': S.profile.notaTurnoMin = !S.profile.notaTurnoMin; save(); break;
       case 'agua': { const st = dayState(curDay); st.agua = Math.max(0, Math.min(20, (st.agua || 0) + +b.dataset.d)); save(); break; }
       // Semana
       case 'wk': weekOffset += +b.dataset.d; render(+b.dataset.d > 0 ? 'next' : 'prev'); return;
