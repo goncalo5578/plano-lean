@@ -651,7 +651,7 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 /* Dias da semana: cápsulas que enchem de baixo para cima à medida que comes */
 .strip { gap: 4px; margin-bottom: 14px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .strip button { gap: 5px; padding: 2px 0; }
-.strip .ring, .strip .sel .ring { background: none; width: 48px; max-width: 100%; height: auto; aspect-ratio: 1; }
+.strip .ring, .strip .sel .ring { background: none; width: 46px; max-width: 100%; height: auto; aspect-ratio: 1; }
 .strip .dn, .strip .sel .dn {
   position: relative; isolation: isolate; overflow: hidden; width: 100%; height: 100%;
   background: var(--surface); box-shadow: var(--soft); font-size: 17px; font-weight: 700; transition: background-color .25s, color .25s;
