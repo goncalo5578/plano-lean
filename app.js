@@ -400,9 +400,9 @@
 
   try { localStorage.removeItem('pulso.look'); sessionStorage.removeItem('pulso.look'); } catch (e) { /* restos da pré-visualização dos visuais */ }
 
-  function go(t, subpage = null) {
+  function go(t, subpage = null, day = null) {
     if (t !== tab || subpage) navStack.push(navSnap());
-    if (t === 'hoje' && tab === 'hoje' && !subpage) curDay = todayKey();
+    if (t === 'hoje') curDay = day || todayKey(); // a aba Hoje abre sempre no dia de hoje (ou no dia que abriste na Semana)
     if (t === 'hoje') screenDay = curDay;
     if (t === 'semana' && tab !== 'semana') weekOffset = 1; // a Semana serve para preparar a próxima: abre sempre nela
     tab = t; sub = subpage;
@@ -1654,7 +1654,7 @@
       case 'agua': { const st = dayState(curDay); st.agua = Math.max(0, Math.min(20, (st.agua || 0) + +b.dataset.d)); save(); break; }
       // Semana
       case 'wk': weekOffset += +b.dataset.d; render(+b.dataset.d > 0 ? 'next' : 'prev'); return;
-      case 'open': curDay = b.dataset.k; go('hoje'); return;
+      case 'open': go('hoje', null, b.dataset.k); return;
       // refeição de outro dia aberta na Semana: os detalhes usam esse dia e, ao fechar, o Hoje volta ao dia em que estava
       case 'wkrepeat': {
         const mon = weekMon(), prev = addDays(mon, -7);
