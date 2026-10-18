@@ -1028,3 +1028,36 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .shop-box .cb { width: 26px; height: 26px; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ink-3) 60%, transparent); }
 .shop-box .got .ttl { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .shop-box .got .amt { background: transparent; box-shadow: none; }
+
+/* ============ Progresso no estilo do Hoje ============ */
+.prog-card .big-u { font-size: 20px; color: var(--ink-3); font-weight: 650; letter-spacing: -.01em; }
+.daytype.is-flat .dt-ic { background: var(--fill); color: var(--ink-2); }
+.prog-card .chart { margin-top: 14px; }
+.prog-seg { margin-top: 12px; background: var(--fill); padding: 3px; border-radius: 14px; }
+.prog-seg button { border-radius: 11px; color: var(--ink-3); font-weight: 650; }
+.prog-seg button.on { background: var(--surface); color: var(--accent); }
+.prog-kpis { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; padding: 16px 8px; }
+.prog-kpis > div { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.prog-kpis > div + div { box-shadow: inset .5px 0 0 var(--sep); }
+.prog-kpis .ws-ic { width: 32px; height: 32px; border-radius: 11px; display: grid; place-items: center; color: var(--sc); background: color-mix(in srgb, var(--sc) 13%, transparent); margin-bottom: 6px; }
+.prog-kpis .ws-ic .ic { width: 17px; height: 17px; stroke-width: 2; }
+.prog-kpis b { font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
+.prog-kpis span:last-child { font-size: 12px; color: var(--ink-3); }
+.hist-box .mcards > .hrow { background: var(--surface-2); display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 12px; min-height: 0; }
+.hist-box .mcards > .hrow.m-last { border-radius: 8px 8px 20px 20px; }
+.hist-box .mcards > .hrow:first-child.m-last { border-radius: 20px; }
+.hrow .wr-date { height: 48px; width: 44px; }
+.hrow .ttl { font-size: 15.5px; font-weight: 750; }
+.hrow .sub { font-size: 12.5px; color: var(--ink-3); }
+.h-del { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-3); background: var(--surface); box-shadow: var(--soft); flex: none; }
+.h-del:active { color: var(--danger); }
+.prog-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 28px 20px 20px; }
+.prog-empty .pe-ic { width: 52px; height: 52px; border-radius: 17px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); margin-bottom: 8px; }
+.prog-empty .pe-ic .ic { width: 26px; height: 26px; }
+.prog-empty b { font-size: 17px; font-weight: 800; }
+.prog-empty > span { font-size: 14px; color: var(--ink-2); }
+.prog-empty .btn-stack { width: 100%; margin-top: 16px; }
+.hrow .sub .h-down { color: var(--accent); font-weight: 650; }
+.prog-kpis + .note, .prog-empty + .note { border-radius: 20px; padding: 13px 14px; align-items: center; box-shadow: var(--soft); }
+.prog-kpis + .note .ic, .prog-empty + .note .ic { width: 30px; height: 30px; padding: 6px; margin: 0; border-radius: 10px; flex: none; background: var(--fill); color: var(--ink-2); }
+.prog-kpis + .note.good .ic { background: var(--accent-soft); color: var(--accent); }

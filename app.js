@@ -54,6 +54,7 @@
     flame: '<path d="M12 21c-3.9 0-6.5-2.6-6.5-6.2 0-3.4 2.3-5.4 3.9-7.6.4 1.6 1.3 2.7 2.4 3.2-.2-3 1.3-5.9 3.4-7.4.1 3.3 3.3 5.6 3.3 9.8 0 4.4-2.6 8.2-6.5 8.2z"/>',
     info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>',
     alert: '<path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.2M12 17h.01"/>',
+    ruler: '<rect x="2.5" y="8" width="19" height="8" rx="2"/><path d="M6.5 8v3M10.5 8v4M14.5 8v3M18.5 8v4"/>',
     repeat: '<path d="M17 2.5l3 3-3 3"/><path d="M4 11.5v-1a5 5 0 0 1 5-5h11"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 12.5v1a5 5 0 0 1-5 5H4"/>',
     gauge: '<path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-5"/>',
     users: '<circle cx="9" cy="9" r="3.25"/><circle cx="16.5" cy="10" r="2.5"/><path d="M3.5 19c.9-3 3-4.5 5.5-4.5s4.6 1.5 5.5 4.5M15 14.6c2.4-.3 4.6.9 5.5 3.9"/>',
@@ -1223,37 +1224,47 @@
     return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
   }
   function renderProgresso() {
-    header('Peso e medidas', 'Progresso');
     S.weights.sort((a, b) => a.d.localeCompare(b.d));
     const W = S.weights, tk = todayKey();
+    const todayRec = W.find(w => w.d === tk);
+    // registar fica em cima, como o botão do turno no Hoje
+    header('Peso e medidas', 'Progresso', `<button class="shift-btn press" style="--sc:var(--accent)" data-act="addw" aria-label="${todayRec ? 'Alterar o peso de hoje' : 'Registar o peso de hoje'}"><span class="sb-ic">${ic(todayRec ? 'check' : 'plus')}</span><span class="sb-t"><b class="num">${todayRec ? `${n1(todayRec.kg)} kg` : 'Pesar'}</b></span></button>`);
     if (!W.length) {
-      $view.innerHTML = `<section class="card empty">${ic('scale')}<b>Sem registos</b>Pesa-te 3–7 manhãs por semana, em jejum.<div class="btn-stack"><button class="btn primary press" data-act="addw">${ic('plus')} Registar peso</button></div></section>${guideNote(null)}`;
+      $view.innerHTML = `<section class="card prog-empty"><span class="pe-ic">${ic('scale')}</span><b>Sem registos</b><span>Pesa-te 3–7 manhãs por semana, em jejum.</span><div class="btn-stack"><button class="btn primary press" data-act="addw">${ic('plus')} Registar peso</button></div></section>${guideNote(null)}`;
       return;
     }
     const last = W[W.length - 1];
     const nowAvg = weeklyAvg(last.d), prevAvg = weeklyAvg(addDays(last.d, -7));
     const delta = nowAvg != null && prevAvg != null ? nowAvg - prevAvg : null;
     const cint = [...W].reverse().find(w => w.cint);
-    const todayRec = W.find(w => w.d === tk);
-    let h = todayRec
-      ? `<button class="btn secondary press reg-btn" data-act="addw">${ic('check')}<span>Hoje: <b class="num">${n1(todayRec.kg)} kg</b></span><span class="reg-sub">Alterar</span></button>`
-      : `<button class="btn primary press reg-btn" data-act="addw">${ic('plus')}Registar peso de hoje</button>`;
-    h += `<section class="card">
-      <div class="energy-top"><div><div class="big-lbl" style="margin:0 0 6px">Média de 7 dias</div><div class="big num">${n1(nowAvg)}<span style="font-size:20px;color:var(--ink-3);font-weight:600"> kg</span></div></div>
-        ${delta != null ? `<span class="delta ${delta < 0 ? 'down' : ''} num">${delta > 0 ? '+' : delta < 0 ? '−' : ''}${n1(Math.abs(delta))} kg/sem</span>` : ''}</div>
+    const tot = nowAvg - W[0].kg;
+    // cartão principal como o das calorias: média em grande, ritmo à direita, gráfico e período
+    let h = `<section class="card energy prog-card">
+      <div class="energy-top">
+        <div><div class="big num">${n1(nowAvg)}<span class="big-u"> kg</span></div><div class="big-lbl">média dos últimos 7 dias</div></div>
+        ${delta != null ? `<div class="daytype ${delta < 0 ? 'is-rest' : 'is-flat'}"><span class="dt-ic">${ic('chart')}</span><div><b class="num">${delta > 0 ? '+' : delta < 0 ? '−' : ''}${n1(Math.abs(delta))} kg</b><small>por semana</small></div></div>` : ''}
+      </div>
       ${chart(W)}
-      <div class="seg full" style="margin-top:12px">${[[30, '1 mês'], [90, '3 meses'], [0, 'Tudo']].map(([v, l]) => `<button class="${range === v ? 'on' : ''}" data-act="range" data-v="${v}">${l}</button>`).join('')}</div>
+      <div class="seg full prog-seg">${[[30, '1 mês'], [90, '3 meses'], [0, 'Tudo']].map(([v, l]) => `<button class="${range === v ? 'on' : ''}" data-act="range" data-v="${v}">${l}</button>`).join('')}</div>
     </section>
-    <section class="card kpis num"><div><b>${n1(W[0].kg)}</b><span>início · ${niceDate(W[0].d)}</span></div><div><b>${(nowAvg - W[0].kg) > 0 ? '+' : ''}${n1(nowAvg - W[0].kg)}</b><span>kg no total</span></div><div><b>${cint ? n1(cint.cint) : '—'}</b><span>cintura (cm)</span></div></section>
+    <section class="card prog-kpis num">
+      <div><span class="ws-ic" style="--sc:var(--p)">${ic('scale')}</span><b>${n1(W[0].kg)}</b><span>início · ${niceDate(W[0].d)}</span></div>
+      <div><span class="ws-ic" style="--sc:${tot <= 0 ? 'var(--accent)' : 'var(--train)'}">${ic('chart')}</span><b>${tot > 0 ? '+' : ''}${n1(tot)}</b><span>kg no total</span></div>
+      <div><span class="ws-ic" style="--sc:var(--c)">${ic('ruler')}</span><b>${cint ? n1(cint.cint) : '—'}</b><span>cintura (cm)</span></div>
+    </section>
     ${guideNote(delta != null ? (delta / prevAvg) * 100 : null)}`;
     if (Math.abs(nowAvg - S.profile.peso) >= 1) h += `<div class="btn-stack" style="margin-top:12px"><button class="btn secondary press" data-act="usepeso" data-kg="${Math.round(nowAvg * 10) / 10}">Recalcular plano para ${n1(nowAvg)} kg</button></div>`;
-    const lastW = W[W.length - 1];
-    h += `<details class="hist" id="hist" ${histOpen ? 'open' : ''}><summary class="row tap"><div class="row-main"><div class="ttl" style="font-weight:500">Histórico</div><div class="sub num">${W.length} ${W.length === 1 ? 'registo' : 'registos'} · último ${DOW_S[dowIdx(lastW.d)].toLowerCase()}, ${niceDate(lastW.d)}</div></div>${ic('chevR', 'chev')}</summary><div class="hist-list">${W.map((w, i) => ({ w, i })).reverse().slice(0, 60).map(({ w, i }) => `
-      <div class="row"><div class="row-main"><div class="ttl num">${n1(w.kg)} kg${w.cint ? ` <span style="color:var(--ink-3);font-weight:500">· ${n1(w.cint)} cm</span>` : ''}</div><div class="sub">${DOW[dowIdx(w.d)]}, ${niceDate(w.d)}</div></div>
-      <button class="circle-btn press" style="box-shadow:none;background:var(--fill);color:var(--ink-3);width:32px;height:32px" data-act="delw" data-d="${w.d}" aria-label="Apagar registo de ${niceDate(w.d)}">${ic('trash', 'sm')}</button></div>`).join('')}</div></details>
+    // histórico num cartão como as categorias das Compras: minimizável, com os registos empilhados
+    const list = W.slice(-60).reverse(), prevOf = w => W[W.indexOf(w) - 1];
+    h += `<section class="meal-box shop-box hist-box ${histOpen ? '' : 'min'}"><button class="sec-h shop-h" data-act="hist" aria-expanded="${histOpen}"><span class="cat-ic" style="--cc:var(--accent)">${ic('clock')}</span><span class="cat-n">Histórico</span>
+        <small class="cat-c num">${W.length} ${W.length === 1 ? 'registo' : 'registos'}</small>${ic('chevR', 'sh-chev')}</button><div class="shop-body"><div class="mcards">${list.map((w, i) => `
+      <div class="row hrow ${i === list.length - 1 ? 'm-last' : ''}"><div class="wr-date"><span class="wd">${w.d === tk ? 'Hoje' : DOW_S[dowIdx(w.d)]}</span><b class="num">${dayNum(w.d)}</b></div>
+        <div class="row-main"><div class="ttl num">${n1(w.kg)} kg</div><div class="sub">${niceDate(w.d)}${prevOf(w) ? (dd => ` · <span class="${dd < 0 ? 'h-down' : ''}">${dd > 0 ? '+' : dd < 0 ? '−' : '±'}${n1(Math.abs(dd))} kg</span>`)(w.kg - prevOf(w).kg) : ''}${w.cint ? ` · cintura ${n1(w.cint)} cm` : ''}</div></div>
+        <button class="h-del press" data-act="delw" data-d="${w.d}" aria-label="Apagar registo de ${niceDate(w.d)}">${ic('trash', 'sm')}</button></div>`).join('')}</div></div></section>
       <p class="cap">A cintura (ao nível do umbigo) e fotos mensais dizem mais do que a balança quando se treina força. Compara sempre na mesma fase do ciclo.</p>`;
     $view.innerHTML = h;
   }
+
   function guideNote(pctW) {
     let t = 'Objetivo: −0,25 a −0,5 kg por semana. Compara médias semanais, não dias soltos.', cls = '';
     if (pctW != null) {
@@ -1648,6 +1659,7 @@
       case 'escala': openSheet(escalaSheet()); return;
       case 'done': animSlot = b.dataset.slot; toggleDone(b.dataset.slot); if (sheetEl && sheetEl.classList.contains('open')) closeSheet(); break;
       case 'meal': if (sheetEl) delete sheetEl.dataset.mode; msDoses = 1; openSheet(mealSheet(b.dataset.slot)); return;
+      case 'hist': histOpen = !histOpen; break;
       case 'shopcat': { const m = S.profile.shopMin ||= {}; if (m[b.dataset.c]) delete m[b.dataset.c]; else m[b.dataset.c] = true; save(); break; }
       case 'shiftnote': {
         const m = S.profile.notaMin ||= (S.profile.notaTurnoMin ? { turno: true, pn: true } : {});
@@ -1724,7 +1736,6 @@
     syncCal(true).then(n => { toast(`Ligado — ${n} turnos lidos`); render(); })
       .catch(err => { toast(err.message); render(); });
   });
-  $view.addEventListener('toggle', e => { if (e.target.id === 'hist') histOpen = e.target.open; }, true);
   $view.addEventListener('change', e => {
     const el = e.target;
     if (el.form && el.form.id === 'perfil') saveProfile(el.form);
