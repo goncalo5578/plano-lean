@@ -709,21 +709,25 @@
     if (man && man !== (c || 'F')) return `<div class="note">${ic('cal')}<div>No calendário: <b>${c ? SHIFTS[c].n : 'sem turno'}</b>. Mudaste à mão. <button class="link" data-act="calreset" data-k="${k}">Voltar ao calendário</button></div></div>`;
     return `<div class="note good">${ic('cal')}<div>${c ? "Turno lido do teu calendário." : "Sem turno no calendário para este dia."} Se mudares aqui, a tua escolha fica por cima.</div></div>`;
   }
+  // Turno e treino do dia: os quatro turnos em círculos com o seu ícone e cor; o escolhido fica cheio
+  const SHIFT_IC = { M: 'sunrise', T: 'sun', N: 'moon', F: 'leaf' };
   function daySheet(k) {
     return () => {
       const cur = shiftOf(k), isT = dayType(k) === 'T';
       return `<div class="over">${DOW[dowIdx(k)]}, ${niceDate(k)}</div><h2>Turno e treino</h2>
-        <div class="list">${SHIFT_ORDER.map(id => {
+        <section class="ms-sec"><h3>Turno</h3><div class="shift4">${SHIFT_ORDER.map(id => {
           const c = shiftCfg(id), blocked = id === 'M' && afterNight(k);
-          return `<button class="row tap ${blocked ? 'blocked' : ''}" data-act="setshift" data-k="${k}" data-v="${id}" ${blocked ? 'aria-disabled="true"' : ''}><span class="sdot" style="--sc:${c.col}"></span>
-            <div class="row-main"><div class="ttl" style="font-weight:500">${c.n}</div><div class="sub">${blocked ? 'Não dá: vens de uma noite' : c.h}</div></div>${cur === id ? ic('check', 'ok') : ''}</button>`;
-        }).join('')}</div>
-        <div class="list" style="margin-top:12px"><button class="row tap" data-act="settrain" data-k="${k}" aria-pressed="${isT}"><div class="row-main"><div class="ttl" style="font-weight:500">Dia de treino</div><div class="sub">+200 kcal, sobretudo hidratos</div></div><span class="switch ${isT ? 'on' : ''}"></span></button></div>
+          return `<button class="s4 press ${cur === id ? 'on' : ''} ${blocked ? 'blocked' : ''}" style="--sc:${c.col}" data-act="setshift" data-k="${k}" data-v="${id}" aria-pressed="${cur === id}" ${blocked ? 'aria-disabled="true" aria-label="Manhã: não dá depois de uma noite"' : ''}>
+            <span class="s4-c">${ic(SHIFT_IC[id])}</span><b>${c.n}</b><small>${blocked ? 'Depois da noite' : c.h}</small></button>`;
+        }).join('')}</div></section>
+        <button class="train-card press" data-act="settrain" data-k="${k}" aria-pressed="${isT}"><span class="tc-ic">${ic('dumbbell')}</span>
+          <span class="row-main"><b>Dia de treino</b><span>+200 kcal, sobretudo hidratos</span></span><span class="switch ${isT ? 'on' : ''}"></span></button>
         ${calNote(k)}
         <p class="cap">Os horários das refeições mudam com o turno. Podes ajustá-los em Perfil → Turnos e horários.</p>
         <div class="btn-stack"><button class="btn primary press" data-act="close">Feito</button></div>`;
     };
   }
+
 
   // ================= Editor de receitas =================
   let subParent = null; // página de onde se abriu a atual (Guia ou Definições)
