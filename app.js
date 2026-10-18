@@ -1797,34 +1797,6 @@
     save(); closeSheet(); render(); toast('Registo guardado');
   }
 
-  // Semana: arrastar o conteúdo para o lado muda de semana (o conteúdo acompanha o dedo)
-  let wx0 = null, wy0 = 0, wdx = 0, wDrag = false;
-  $view.addEventListener('touchstart', e => {
-    wx0 = tab === 'semana' && e.target.closest('.week-pane') ? e.touches[0].clientX : null;
-    wy0 = e.touches[0].clientY; wdx = 0; wDrag = false;
-  }, { passive: true });
-  $view.addEventListener('touchmove', e => {
-    if (wx0 === null) return;
-    const dx = e.touches[0].clientX - wx0, dy = e.touches[0].clientY - wy0;
-    if (!wDrag) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.3) wDrag = true; else if (Math.abs(dy) > 10) { wx0 = null; return; } else return; }
-    wdx = dx;
-    const pane = $view.querySelector('.week-pane');
-    if (pane) { pane.style.transition = 'none'; pane.style.transform = `translateX(${dx}px)`; }
-  }, { passive: true });
-  $view.addEventListener('touchend', () => {
-    if (wx0 === null) return;
-    wx0 = null;
-    const pane = $view.querySelector('.week-pane');
-    if (!wDrag || !pane) return;
-    if (Math.abs(wdx) > 70) {
-      pane.style.setProperty('--dx', `${wdx}px`); pane.dataset.drag = '1';
-      weekOffset += wdx < 0 ? 1 : -1;
-      render(wdx < 0 ? 'next' : 'prev');
-    } else {
-      pane.style.transition = 'transform .32s var(--ease-out)'; pane.style.transform = '';
-    }
-  });
-
   // Deslizar a barra de dias para mudar de semana
   let sx = null;
   $view.addEventListener('touchstart', e => { sx = e.target.closest('#strip') ? e.touches[0].clientX : null; }, { passive: true });

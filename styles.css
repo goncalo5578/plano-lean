@@ -593,7 +593,6 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 @keyframes dayOutR { from { transform: translateX(var(--dx, 0px)); } to { transform: translateX(calc(100% + 16px)); opacity: .5; } }
 @keyframes dayInR { from { transform: translateX(calc(100% + 16px + var(--dx, 0px))); opacity: .5; } }
 @keyframes dayInL { from { transform: translateX(calc(-100% - 16px + var(--dx, 0px))); opacity: .5; } }
-.week-pane { touch-action: pan-y; }
 
 /* "Nova receita" dentro de cada refeição: colado ao fundo do ecrã enquanto há lista por baixo,
    e quando chegas ao fim assenta logo abaixo da última receita */
