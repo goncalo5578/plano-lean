@@ -549,19 +549,27 @@
     fitMealCards();
   }
   // Cartões das refeições: o texto segue o recorte (shape-outside) e fica centrado na altura do cartão.
-  // O cartão cresce se o texto não couber (ex.: nome comprido + "Sobras do…").
+  // Com muito texto (nome comprido + "Fazer ×2 · …"), a letra vai diminuindo até caber; o cartão mantém a altura.
+  const CARD_H = 104, TEXT_ZOOM = [1, 0.95, 0.9, 0.86, 0.82, 0.78];
   function fitMealCards(root = $view) {
     for (const c of root.querySelectorAll('.mrow')) {
       const m = c.querySelector('.row-main'), sh = m.querySelector('.m-shape');
-      let H = 104, pad = 12;
-      for (let k = 0; k < 5; k++) {
+      // altura do texto com o cartão e o espaço de cima dados (as linhas mudam de largura com a altura, por causa do recorte)
+      const textH = (H, pad) => {
         c.style.height = H + 'px'; sh.style.height = H + 'px';
         m.style.paddingTop = pad + 'px'; sh.style.marginTop = -pad + 'px';
-        const h = m.lastElementChild.getBoundingClientRect().bottom - m.getBoundingClientRect().top - pad;
-        const needH = Math.max(104, Math.ceil(h + 20)), next = Math.max(8, Math.round((needH - h) / 2));
-        if (needH === H && Math.abs(next - pad) < 1) break;
-        H = needH; pad = next;
+        return m.lastElementChild.getBoundingClientRect().bottom - m.getBoundingClientRect().top - pad;
+      };
+      const center = H => { let pad = 12, h = 0; for (let k = 0; k < 4; k++) { h = textH(H, pad); const next = Math.max(6, Math.round((H - h) / 2)); if (Math.abs(next - pad) < 1) break; pad = next; } return h; };
+      let fits = false;
+      for (const z of TEXT_ZOOM) {
+        m.style.setProperty('--z', z);
+        if (center(CARD_H) + 12 <= CARD_H) { fits = true; break; }
       }
+      if (fits) continue;
+      // mesmo com a letra mais pequena não cabe: só aí o cartão cresce
+      let H = CARD_H;
+      for (let k = 0; k < 4; k++) { const need = Math.ceil(center(H) + 16); if (need <= H) break; H = need; }
     }
   }
   if (document.fonts) document.fonts.ready.then(() => fitMealCards());
