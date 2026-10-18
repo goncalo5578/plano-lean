@@ -1709,21 +1709,29 @@
     refreshing = true;
     setPtr(PTR_GO, true); ptr.classList.add('spin');
     const t0 = Date.now();
-    let updated = false;
     try {
       const reg = 'serviceWorker' in navigator && await navigator.serviceWorker.getRegistration();
-      if (reg) { await reg.update(); updated = !!(reg.installing || reg.waiting); }
+      if (reg) await reg.update();
     } catch (e) { /* sem internet */ }
     await syncCal(true).catch(() => {});
     await new Promise(r => setTimeout(r, Math.max(0, 700 - (Date.now() - t0))));
-    if (updated) { location.reload(); return; } // há versão nova: recarrega e volta ao mesmo sítio
+    // Com internet recarrega sempre: assim apanha a versão nova mesmo que o telemóvel já a tenha descarregado
+    // em segundo plano (a app fica aberta em memória dias seguidos). Volta ao mesmo ecrã.
+    if (navigator.onLine !== false) { location.reload(); return; }
     render();
     ptr.classList.remove('spin'); setPtr(0, true);
     refreshing = false;
     toast(navigator.onLine === false ? 'Sem internet — a mostrar o que está guardado' : 'Atualizado');
   }
+  // Versão nova instalada enquanto a app estava aberta: recarrega quando não estiveres a meio de alguma coisa
+  let newVersion = false;
+  const reloadIfNew = () => { if (newVersion && !(sheetEl && sheetEl.classList.contains('open')) && document.visibilityState === 'visible') location.reload(); };
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => { newVersion = true; reloadIfNew(); });
+  }
   let lastToday = todayKey();
   document.addEventListener('visibilitychange', () => {
+    reloadIfNew();
     if (document.visibilityState !== 'visible') return;
     if (todayKey() !== lastToday) { lastToday = curDay = todayKey(); render(); }
     syncCal().catch(() => {});

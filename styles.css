@@ -663,8 +663,8 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 
 /* Calorias e macros: número grande, tipo de dia à direita */
 .energy { padding: 18px 18px 20px; }
-.energy .energy-top { align-items: flex-start; }
-.energy .big { font-size: 64px; letter-spacing: -.05em; margin-top: 2px; }
+.energy .energy-top { align-items: flex-start; gap: 10px; }
+.energy .big { font-size: clamp(50px, 16.5vw, 64px); letter-spacing: -.05em; margin-top: 2px; }
 .energy .big-lbl { font-size: 15px; }
 .energy .daytype { padding-top: 6px; }
 .energy .track:not(.thin) { height: 10px; margin-top: 18px; }
