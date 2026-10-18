@@ -561,7 +561,7 @@
 
     const leftNum = `<b class="num" data-count="left" data-v="${Math.round(Math.abs(left))}">${n0(Math.abs(left))}</b>`;
     const leftLbl = left >= 0 ? 'kcal por comer' : 'kcal acima da meta';
-    const eatenTxt = `<span>Comido <b data-count="eaten" data-v="${Math.round(P.done.kcal)}">${n0(P.done.kcal)}</b></span><span>Meta <b>${n0(P.goal)}</b> kcal</span>`;
+    const eatenTxt = `<span>Comido <b data-count="eaten" data-v="${Math.round(P.done.kcal)}">${n0(P.done.kcal)}</b> kcal</span><span>Meta <b>${n0(P.goal)}</b> kcal</span>`;
     let h = `
       <section class="card energy">
         <div class="energy-top">
