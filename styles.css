@@ -889,7 +889,7 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .wm:active { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 .wm-t { flex: none; width: 36px; line-height: 1.35; color: var(--ink-3); font-weight: 600; }
 .wm-n { flex: 1; min-width: 0; line-height: 1.35; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.wm.hl .wm-n { color: var(--ink); font-weight: 650; }
+.wm-n { color: var(--ink); font-weight: 650; }
 .wm-tag { flex: none; margin-top: -1px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11px; font-weight: 750; white-space: nowrap; color: var(--tc); background: color-mix(in srgb, var(--tc) 12%, transparent); }
 .wm-tag .ic { width: 12px; height: 12px; stroke-width: 2.3; }
 .wm-tag.take { --tc: var(--accent); }
