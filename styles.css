@@ -367,7 +367,10 @@ a { color: var(--accent); text-decoration: none; }
 .sub em { font-style: normal; color: var(--accent); font-weight: 600; }
 .lo { display: inline-flex; align-items: center; gap: 5px; margin-top: 7px; font-size: 12.5px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 3px 9px 3px 7px; border-radius: 999px; }
 .lo .ic { width: 14px; height: 14px; stroke-width: 2; }
-.note.shiftnote .ic { color: var(--sc); }
+/* Notas dos turnos no Hoje: pequenas e discretas */
+.note.shiftnote { gap: 8px; padding: 9px 12px; margin-top: 10px; border-radius: 14px; font-size: 12.5px; line-height: 1.4; color: var(--ink-3); background: color-mix(in srgb, var(--sc) 7%, transparent); }
+.note.shiftnote .ic { color: var(--sc); width: 15px; height: 15px; margin-top: 1px; }
+.note.shiftnote b { font-size: 12.5px; font-weight: 650; color: var(--ink-2); }
 .note b { color: var(--ink); font-weight: 650; }
 .link { color: var(--accent); font-weight: 600; font-size: inherit; }
 .switch { width: 51px; height: 31px; border-radius: 99px; background: var(--fill); position: relative; flex: none; transition: background .2s; box-shadow: inset 0 0 0 1px var(--sep); }
