@@ -433,7 +433,7 @@
     $hdr.innerHTML = `<div><div class="over">${over}</div><h1>${title}</h1></div><div class="hdr-actions">${actions}</div>`;
     $top.textContent = title.replace(/<[^>]+>/g, '');
   }
-  const onScroll = () => $top.classList.toggle('show', window.scrollY > 56);
+  const onScroll = () => { $top.classList.toggle('show', window.scrollY > 56); document.documentElement.classList.toggle('scrolled', window.scrollY > 4); };
   window.addEventListener('scroll', onScroll, { passive: true });
 
   function toast(msg) {

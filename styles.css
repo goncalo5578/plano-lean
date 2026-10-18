@@ -127,6 +127,14 @@ main { max-width: 600px; margin: 0 auto; padding: 0 16px 24px; outline: none; }
   transition: opacity .22s, transform .35s var(--spring);
 }
 .topbar.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+/* Ao deslizar, o conteúdo vai desaparecendo aos poucos junto à barra das notificações (degradé no topo) */
+body::before {
+  content: ""; position: fixed; left: 0; right: 0; top: 0; z-index: 7; pointer-events: none;
+  height: calc(env(safe-area-inset-top) + 36px);
+  background: linear-gradient(to bottom, var(--bg) 0, color-mix(in srgb, var(--bg) 85%, transparent) 30%, color-mix(in srgb, var(--bg) 40%, transparent) 65%, transparent);
+  opacity: 0; transition: opacity .2s;
+}
+html.scrolled body::before { opacity: 1; }
 
 /* ============ Tab bar ============ */
 .tabs {
