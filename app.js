@@ -525,7 +525,7 @@
       const mid = m.fora ? null : m.meal.id;
       h += `<div class="row tap meal-row mrow ${done ? 'done' : ''}" data-act="meal" data-slot="${id}">
         ${mealPic(mid, id)}${mealPic(mid, id, 'm-band')}
-        <button class="m-tap" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="${done ? 'Desmarcar' : 'Marcar'} ${m.slot.n} como comido"><span class="m-done">${ic('check')}</span></button>
+        <button class="m-tap" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="${done ? 'Desmarcar' : 'Marcar'} ${m.slot.n} como comido"><span class="m-done">${ic('check')}<span>Feita</span></span><span class="m-hollow"></span></button>
         <div class="row-main"><span class="m-shape" aria-hidden="true"></span>
           <div class="over">${m.slot.n} · ${m.slot.t}</div>
           <div class="ttl">${m.fora ? 'Outra refeição' : esc(m.meal.n)}</div>
