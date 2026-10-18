@@ -696,6 +696,61 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .fab-wrap { bottom: calc(86px + env(safe-area-inset-bottom)); }
 .toast { bottom: calc(100px + env(safe-area-inset-bottom)); }
 
+/* Telemóveis mais pequenos (ou com letra/ecrã ampliados nas definições) */
+@media (max-width: 389px) {
+  main { padding-left: 12px; padding-right: 12px; }
+  .hdr { padding-left: 12px; padding-right: 12px; }
+  .hdr h1 { font-size: 29px; }
+  .pill-btn { height: 32px; padding: 0 12px; font-size: 13.5px; }
+  .day-stage { margin: 0 -12px; padding: 0 12px; }
+  .day-pane.ghost { left: 12px; right: 12px; }
+  .strip { gap: 4px; margin-bottom: 12px; }
+  .strip button { padding: 9px 0 7px; }
+  .strip .wd { font-size: 11px; }
+  .strip .dn, .strip .sel .dn { font-size: 15.5px; }
+  .card, .energy { padding: 15px; }
+  .energy .energy-top { gap: 8px; }
+  .energy .big { font-size: clamp(40px, 13.5vw, 56px); }
+  .energy .big-lbl { font-size: 13.5px; }
+  .energy .daytype { gap: 7px; padding-top: 3px; }
+  .energy .daytype .dt-ic { width: 30px; height: 30px; border-radius: 10px; }
+  .energy .daytype .dt-ic .ic { width: 17px; height: 17px; }
+  .energy .daytype b { font-size: 13px; }
+  .energy .daytype small { font-size: 11.5px; }
+  .energy .track:not(.thin) { margin-top: 14px; }
+  .macros3 { gap: 10px; margin-top: 14px; padding-top: 13px; }
+  .m-lbl { font-size: 12px; }
+  .m-val b { font-size: 15.5px; }
+  .m-val { font-size: 12px; }
+  .sec-h { font-size: 18px; margin-top: 22px; }
+  .mcards { gap: 8px; }
+  .mcards > .row { padding: 12px; gap: 10px; }
+  .m-ic { width: 36px; height: 36px; border-radius: 12px; }
+  .m-ic .ic { width: 19px; height: 19px; }
+  .row .ttl { font-size: 15px; }
+  .row .over { font-size: 12px; }
+  .row .sub { font-size: 12.5px; }
+  .check { width: 26px; height: 26px; }
+  .water { gap: 10px; }
+  .water .w-ic { width: 36px; height: 36px; }
+  .stepper { gap: 6px; }
+  .stepper button { width: 34px; height: 34px; }
+  .tabs { left: 8px; right: 8px; padding: 6px; bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .tabs button { font-size: 10px; gap: 2px; padding: 6px 0 5px; }
+  .tabs .ic { width: 23px; height: 23px; }
+  body { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .fab-wrap { bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .weeknav { top: calc(env(safe-area-inset-top) + 46px); }
+  .kpis b { font-size: 18px; }
+  .row { padding: 12px 14px; }
+  .day-date { width: 38px; }
+  .tile-grid { gap: 8px; }
+  .ptile { min-height: 104px; padding: 12px; }
+  .me-stats b { font-size: 17px; }
+  .seg-shop { grid-auto-flow: row; grid-template-columns: 1fr 1fr; gap: 2px; }
+  .seg-shop button { font-size: 13px; padding: 7px 0; letter-spacing: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
