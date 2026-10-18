@@ -88,17 +88,18 @@
 
   // ================= Cálculos =================
   const r10 = x => Math.round(x / 10) * 10;
-  function targets(p = S.profile) {
+  // k: um dia da semana a calcular — conta os treinos dessa semana como estão na Escala (não só os dias habituais)
+  function targets(k = todayKey(), p = S.profile) {
     const bmr = 10 * p.peso + 6.25 * p.altura - 5 * p.idade - 161; // Mifflin-St Jeor (mulher)
     const tdee = bmr * p.atividade;
     const avg = tdee * (1 - p.defice / 100);
-    const nT = p.treinoDias.length, diff = 200; // +200 kcal (hidratos) nos dias de treino
+    const mon = mondayOf(k), nT = [0, 1, 2, 3, 4, 5, 6].filter(i => dayType(addDays(mon, i)) === 'T').length, diff = 200; // +200 kcal (hidratos) nos dias de treino
     const rest = r10(avg - (nT * diff) / 7);
     const train = rest + diff;
     const prot = Math.round(2.0 * p.peso);
     const fat = Math.round(0.9 * p.peso);
     const carbs = k => Math.round((k - prot * 4 - fat * 9) / 4);
-    return { bmr, tdee, avg, rest, train, prot, fat, cT: carbs(train), cD: carbs(rest) };
+    return { bmr, tdee, avg, rest, train, prot, fat, cT: carbs(train), cD: carbs(rest), nT };
   }
 
   const ALL_MEALS = Object.values(MEALS).flat();
@@ -252,7 +253,7 @@
 
   function dayPlan(k) {
     const st = peekDay(k), type = dayType(k), t = type === 'T' ? 1 : 0;
-    const T = targets();
+    const T = targets(k);
     const goal = t ? T.train : T.rest;
     const meals = activeSlots(k).map(s => {
       const m = mealById(mealIdAt(k, s.id));
@@ -1519,7 +1520,7 @@
         </div>
         <div class="prose" style="margin-top:12px"><p>Nos <b>dias de treino</b> comes mais 200 kcal, quase tudo em hidratos, para teres energia e recuperares. A <b>proteína</b> é igual todos os dias (2 g por kg) para manter o músculo enquanto perdes gordura. A <b>gordura</b> nunca desce deste mínimo, porque é precisa para as hormonas e o ciclo. Os <b>hidratos</b> ocupam o resto das calorias e são o que a app ajusta em cada refeição.</p></div>
         <div class="group-label">Como são calculadas</div>
-        <div class="list">${kv('Metabolismo basal', `${n0(T.bmr)} kcal`)}${kv(`Gasto diário (× ${String(p.atividade).replace('.', ',')})`, `${n0(T.tdee)} kcal`)}${kv(`Média com défice de ${p.defice}%`, `${n0(T.avg)} kcal`)}${kv('Dia de treino', `${n0(T.train)} kcal`)}${kv('Dia de descanso', `${n0(T.rest)} kcal`)}</div>
+        <div class="list">${kv('Metabolismo basal', `${n0(T.bmr)} kcal`)}${kv(`Gasto diário (× ${String(p.atividade).replace('.', ',')})`, `${n0(T.tdee)} kcal`)}${kv(`Média com défice de ${p.defice}%`, `${n0(T.avg)} kcal`)}${kv('Treinos esta semana', `${T.nT}`)}${kv('Dia de treino', `${n0(T.train)} kcal`)}${kv('Dia de descanso', `${n0(T.rest)} kcal`)}</div>
         <div class="group-label">Macronutrientes</div><div class="list">${kv('<i class="dot bg-p"></i>&nbsp; Proteína · 2,0 g/kg', `${T.prot} g`)}${kv('<i class="dot bg-f"></i>&nbsp; Gordura · 0,9 g/kg', `${T.fat} g`)}${kv('<i class="dot bg-c"></i>&nbsp; Hidratos treino / descanso', `${T.cT} / ${T.cD} g`)}${kv('IMC', n1(p.peso / (p.altura / 100) ** 2))}</div>
         <div class="prose" style="margin-top:12px"><p>O IMC está no intervalo saudável, por isso o objetivo é <b>recomposição</b>: perder gordura devagar mantendo — ou ganhando — músculo. Défice pequeno, proteína alta e treino de força dão um aspeto definido sem perder energia.</p>
         <p style="color:var(--ink-2);font-size:14px">Fórmula de Mifflin-St Jeor. Disponibilidade energética estimada num dia de treino: ~${ea} kcal por kg de massa magra, acima do limiar de risco (~30).</p></div>`;
