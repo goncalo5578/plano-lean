@@ -1039,7 +1039,7 @@
         <div class="wk-lbl" aria-live="polite"><b>${lbl}</b><span class="num">${range}</span></div>
         <button class="circle-btn press" data-act="wk" data-d="1" aria-label="Semana seguinte">${ic('chevR', 'sm')}</button></div>
       <div class="day-stage"><div class="day-pane week-pane">
-      <section class="card wk-shifts tap" data-act="escala" role="button" tabindex="0" aria-label="Turnos e treinos da semana. Mudar"><h2 class="sec-h">Turnos <small>toca para mudar ${ic('chevR', 'sm')}</small></h2><div class="wk-strip">${plans.map((P, i) => {
+      <section class="card wk-shifts tap" data-act="escala" role="button" tabindex="0" aria-label="Turnos e treinos da semana. Mudar"><h2 class="sec-h">Turnos <small>Escala ${ic('chevR', 'sm')}</small></h2><div class="wk-strip">${plans.map((P, i) => {
         const c = shiftCfg(P.shift);
         return `<span class="wks ${P.shift !== 'F' ? 'work' : ''} ${P.k === todayKey() ? 'today' : ''}" style="--sc:${c.col}" aria-hidden="true">
           <span class="wks-c">${ic(SHIFT_IC[P.shift] || 'leaf')}${P.type === 'T' ? `<span class="wks-tr">${ic('dumbbell')}</span>` : ''}</span><small>${P.k === todayKey() ? 'Hoje' : DOW_S[i]}</small></span>`;
