@@ -995,3 +995,28 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ============ Compras no estilo do Hoje ============ */
+.shop-nav { padding: 6px; border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--soft); }
+.shop-nav .seg { background: transparent; padding: 0; margin: 0; gap: 4px; }
+.shop-nav .seg button { border-radius: 14px; padding: 9px 0; color: var(--ink-3); font-weight: 650; }
+.shop-nav .seg button.on { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
+.shop-sum .daytype small { white-space: nowrap; }
+.shop-box { margin-top: 12px; }
+.shop-box .shop-h { display: flex; align-items: center; gap: 10px; }
+.shop-h .cat-ic { width: 32px; height: 32px; border-radius: 11px; display: grid; place-items: center; flex: none; color: var(--cc); background: color-mix(in srgb, var(--cc) 14%, transparent); }
+.shop-h .cat-ic .ic { width: 18px; height: 18px; stroke-width: 2; }
+.shop-h .cat-n { flex: 1; min-width: 0; font-size: 18px; }
+.shop-h .cat-c { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 600; color: var(--ink-3); }
+.shop-h .cat-c.ok { color: var(--accent); }
+.shop-h .cat-c .ic { width: 15px; height: 15px; stroke-width: 2.6; }
+.shop-box .mcards { grid-template-columns: minmax(0, 1fr); }
+.shop-box .mcards > .shop-row { background: var(--surface-2); padding: 12px 12px 12px 14px; min-height: 56px; }
+.shop-box .mcards > .shop-row.m-last { border-radius: 8px 8px 20px 20px; }
+.shop-box .mcards > .shop-row:first-child.m-last { border-radius: 20px; }
+.shop-box .mcards > .shop-row.tap:active { background: color-mix(in srgb, var(--ink) 7%, var(--surface)); }
+.shop-box .shop-row .ttl { font-size: 15px; font-weight: 650; }
+.shop-box .shop-row .amt { background: var(--surface); box-shadow: var(--soft); font-weight: 650; }
+.shop-box .cb { width: 26px; height: 26px; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ink-3) 60%, transparent); }
+.shop-box .got .ttl { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.shop-box .got .amt { background: transparent; box-shadow: none; }

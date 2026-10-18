@@ -1170,12 +1170,13 @@
   function renderCompras() {
     const r = shopRange(), k = r.key, cats = shopItems(), got = S.shop[k] || {};
     const all = Object.values(cats).flat(), total = all.length, nGot = all.filter(i => got[i.f]).length, left = total - nGot, days = daysIn(r);
-    header(rangeTxt(r), 'Compras', `<button class="circle-btn press" data-act="share" aria-label="Partilhar lista">${ic('share', 'sm')}</button>`);
-    let h = `<div class="seg full seg-shop" role="group" aria-label="Período">${SHOP_MODES.map(([v, l]) => `<button class="${shopMode === v ? 'on' : ''}" data-act="sw" data-w="${v}">${l}</button>`).join('')}</div>
-      <section class="card shop-sum">
+    header(rangeTxt(r), 'Compras', `<button class="shift-btn press" style="--sc:var(--accent)" data-act="share" aria-label="Partilhar lista"><span class="sb-ic">${ic('share')}</span><span class="sb-t"><b>Partilhar</b></span></button>`);
+    // No estilo do Hoje: período num cartão, resumo como o cartão das calorias e cada categoria num cartão com os artigos empilhados
+    let h = `<div class="shop-nav"><div class="seg full seg-shop" role="group" aria-label="Período">${SHOP_MODES.map(([v, l]) => `<button class="${shopMode === v ? 'on' : ''}" data-act="sw" data-w="${v}">${l}</button>`).join('')}</div></div>
+      <section class="card energy shop-sum">
         <div class="energy-top">
           <div><div class="big num" data-count="shopleft" data-v="${left}">${left}</div><div class="big-lbl">${left === 1 ? 'artigo por comprar' : 'artigos por comprar'}</div></div>
-          <div class="shop-days">${ic('cal', 'sm')}<span class="num"><b>${days}</b> ${days === 1 ? 'dia' : 'dias'}</span></div>
+          <div class="daytype is-rest"><span class="dt-ic">${ic('cal')}</span><div><b class="num">${days} ${days === 1 ? 'dia' : 'dias'}</b><small>${SHOP_MODES.find(x => x[0] === shopMode)[1].replace('Próx.', 'Próximo').replace('Próximo semana', 'Próxima semana')}</small></div></div>
         </div>
         <div class="track"><i style="width:${total ? (nGot / total) * 100 : 0}%"></i></div>
         <div class="meta num"><span>Comprado <b>${nGot}</b> de ${total}</span>${nGot ? '<button class="link" data-act="clear">Limpar</button>' : ''}</div>
@@ -1184,22 +1185,23 @@
     for (const c of CAT_ORDER) {
       if (!cats[c]) continue;
       const [icon, col] = CAT_STYLE[c] || ['box', 'var(--ink-3)'];
-      const cGot = cats[c].filter(it => got[it.f]).length, complete = cGot === cats[c].length;
-      h += `<div class="shop-cat" style="--cc:${col}"><span class="cat-ic">${ic(icon)}</span><span class="cat-n">${c}</span>
-        <span class="cat-c num ${complete ? 'ok' : ''}">${complete ? ic('check') : `${cGot}/${cats[c].length}`}</span></div><div class="list">`;
-      for (const it of cats[c]) {
+      const n = cats[c].length, cGot = cats[c].filter(it => got[it.f]).length, complete = cGot === n;
+      h += `<section class="meal-box shop-box" style="--cc:${col}"><h2 class="sec-h shop-h"><span class="cat-ic">${ic(icon)}</span><span class="cat-n">${c}</span>
+        <small class="cat-c num ${complete ? 'ok' : ''}">${complete ? `${ic('check')}Tudo` : `${cGot} de ${n}`}</small></h2><div class="mcards">`;
+      cats[c].forEach((it, i) => {
         const A = amountTxt(it.f, it.g), on = !!got[it.f];
-        h += `<button class="row tap shop-row ${on ? 'got' : ''}" data-act="got" data-f="${it.f}" aria-pressed="${on}">
+        h += `<button class="row tap shop-row ${on ? 'got' : ''} ${i === n - 1 ? 'm-last' : ''}" data-act="got" data-f="${it.f}" aria-pressed="${on}">
           <span class="cb">${ic('check')}</span>
           <span class="row-main"><span class="ttl">${esc(food(it.f).n)}</span>${A.h ? `<span class="sub">${A.h}</span>` : ''}</span>
           <span class="amt num">${A.a}</span></button>`;
-      }
-      h += `</div>`;
+      });
+      h += `</div></section>`;
     }
     if (r.month) h += `<div class="note">${ic('info')}<div>Fruta, legumes, carne e peixe frescos aguentam poucos dias: congela-os ou compra-os semana a semana.</div></div>`;
     h += `<p class="cap">Inclui as trocas de refeições feitas para esse período. Temperos (alho, cebola, limão, ervas, especiarias, vinagre, molho de soja, tomate pelado) não estão na lista.</p>`;
     $view.innerHTML = h;
   }
+
   async function shareList() {
     const cats = shopItems(), got = S.shop[shopKey()] || {};
     let txt = `Lista de compras · ${rangeTxt(shopRange())}\n`;
