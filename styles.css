@@ -565,7 +565,7 @@ details.hist .hist-list .row { box-shadow: inset 0 .5px 0 var(--sep); }
 .check.on { animation: checkPop .42s var(--spring); }
 .got .cb { animation: checkPop .42s var(--spring); }
 @keyframes checkPop { 0% { transform: scale(.7); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
-.meal-row .ttl, .shop-row .ttl, .shop-row .val { transition: color .25s; }
+.meal-row.m-anim .ttl, .shop-row .ttl, .shop-row .val { transition: color .25s; }
 
 /* Toques */
 .row.tap { transition: background .18s; }
@@ -712,7 +712,7 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
    A altura e o centrar do texto são acertados em JS (fitMealCards). */
 .mcards { --iw: 140px; }
 .mcards > .row.mrow { position: relative; overflow: hidden; padding: 0; gap: 0; align-items: center; min-height: 104px; }
-.m-pic, .m-band { position: absolute; left: 0; top: 0; bottom: 0; width: var(--iw); overflow: hidden; pointer-events: none; transition: opacity .25s; }
+.m-pic, .m-band { position: absolute; left: 0; top: 0; bottom: 0; width: var(--iw); overflow: hidden; pointer-events: none; }
 .m-pic { clip-path: polygon(0 0, 64% 0, 90% 100%, 0 100%); display: grid; place-items: center; padding-right: 34px; color: #fff;
   background: radial-gradient(circle at 88% -6%, rgba(255, 255, 255, .16) 0 36px, transparent 37px), radial-gradient(circle at -4% 104%, rgba(255, 255, 255, .12) 0 30px, transparent 31px), linear-gradient(135deg, var(--g1), var(--g2)); }
 .m-pic .ic { width: 44px; height: 44px; stroke-width: 1.6; }
@@ -731,15 +731,19 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 /* Tocar na imagem marca como comido: a imagem fica mais transparente, com um visto e "Feita" por cima.
    Por fazer, um círculo translúcido com um visto no canto mostra que se pode tocar. */
 .m-tap { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--iw) * .8); z-index: 2; display: grid; place-items: center; padding-right: 6px; background: none; -webkit-tap-highlight-color: transparent; }
-.m-done { display: flex; flex-direction: column; align-items: center; gap: 0; color: var(--accent); font-size: 14.5px; font-weight: 750; letter-spacing: -.01em; opacity: 0; transform: scale(.6); transition: opacity .2s, transform .4s var(--spring); }
+.m-done { display: flex; flex-direction: column; align-items: center; gap: 0; color: var(--accent); font-size: 14.5px; font-weight: 750; letter-spacing: -.01em; opacity: 0; transform: scale(.6); }
 .m-done .ic { width: 44px; height: 44px; margin: -6px 0 -9px; stroke-width: 2.3; } /* o desenho do visto tem espaço vazio em cima e em baixo: as margens negativas aproximam o texto */
-.m-done .ic path { stroke-dasharray: 22; stroke-dashoffset: 22; transition: stroke-dashoffset .32s .1s var(--ease-out); }
+.m-done .ic path { stroke-dasharray: 22; stroke-dashoffset: 22; }
 .mrow.done .m-done { opacity: 1; transform: none; }
 .mrow.done .m-done .ic path { stroke-dashoffset: 0; }
-.m-hollow { position: absolute; left: 10px; bottom: 10px; width: 24px; height: 24px; border-radius: 50%; background: rgba(255, 255, 255, .28); transition: opacity .2s; }
+.m-hollow { position: absolute; left: 10px; bottom: 10px; width: 24px; height: 24px; border-radius: 50%; background: rgba(255, 255, 255, .28); }
 .m-hollow::after { content: ""; position: absolute; left: 8.5px; top: 5px; width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .mrow.done .m-hollow { opacity: 0; }
-.m-pic .ic { transition: opacity .2s; }
+/* As animações de "feita" só correm na refeição em que acabaste de tocar (.m-anim); a mudar de dia aparecem logo no estado certo */
+.mrow.m-anim .m-pic, .mrow.m-anim .m-band { transition: opacity .25s; }
+.mrow.m-anim .m-done { transition: opacity .2s, transform .4s var(--spring); }
+.mrow.m-anim .m-done .ic path { transition: stroke-dashoffset .32s .1s var(--ease-out); }
+.mrow.m-anim .m-hollow, .mrow.m-anim .m-pic .ic { transition: opacity .2s; }
 .mrow.done .m-pic .ic { opacity: 0; }
 .mrow.done .m-pic { opacity: .4; }
 .mrow.done .m-band { opacity: .18; }
@@ -757,7 +761,8 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .meal-box { background: var(--surface); border-radius: 28px; padding: 14px 8px 8px; margin-top: 22px; box-shadow: var(--soft); }
 .meal-box .sec-h { margin: 0 8px 10px; }
 .meal-prog { display: flex; gap: 4px; margin: 0 8px 12px; }
-.meal-prog i { flex: 1; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--c1) 22%, transparent); transition: background .35s; }
+.meal-prog i { flex: 1; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--c1) 22%, transparent); }
+.meal-box.m-anim .meal-prog i { transition: background .35s; }
 .meal-prog i.on { background: var(--c1); }
 .meal-box .mcards { gap: 3px; }
 .meal-box .mcards > .row { border-radius: 8px; box-shadow: none; }

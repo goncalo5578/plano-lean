@@ -399,11 +399,14 @@
   }
   // anim: 'fade' (mudar de aba) · 'push' (entrar numa página) · 'pop' (voltar) · 'next' / 'prev' (outro dia ou semana)
   const V_ANIM = ['v-fade', 'v-push', 'v-pop', 'v-next', 'v-prev'];
+  let slideT = 0;
   function render(anim) {
     $tabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     // Mudar de dia (Hoje) ou de semana (Semana): o atual sai por um lado enquanto o novo entra pelo outro (carrossel)
     const slide = (tab === 'hoje' || tab === 'semana') && (anim === 'next' || anim === 'prev');
-    const oldPane = slide ? $view.querySelector('.day-pane') : null;
+    if (slide) { clearTimeout(slideT); $view.querySelectorAll('.day-pane.ghost').forEach(g => g.remove()); } // cancela a passagem anterior se ainda estava a meio
+    const oldPane = slide ? $view.querySelector('.day-pane:not(.ghost)') : null;
+    if (oldPane) { oldPane.classList.remove('in-left', 'in-right'); oldPane.style.removeProperty('--dx'); }
     const ghost = oldPane ? oldPane.cloneNode(true) : null;
     const dragDx = oldPane ? oldPane.style.getPropertyValue('--dx') : ''; // se veio de arrastar com o dedo, continua daí
     morphNext = !anim || slide; // no carrossel só se atualiza o que muda (título e botões ficam quietos)
@@ -421,7 +424,7 @@
         pane.classList.add(anim === 'next' ? 'in-right' : 'in-left');
         if (dragDx) pane.style.setProperty('--dx', dragDx);
         stage.appendChild(ghost);
-        setTimeout(() => { ghost.remove(); pane.classList.remove('in-right', 'in-left'); pane.style.removeProperty('--dx'); }, 450);
+        slideT = setTimeout(() => { ghost.remove(); pane.classList.remove('in-right', 'in-left'); pane.style.removeProperty('--dx'); }, 450);
       }
     }
     animateCounts(!!anim); // só conta ao marcar refeições, água, etc. (no mesmo dia)
@@ -580,7 +583,8 @@
     if (afterNight(curDay)) { const pn = shiftCfg('PN'); h += shiftNote('pn', pn.col, 'moon', 'Depois de uma noite', pn.tip); }
 
     // Refeições num só cartão: título, barra com uma parte por refeição (enche ao marcar) e os cartões encaixados
-    h += `<section class="meal-box"><h2 class="sec-h">Refeições <small class="num">${P.nDone} de ${P.meals.length}</small></h2>
+    const anim = animSlot; animSlot = null;
+    h += `<section class="meal-box ${anim ? 'm-anim' : ''}"><h2 class="sec-h">Refeições <small class="num">${P.nDone} de ${P.meals.length}</small></h2>
       <div class="meal-prog" aria-hidden="true">${P.meals.map(m => `<i class="${P.st.done[m.slot.id] || m.fora ? 'on' : ''}" style="--c1:${SLOT_GRAD[m.slot.id][1]}"></i>`).join('')}</div><div class="mcards">`;
     P.meals.forEach((m, mi) => {
       const id = m.slot.id, done = !!P.st.done[id] || !!m.fora;
@@ -590,7 +594,7 @@
       // cada refeição num cartão: imagem à esquerda com recorte na diagonal e faixa; o texto acompanha o recorte.
       // Tocar na imagem marca como comido; o resto do cartão (com a seta) abre a receita.
       const mid = m.fora ? null : m.meal.id;
-      h += `<div class="row tap meal-row mrow ${done ? 'done' : ''} ${mi === P.meals.length - 1 ? 'm-last' : ''}" data-act="meal" data-slot="${id}">
+      h += `<div class="row tap meal-row mrow ${done ? 'done' : ''} ${id === anim ? 'm-anim' : ''} ${mi === P.meals.length - 1 ? 'm-last' : ''}" data-act="meal" data-slot="${id}">
         ${mealPic(mid, id)}${mealPic(mid, id, 'm-band')}
         <button class="m-tap" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="${done ? 'Desmarcar' : 'Marcar'} ${m.slot.n} como comido"><span class="m-done">${ic('check')}<span>Feita</span></span><span class="m-hollow"></span></button>
         <div class="row-main"><span class="m-shape" aria-hidden="true"></span>
@@ -993,6 +997,8 @@
       } });
   }
 
+  // refeição acabada de marcar/desmarcar: só ela anima (mudar de dia ou abrir a app não repete a animação)
+  let animSlot = null;
   function toggleDone(slot) {
     const st = dayState(curDay);
     if (st.fora && st.fora[slot]) { delete st.fora[slot]; st.done[slot] = false; }
@@ -1574,7 +1580,7 @@
       case 'type': if (b.dataset.v !== dayType(curDay)) toggleTrain(curDay); break;
       case 'dayset': openSheet(daySheet(curDay)); return;
       case 'escala': openSheet(escalaSheet()); return;
-      case 'done': toggleDone(b.dataset.slot); if (sheetEl && sheetEl.classList.contains('open')) closeSheet(); break;
+      case 'done': animSlot = b.dataset.slot; toggleDone(b.dataset.slot); if (sheetEl && sheetEl.classList.contains('open')) closeSheet(); break;
       case 'meal': if (sheetEl) delete sheetEl.dataset.mode; msDoses = 1; openSheet(mealSheet(b.dataset.slot)); return;
       case 'shiftnote': {
         const m = S.profile.notaMin ||= (S.profile.notaTurnoMin ? { turno: true, pn: true } : {});
@@ -1674,7 +1680,7 @@
         if (b.dataset.id === WEEK[dowIdx(curDay)][slot]) delete st.swaps[slot]; else st.swaps[slot] = b.dataset.id;
         delete sheetEl.dataset.mode; refresh(); sheetBody.scrollTop = 0; toast('Refeição trocada'); return;
       }
-      case 'done': toggleDone(slot); render(); closeSheet(); return;
+      case 'done': animSlot = slot; toggleDone(slot); render(); closeSheet(); return;
       case 'fora': { const st = dayState(curDay); (st.fora ||= {})[slot] = +b.dataset.kcal; st.done[slot] = false; save(); render(); closeSheet(); toast('Registado'); return; }
       case 'unfora': { const st = dayState(curDay); delete st.fora[slot]; refresh(); return; }
       case 'unlink': S.links[LK(curDay, slot)] = 'none'; refresh(); toast('Sem sobras nesta refeição'); return;
