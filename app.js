@@ -398,7 +398,13 @@
     if (t === 'hoje' && tab === 'hoje' && !subpage) curDay = todayKey();
     if (t === 'semana' && tab !== 'semana') weekOffset = 1; // a Semana serve para preparar a próxima: abre sempre nela
     tab = t; sub = subpage;
-    render('fade'); window.scrollTo(0, 0);
+    render('fade'); toTop();
+  }
+  // Topo já e outra vez nos dois frames seguintes: no Android, um toque logo a seguir a deslizar
+  // pode repor a posição antiga depois do scrollTo (a página nova abria a meio, só com as calorias à vista)
+  function toTop() {
+    window.scrollTo(0, 0);
+    requestAnimationFrame(() => { window.scrollTo(0, 0); requestAnimationFrame(() => window.scrollTo(0, 0)); });
   }
   // anim: 'fade' (mudar de aba) · 'push' (entrar numa página) · 'pop' (voltar) · 'next' / 'prev' (outro dia ou semana)
   const V_ANIM = ['v-fade', 'v-push', 'v-pop', 'v-next', 'v-prev'];
@@ -1856,6 +1862,9 @@
   // O histórico do browser acompanha a profundidade. As entradas novas só são criadas durante um toque
   // (o Chrome do Android salta entradas criadas sem toque), e o "voltar" só desfaz — nunca cria.
   let histD = (history.state && history.state.d) || 0, pendingPops = 0, inPop = false;
+  // O botão de voltar usa entradas no histórico; ao recuar nelas (ex.: Semana → abrir um dia no Hoje) o browser repunha
+  // a posição antiga da página e o Hoje abria a meio, só com as calorias à vista. A app trata do scroll sozinha.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   function syncGuard() {
     if (inPop) return;
     const t = uiDepth();
