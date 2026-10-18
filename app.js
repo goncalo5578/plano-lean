@@ -418,14 +418,17 @@
   }
 
   // ================= Folha (bottom sheet) =================
-  let sheetEl = null, backEl = null, sheetRender = null;
+  let sheetEl = null, sheetBody = null, backEl = null, sheetRender = null; // sheetBody: a parte de dentro, a que desliza
   let sheetNoClose = false;
   function openSheet(renderFn, { noClose = false } = {}) {
     sheetRender = renderFn; sheetNoClose = noClose;
     if (!sheetEl) {
       backEl = document.createElement('div'); backEl.className = 'backdrop';
       sheetEl = document.createElement('div'); sheetEl.className = 'sheet'; sheetEl.setAttribute('role', 'dialog'); sheetEl.setAttribute('aria-modal', 'true');
-      smartHTML(sheetEl);
+      // A janela (cantos arredondados) não desliza; quem desliza é uma caixa por dentro.
+      // Assim o Android recorta sempre os cantos (numa caixa com scroll às vezes deixava-os retos).
+      sheetBody = document.createElement('div'); sheetBody.className = 'sheet-in'; sheetEl.appendChild(sheetBody);
+      smartHTML(sheetBody);
       document.body.append(backEl, sheetEl);
       backEl.addEventListener('click', closeSheet);
       sheetEl.addEventListener('click', onSheetClick);
@@ -440,7 +443,7 @@
         holdT = setTimeout(() => { holdT = setInterval(() => stepWeight(d), 70); }, 450);
       });
       let y0 = null;
-      sheetEl.addEventListener('touchstart', e => { y0 = sheetEl.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
+      sheetEl.addEventListener('touchstart', e => { y0 = sheetBody.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
       sheetEl.addEventListener('touchmove', e => {
         if (y0 == null) return; const dy = e.touches[0].clientY - y0;
         if (dy > 0) { sheetEl.style.transition = 'none'; sheetEl.style.transform = `translateY(${dy}px)`; backEl.style.transition = 'none'; backEl.style.opacity = String(Math.max(0, 1 - dy / 450)); dimBar(true, 60); }
@@ -456,7 +459,7 @@
     backEl.hidden = sheetEl.hidden = false;
     void sheetEl.offsetHeight; // garante a animação de entrada depois de display:none
     backEl.classList.add('open'); sheetEl.classList.add('open'); barTo(true);
-    sheetEl.scrollTop = 0;
+    sheetBody.scrollTop = 0;
     document.body.style.overflow = 'hidden';
     syncGuard();
   }
@@ -464,7 +467,7 @@
   function paintSheet() {
     // Sem botão X: fecha-se a deslizar para baixo, a tocar fora, com o "voltar" do telemóvel ou nos botões da própria folha
     morphNext = !sheetFresh;
-    sheetEl.innerHTML = `<div class="grabber" aria-hidden="true"></div>${sheetRender()}`;
+    sheetBody.innerHTML = `<div class="grabber" aria-hidden="true"></div>${sheetRender()}`;
     morphNext = false;
     syncGuard();
   }
@@ -1621,12 +1624,12 @@
     const slot = b.dataset.slot;
     const refresh = () => { save(); render(); paintSheet(); };
     switch (a) {
-      case 'mode': sheetEl.dataset.mode = b.dataset.v; paintSheet(); sheetEl.scrollTo({ top: sheetEl.scrollHeight, behavior: 'smooth' }); return;
+      case 'mode': sheetEl.dataset.mode = b.dataset.v; paintSheet(); sheetBody.scrollTo({ top: sheetBody.scrollHeight, behavior: 'smooth' }); return;
       case 'pick': {
         const st = dayState(curDay);
         if (sourceOf(curDay, slot)) S.links[LK(curDay, slot)] = 'none';
         if (b.dataset.id === WEEK[dowIdx(curDay)][slot]) delete st.swaps[slot]; else st.swaps[slot] = b.dataset.id;
-        delete sheetEl.dataset.mode; refresh(); sheetEl.scrollTop = 0; toast('Refeição trocada'); return;
+        delete sheetEl.dataset.mode; refresh(); sheetBody.scrollTop = 0; toast('Refeição trocada'); return;
       }
       case 'done': toggleDone(slot); render(); closeSheet(); return;
       case 'fora': { const st = dayState(curDay); (st.fora ||= {})[slot] = +b.dataset.kcal; st.done[slot] = false; save(); render(); closeSheet(); toast('Registado'); return; }
@@ -1641,7 +1644,7 @@
       case 'lmrem': { const st = dayState(curDay); st.lm = false; delete st.done.lm; if (st.fora) delete st.fora.lm; save(); render(); closeSheet(); toast('Lanche da manhã retirado'); return; }
       case 'redit': openEditor(mealById(b.dataset.id)); return;
       case 'rnew': openEditor(null, b.dataset.slot, b.dataset.pick ? { k: curDay, slot } : null); return;
-      case 'rview': syncDraftFromDom(); stopScan(); rDraft.view = b.dataset.v; paintSheet(); sheetEl.scrollTop = 0;
+      case 'rview': syncDraftFromDom(); stopScan(); rDraft.view = b.dataset.v; paintSheet(); sheetBody.scrollTop = 0;
         if (b.dataset.v === 'food') sheetEl.querySelector('#f_q').focus();
         if (b.dataset.v === 'scan') startScan();
         return;
@@ -1789,7 +1792,7 @@
   }
   function backStep() {
     if (sheetOpen()) {
-      if (sheetRender === editorSheet && rDraft && rDraft.view !== 'edit') { stopScan(); rDraft.view = rDraft.view === 'food' ? 'edit' : 'food'; paintSheet(); sheetEl.scrollTop = 0; return; }
+      if (sheetRender === editorSheet && rDraft && rDraft.view !== 'edit') { stopScan(); rDraft.view = rDraft.view === 'food' ? 'edit' : 'food'; paintSheet(); sheetBody.scrollTop = 0; return; }
       if (sheetEl.dataset.mode) { delete sheetEl.dataset.mode; paintSheet(); return; }
       pendingConfirm = null; closeSheet(); return;
     }
