@@ -785,6 +785,13 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .ms-sec h3 { margin: 0 12px 4px; font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
 .ms-sec h3 small { font-size: 13px; font-weight: 500; color: var(--ink-3); letter-spacing: 0; margin-left: 4px; }
 .ms-sec .list { background: none; border-radius: 0; }
+/* Doses nos ingredientes (− / +) */
+.ms-sec h3:has(.ms-doses) { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ms-doses { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px; background: var(--fill); font-size: 13px; font-weight: 700; letter-spacing: 0; }
+.ms-doses b { min-width: 60px; text-align: center; }
+.ms-doses button { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--ink); box-shadow: var(--soft); }
+.ms-doses button:disabled { opacity: .35; }
+.ms-doses .ic { width: 16px; height: 16px; stroke-width: 2.4; }
 .ms-sec .cap { margin: 2px 12px 10px; }
 .ms-sec .steps li::before { background: color-mix(in srgb, var(--slc) 15%, transparent); color: var(--slc); }
 .ms-actions { display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); gap: 8px; margin-top: 10px; }

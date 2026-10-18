@@ -583,6 +583,7 @@
   if (document.fonts) document.fonts.ready.then(() => fitMealCards());
   window.addEventListener('resize', () => fitMealCards());
 
+  let msDoses = 1; // doses a ver nos ingredientes (só na janela de detalhes)
   function mealSheet(slotId) {
     return () => {
       const P = dayPlan(curDay), m = P.meals.find(x => x.slot.id === slotId), isT = P.type === 'T', T = P.T;
@@ -591,9 +592,9 @@
       const col = SLOT_GRAD[slotId][1], mid = m.fora ? null : m.meal.id;
       const sec = (title, body, extra = '') => `<section class="ms-sec" style="--slc:${col}"><h3>${title}</h3>${body}</section>${extra}`;
 
-      // Imagem grande (a tua foto ou a cor da refeição): tocar marca como comido, como no Hoje
-      let h = `<div class="ms-hero ${done ? 'done' : ''}">
-        ${m.fora ? mealPic(null, slotId, 'ms-pic') : `<button class="ms-tap" data-act="msdone" data-slot="${slotId}" aria-pressed="${done}" aria-label="${done ? 'Desmarcar' : 'Marcar'} como comido">${mealPic(mid, slotId, 'ms-pic')}<span class="m-done">${ic('check')}<span>Feita</span></span><span class="m-hollow"></span></button>`}
+      // Imagem grande (a tua foto ou a cor da refeição); aqui não mostra se já foi comida
+      let h = `<div class="ms-hero">
+        ${mealPic(mid, slotId, 'ms-pic')}
         ${m.fora ? '' : `<label class="ms-photo">${ic('camera')}${PHOTO_URL[mid] ? 'Mudar foto' : 'Foto'}<input type="file" accept="image/*" hidden data-photo="${mid}"></label>`}
         <div class="ms-cap"><div class="over">${m.slot.n} · ${m.slot.t}${m.meal.m ? ` <span class="ms-tag">${ic('box')}Marmita</span>` : ''}</div><h2>${esc(m.meal.n)}</h2></div>
       </div>`;
@@ -619,9 +620,12 @@
       }
       if (isT && m.meal.treino && !m.src) h += `<div class="note train">${ic('flame')}<div>${esc(m.meal.treino)}</div></div>`;
 
-      h += sec(m.src ? 'A tua dose' : 'Ingredientes <small>1 dose</small>', `<div class="list">${m.items.map(it => {
-        const hint = cook[it.f] ? `cozinhar ${qty(it.f, cook[it.f])}` : unitHint(it.f, it.g);
-        return `<div class="row ing"><div class="row-main">${esc(food(it.f).n)}</div><div class="q num">${qty(it.f, it.g)}${hint ? `<small>${hint}</small>` : ''}</div></div>`;
+      // Ingredientes para 1 ou mais doses (− / +); com 1 dose mostra também o total a cozinhar quando serve outras refeições
+      const nd = msDoses, scale = g => Math.round(g * nd);
+      const dosesCtl = `<span class="ms-doses num"><button class="press" data-act="doses" data-d="-1" aria-label="Menos uma dose" ${nd <= 1 ? 'disabled' : ''}>${ic('minus')}</button><b>${nd} ${nd === 1 ? 'dose' : 'doses'}</b><button class="press" data-act="doses" data-d="1" aria-label="Mais uma dose" ${nd >= 8 ? 'disabled' : ''}>${ic('plus')}</button></span>`;
+      h += sec(`<span>${m.src ? 'A tua dose' : 'Ingredientes'}</span>${dosesCtl}`, `<div class="list">${m.items.map(it => {
+        const g = scale(it.g), hint = nd === 1 && cook[it.f] ? `cozinhar ${qty(it.f, cook[it.f])}` : unitHint(it.f, g);
+        return `<div class="row ing"><div class="row-main">${esc(food(it.f).n)}</div><div class="q num">${qty(it.f, g)}${hint ? `<small>${hint}</small>` : ''}</div></div>`;
       }).join('')}</div>`);
       if (!m.src) h += sec('Preparação', `<div class="list"><ol class="steps">${steps(m.meal.prep)}</ol></div>`);
 
@@ -654,7 +658,6 @@
       // Ações: marcar em destaque; as outras em quadrados lado a lado
       const acts = [
         mode === 'alts' ? '' : `<button class="ms-act press" data-act="mode" data-v="alts">${ic('swap')}<span>Trocar</span></button>`,
-        m.src || m.fora ? '' : `<button class="ms-act press" data-act="redit" data-id="${m.meal.id}">${ic('edit')}<span>Editar</span></button>`,
         m.fora || mode === 'fora' ? '' : `<button class="ms-act press" data-act="mode" data-v="fora">${ic('plate')}<span>Comi outra</span></button>`,
       ].filter(Boolean);
       h += `<div class="btn-stack">${m.fora ? '' : `<button class="btn primary press" data-act="done" data-slot="${slotId}">${done ? 'Desmarcar' : ic('check') + ' Marcar como comido'}</button>`}</div>
@@ -1506,7 +1509,7 @@
       case 'dayset': openSheet(daySheet(curDay)); return;
       case 'escala': openSheet(escalaSheet()); return;
       case 'done': toggleDone(b.dataset.slot); if (sheetEl && sheetEl.classList.contains('open')) closeSheet(); break;
-      case 'meal': if (sheetEl) delete sheetEl.dataset.mode; openSheet(mealSheet(b.dataset.slot)); return;
+      case 'meal': if (sheetEl) delete sheetEl.dataset.mode; msDoses = 1; openSheet(mealSheet(b.dataset.slot)); return;
       case 'shiftnote': S.profile.notaTurnoMin = !S.profile.notaTurnoMin; save(); break;
       case 'agua': { const st = dayState(curDay); st.agua = Math.max(0, Math.min(20, (st.agua || 0) + +b.dataset.d)); save(); break; }
       // Semana
@@ -1588,7 +1591,7 @@
     if (a === 'wdate') { toggleWCal(false); return selectWDate(b.dataset.k); }
     if (a === 'wother') return toggleWCal();
     if (a === 'photodel') return removePhoto(b.dataset.id);
-    if (a === 'msdone') { toggleDone(b.dataset.slot); render(); paintSheet(); return; }
+    if (a === 'doses') { msDoses = Math.max(1, Math.min(8, msDoses + +b.dataset.d)); paintSheet(); return; }
     if (a === 'wcalday') { selectWDate(b.dataset.k); return toggleWCal(false); }
     if (a === 'wcalnav') { const d = fromKey(wcalMonth); wcalMonth = keyOf(new Date(d.getFullYear(), d.getMonth() + +b.dataset.d, 1)); return renderWCal(); }
     const slot = b.dataset.slot;
