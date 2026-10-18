@@ -697,8 +697,8 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .mrow > .row-main .over { font-size: 11.5px; }
 .mrow > .row-main .ttl { font-size: 14px; line-height: 1.28; }
 .mrow > .row-main .sub, .mrow > .row-main .lo { font-size: 12px; }
-.mrow > .row-main .sub { display: flex; align-items: center; gap: 6px; line-height: 1.35; } /* macros alinhados ao centro com as kcal */
-.mrow > .row-main .sub .macro-inline { line-height: inherit; } /* letra mais pequena quando há muito texto (fitMealCards) */
+/* a linha das kcal também acompanha o recorte (fica em linha, não em caixa); macros ao centro das kcal */
+.mrow > .row-main .sub .macro-inline { line-height: 1; vertical-align: 1px; margin-left: 2px; } /* letra mais pequena quando há muito texto (fitMealCards) */
 .m-shape { float: left; width: var(--iw); height: 104px; margin-top: -12px; shape-outside: polygon(0 0, 70.5% 0, 96.5% 100%, 0 100%); shape-margin: 6px; }
 /* Tocar na imagem marca como comido: a imagem fica mais transparente, com um visto e "Feita" por cima.
    Por fazer, um círculo translúcido com um visto no canto mostra que se pode tocar. */
