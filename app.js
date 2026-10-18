@@ -378,6 +378,7 @@
   smartHTML($view); smartHTML($hdr);
   const TABS = [['hoje', 'Hoje', 'plate'], ['semana', 'Semana', 'cal'], ['compras', 'Compras', 'bag'], ['progresso', 'Progresso', 'chart'], ['perfil', 'Perfil', 'user']];
   let tab = 'hoje', sub = null, curDay = todayKey(), weekOffset = 0, shopMode = 'w0', range = 30;
+  let semBack = null; // dia do Hoje guardado enquanto há uma refeição da Semana aberta
   const NAV_KEY = 'planoLean.nav';
 
   $tabs.innerHTML = TABS.map(([id, l, i]) => `<button data-tab="${id}" class="press">${ic(i)}<span>${l}</span></button>`).join('');
@@ -388,12 +389,14 @@
     // Tocar na aba em que já estás não volta a abrir a mesma página. Só faz algo útil quando há para onde voltar:
     if (sub) { sub = null; subParent = null; recCat = null; render('pop'); window.scrollTo(0, 0); return; } // numa página do Perfil → início do Perfil
     if (t === 'hoje' && curDay !== todayKey()) { const dir = todayKey() > curDay ? 'next' : 'prev'; curDay = todayKey(); render(dir); } // noutro dia → hoje
+    if (t === 'semana' && weekOffset !== 1) { const dir = weekOffset < 1 ? 'next' : 'prev'; weekOffset = 1; render(dir); } // noutra semana → próxima
   });
 
   try { localStorage.removeItem('pulso.look'); sessionStorage.removeItem('pulso.look'); } catch (e) { /* restos da pré-visualização dos visuais */ }
 
   function go(t, subpage = null) {
     if (t === 'hoje' && tab === 'hoje' && !subpage) curDay = todayKey();
+    if (t === 'semana' && tab !== 'semana') weekOffset = 1; // a Semana serve para preparar a próxima: abre sempre nela
     tab = t; sub = subpage;
     render('fade'); window.scrollTo(0, 0);
   }
@@ -521,6 +524,7 @@
     if (typeof stopScan === 'function') stopScan();
     if (!sheetEl) return;
     backEl.classList.remove('open'); sheetEl.classList.remove('open'); barTo(false);
+    if (semBack !== null) { curDay = semBack; semBack = null; }
     syncGuard();
     document.body.style.overflow = '';
     setTimeout(() => { if (!sheetEl.classList.contains('open')) { backEl.hidden = sheetEl.hidden = true; } }, 380);
@@ -1028,41 +1032,38 @@
     const range = m0.getMonth() === m6.getMonth() ? `${m0.getDate()} – ${m6.getDate()} ${MON[m6.getMonth()]}` : `${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`;
     header(`${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`, 'Semana', `<button class="shift-btn press" style="--sc:var(--accent)" data-act="escala" aria-label="Escala da semana: turnos e treinos"><span class="sb-ic">${ic('cal')}</span><span class="sb-t"><b>Escala</b></span>${ic('chevR', 'sb-chev')}</button>`);
     const plans = Array.from({ length: 7 }, (_, i) => dayPlan(addDays(mon, i)));
-    const avg = plans.reduce((a, p) => a + p.tot.kcal, 0) / 7;
-    const nT = plans.filter(p => p.type === 'T').length;
-    const nTurnos = plans.filter(p => ['M', 'T', 'N'].includes(p.shift)).length;
-    // Resumo no estilo do cartão das calorias do Hoje: média em grande e, ao lado, turnos e treinos;
-    // por baixo, uma barra por dia (cor do turno) que enche com o que já comeste desse dia
+    // Aba para preparar a semana: os turnos em cima (toca num para o mudar) e, por dia, as refeições principais
+    // com o que é marmita e o que é para cozinhar a dobrar (toca numa para a trocar)
     let h = `<div class="weeknav">
         <button class="circle-btn press" data-act="wk" data-d="-1" aria-label="Semana anterior">${ic('chevL', 'sm')}</button>
         <div class="wk-lbl" aria-live="polite"><b>${lbl}</b><span class="num">${range}</span></div>
         <button class="circle-btn press" data-act="wk" data-d="1" aria-label="Semana seguinte">${ic('chevR', 'sm')}</button></div>
       <div class="day-stage"><div class="day-pane week-pane">
-      <section class="card energy wk-sum">
-        <div class="energy-top">
-          <div><div class="big num">${n0(avg)}</div><div class="big-lbl">kcal por dia, em média</div></div>
-          <div class="wk-stats num">
-            <span class="wk-stat"><span class="ws-ic" style="--sc:var(--p)">${ic('clock')}</span><b>${nTurnos}</b> ${nTurnos === 1 ? 'turno' : 'turnos'}</span>
-            <span class="wk-stat"><span class="ws-ic" style="--sc:var(--train)">${ic('dumbbell')}</span><b>${nT}</b> ${nT === 1 ? 'treino' : 'treinos'}</span>
-          </div>
-        </div>
-        <div class="wk-bars" aria-hidden="true">${plans.map((P, i) => `<div class="wk-bar ${P.k === todayKey() ? 'today' : ''}" style="--sc:${shiftCfg(P.shift).col}"><span class="wb-col"><i style="height:${Math.min(100, Math.round((P.done.kcal / P.goal) * 100))}%"></i></span><small>${DOW_S[i].slice(0, 1)}</small></div>`).join('')}</div>
-      </section>
-      <section class="meal-box week-box"><h2 class="sec-h">Dias <small class="num">${plans.filter(P => P.nDone === P.meals.length && P.meals.length).length} de 7 completos</small></h2><div class="mcards">`;
+      <section class="card wk-shifts"><h2 class="sec-h">Turnos <small>toca para mudar</small></h2><div class="wk-strip">${plans.map((P, i) => {
+        const c = shiftCfg(P.shift);
+        return `<button class="wks press ${P.shift !== 'F' ? 'work' : ''} ${P.k === todayKey() ? 'today' : ''}" style="--sc:${c.col}" data-act="wday" data-k="${P.k}" aria-label="${DOW[i]}: ${c.n}${P.type === 'T' ? ', treino' : ''}. Mudar">
+          <span class="wks-c">${ic(SHIFT_IC[P.shift] || 'leaf')}${P.type === 'T' ? `<span class="wks-tr">${ic('dumbbell')}</span>` : ''}</span><small>${P.k === todayKey() ? 'Hoje' : DOW_S[i]}</small></button>`;
+      }).join('')}</div></section>
+      <section class="meal-box week-box"><h2 class="sec-h">Refeições principais <small>toca para trocar</small></h2><div class="mcards">`;
     plans.forEach((P, i) => {
-      const isT = P.type === 'T', c = shiftCfg(P.shift), isToday = P.k === todayKey();
-      const pct = P.meals.length ? Math.round((P.nDone / P.meals.length) * 100) : 0;
+      const c = shiftCfg(P.shift), isToday = P.k === todayKey();
+      const main = P.meals.filter(m => m.slot.id === 'almoco' || m.slot.id === 'jantar' || m.src || m.dests.length);
+      const line = m => {
+        const tag = m.src ? `<span class="wm-tag take">${ic('box')}${P.shift !== 'F' && /turno/i.test(m.slot.n) ? 'Marmita' : 'Sobras'}</span>`
+          : m.dests.length ? `<span class="wm-tag cook">${ic('pot')}Faz o dobro</span>` : '';
+        return `<button class="wm press ${tag ? 'hl' : ''}" data-act="wmeal" data-k="${P.k}" data-slot="${m.slot.id}" aria-label="${esc(m.slot.n)}, ${esc(m.meal.n)}. Trocar"><span class="wm-t num">${m.slot.t}</span><span class="wm-n">${esc(m.meal.n)}</span>${tag}</button>`;
+      };
       h += `<div class="row tap wrow ${isToday ? 'is-today' : ''} ${i === 6 ? 'm-last' : ''}" data-act="open" data-k="${P.k}" style="--sc:${c.col}">
         <div class="wr-date"><span class="wd">${isToday ? 'Hoje' : DOW_S[i]}</span><b class="num">${dayNum(P.k)}</b></div>
         <div class="row-main">
-          <div class="wr-top"><span class="wr-shift"><span class="wr-ic">${ic(SHIFT_IC[P.shift] || 'leaf')}</span>${c.n}</span>${afterNight(P.k) ? `<span class="wr-tag">${ic('moon')}Depois da noite</span>` : ''}${isT ? `<span class="wr-tag train">${ic('dumbbell')}Treino</span>` : ''}</div>
-          <div class="wr-meals clamp">${P.meals.map(m => esc(m.meal.n) + (m.src ? ' <em>(sobras)</em>' : '')).join(' · ')}</div>
-          <div class="wr-foot num"><span>${n0(P.tot.kcal)} kcal</span><span class="wr-prog"><i style="width:${pct}%"></i></span><span>${P.nDone}/${P.meals.length}</span></div>
-        </div>${ic('chevR', 'chev-r')}</div>`;
+          <div class="wr-top"><span class="wr-shift"><span class="wr-ic">${ic(SHIFT_IC[P.shift] || 'leaf')}</span>${c.n}${P.shift !== 'F' ? ` <span class="wr-h num">${c.h}</span>` : ''}</span>${afterNight(P.k) ? `<span class="wr-tag">${ic('moon')}Depois da noite</span>` : ''}${P.type === 'T' ? `<span class="wr-tag train">${ic('dumbbell')}Treino</span>` : ''}${ic('chevR', 'chev-r')}</div>
+          <div class="wmeals">${main.map(line).join('')}</div>
+        </div></div>`;
     });
-    h += `</div></section>${calStatus()}<p class="cap">Marca os turnos e os treinos em <b>Escala</b>. Os horários e as sobras para a marmita ajustam-se sozinhos. Arrasta para o lado para mudar de semana.</p></div></div>`;
+    h += `</div></section>${calStatus()}<p class="cap">Abre sempre na próxima semana, para a deixares pronta. Toca num turno para o mudar, numa refeição para a trocar ou no dia para o veres todo. As marmitas e o cozinhar a dobrar ajustam-se sozinhos aos turnos.</p></div></div>`;
     $view.innerHTML = h;
   }
+
 
   function escalaSheet() {
     return () => {
@@ -1610,6 +1611,9 @@
       // Semana
       case 'wk': weekOffset += +b.dataset.d; render(+b.dataset.d > 0 ? 'next' : 'prev'); return;
       case 'open': curDay = b.dataset.k; go('hoje'); return;
+      case 'wday': openSheet(daySheet(b.dataset.k)); return;
+      // refeição de outro dia aberta na Semana: os detalhes usam esse dia e, ao fechar, o Hoje volta ao dia em que estava
+      case 'wmeal': if (semBack === null) semBack = curDay; curDay = b.dataset.k; if (sheetEl) delete sheetEl.dataset.mode; msDoses = 1; openSheet(mealSheet(b.dataset.slot)); return;
       // Compras
       case 'sw': shopMode = b.dataset.w; break;
       case 'got': { const m = (S.shop[shopKey()] ||= {}); m[b.dataset.f] = !m[b.dataset.f]; save(); break; }
@@ -1699,7 +1703,7 @@
         if (b.dataset.id === WEEK[dowIdx(curDay)][slot]) delete st.swaps[slot]; else st.swaps[slot] = b.dataset.id;
         delete sheetEl.dataset.mode; refresh(); sheetBody.scrollTop = 0; toast('Refeição trocada'); return;
       }
-      case 'done': animSlot = slot; toggleDone(slot); render(); closeSheet(); return;
+      case 'done': if (tab === 'hoje') animSlot = slot; toggleDone(slot); render(); closeSheet(); return;
       case 'fora': { const st = dayState(curDay); (st.fora ||= {})[slot] = +b.dataset.kcal; st.done[slot] = false; save(); render(); closeSheet(); toast('Registado'); return; }
       case 'unfora': { const st = dayState(curDay); delete st.fora[slot]; refresh(); return; }
       case 'unlink': S.links[LK(curDay, slot)] = 'none'; refresh(); toast('Sem sobras nesta refeição'); return;
