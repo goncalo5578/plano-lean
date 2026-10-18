@@ -271,6 +271,12 @@
     const dark = t === 'dark' || (t === 'auto' && darkMQ.matches);
     document.getElementById('themeColor').setAttribute('content', dark ? '#0e1013' : '#eceef2');
   }
+  // Com uma janela aberta, o fundo escurece (preto a 35%): a barra das notificações escurece igual
+  function dimBar(on) {
+    const base = document.documentElement.dataset.theme === 'dark' || (document.documentElement.dataset.theme === 'auto' && darkMQ.matches) ? '#0e1013' : '#eceef2';
+    const c = on ? '#' + [1, 3, 5].map(i => Math.round(parseInt(base.slice(i, i + 2), 16) * 0.65).toString(16).padStart(2, '0')).join('') : base;
+    document.getElementById('themeColor').setAttribute('content', c);
+  }
   darkMQ.addEventListener('change', applyTheme);
   applyTheme();
 
@@ -432,7 +438,7 @@
     sheetFresh = true; paintSheet(); sheetFresh = false;
     backEl.hidden = sheetEl.hidden = false;
     void sheetEl.offsetHeight; // garante a animação de entrada depois de display:none
-    backEl.classList.add('open'); sheetEl.classList.add('open');
+    backEl.classList.add('open'); sheetEl.classList.add('open'); dimBar(true);
     sheetEl.scrollTop = 0;
     document.body.style.overflow = 'hidden';
     syncGuard();
@@ -456,7 +462,7 @@
   function closeSheet() {
     if (typeof stopScan === 'function') stopScan();
     if (!sheetEl) return;
-    backEl.classList.remove('open'); sheetEl.classList.remove('open');
+    backEl.classList.remove('open'); sheetEl.classList.remove('open'); dimBar(false);
     syncGuard();
     document.body.style.overflow = '';
     setTimeout(() => { if (!sheetEl.classList.contains('open')) { backEl.hidden = sheetEl.hidden = true; } }, 380);
