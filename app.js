@@ -1030,19 +1030,19 @@
       : weekOffset > 1 ? `Daqui a ${weekOffset} semanas` : `Há ${-weekOffset} semanas`;
     const m0 = fromKey(mon), m6 = fromKey(addDays(mon, 6));
     const range = m0.getMonth() === m6.getMonth() ? `${m0.getDate()} – ${m6.getDate()} ${MON[m6.getMonth()]}` : `${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`;
-    header(`${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`, 'Semana', `<button class="shift-btn press" style="--sc:var(--accent)" data-act="escala" aria-label="Escala da semana: turnos e treinos"><span class="sb-ic">${ic('cal')}</span><span class="sb-t"><b>Escala</b></span>${ic('chevR', 'sb-chev')}</button>`);
+    header(`${niceDate(mon)} – ${niceDate(addDays(mon, 6))}`, 'Semana');
     const plans = Array.from({ length: 7 }, (_, i) => dayPlan(addDays(mon, i)));
-    // Aba para preparar a semana: os turnos em cima (toca num para o mudar) e, por dia, as refeições principais
+    // Aba para preparar a semana: os turnos em cima (tocar no cartão abre a escala da semana toda) e, por dia, as refeições principais
     // com o que é marmita e o que é para cozinhar a dobrar (toca numa para a trocar)
     let h = `<div class="weeknav">
         <button class="circle-btn press" data-act="wk" data-d="-1" aria-label="Semana anterior">${ic('chevL', 'sm')}</button>
         <div class="wk-lbl" aria-live="polite"><b>${lbl}</b><span class="num">${range}</span></div>
         <button class="circle-btn press" data-act="wk" data-d="1" aria-label="Semana seguinte">${ic('chevR', 'sm')}</button></div>
       <div class="day-stage"><div class="day-pane week-pane">
-      <section class="card wk-shifts"><h2 class="sec-h">Turnos <small>toca para mudar</small></h2><div class="wk-strip">${plans.map((P, i) => {
+      <section class="card wk-shifts tap" data-act="escala" role="button" tabindex="0" aria-label="Turnos e treinos da semana. Mudar"><h2 class="sec-h">Turnos <small>toca para mudar ${ic('chevR', 'sm')}</small></h2><div class="wk-strip">${plans.map((P, i) => {
         const c = shiftCfg(P.shift);
-        return `<button class="wks press ${P.shift !== 'F' ? 'work' : ''} ${P.k === todayKey() ? 'today' : ''}" style="--sc:${c.col}" data-act="wday" data-k="${P.k}" aria-label="${DOW[i]}: ${c.n}${P.type === 'T' ? ', treino' : ''}. Mudar">
-          <span class="wks-c">${ic(SHIFT_IC[P.shift] || 'leaf')}${P.type === 'T' ? `<span class="wks-tr">${ic('dumbbell')}</span>` : ''}</span><small>${P.k === todayKey() ? 'Hoje' : DOW_S[i]}</small></button>`;
+        return `<span class="wks ${P.shift !== 'F' ? 'work' : ''} ${P.k === todayKey() ? 'today' : ''}" style="--sc:${c.col}" aria-hidden="true">
+          <span class="wks-c">${ic(SHIFT_IC[P.shift] || 'leaf')}${P.type === 'T' ? `<span class="wks-tr">${ic('dumbbell')}</span>` : ''}</span><small>${P.k === todayKey() ? 'Hoje' : DOW_S[i]}</small></span>`;
       }).join('')}</div></section>
       <section class="meal-box week-box"><h2 class="sec-h">Refeições principais <small>toca para trocar</small></h2><div class="mcards">`;
     plans.forEach((P, i) => {
@@ -1060,7 +1060,7 @@
           <div class="wmeals">${main.map(line).join('')}</div>
         </div></div>`;
     });
-    h += `</div></section>${calStatus()}<p class="cap">Abre sempre na próxima semana, para a deixares pronta. Toca num turno para o mudar, numa refeição para a trocar ou no dia para o veres todo. As marmitas e o cozinhar a dobrar ajustam-se sozinhos aos turnos.</p></div></div>`;
+    h += `</div></section>${calStatus()}<p class="cap">Abre sempre na próxima semana, para a deixares pronta. Toca nos turnos para os mudar, numa refeição para a trocar ou no dia para o veres todo. As marmitas e o cozinhar a dobrar ajustam-se sozinhos aos turnos.</p></div></div>`;
     $view.innerHTML = h;
   }
 
@@ -1611,7 +1611,6 @@
       // Semana
       case 'wk': weekOffset += +b.dataset.d; render(+b.dataset.d > 0 ? 'next' : 'prev'); return;
       case 'open': curDay = b.dataset.k; go('hoje'); return;
-      case 'wday': openSheet(daySheet(b.dataset.k)); return;
       // refeição de outro dia aberta na Semana: os detalhes usam esse dia e, ao fechar, o Hoje volta ao dia em que estava
       case 'wmeal': if (semBack === null) semBack = curDay; curDay = b.dataset.k; if (sheetEl) delete sheetEl.dataset.mode; msDoses = 1; openSheet(mealSheet(b.dataset.slot)); return;
       // Compras

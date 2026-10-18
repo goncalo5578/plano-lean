@@ -834,6 +834,10 @@ details.hist[open] .hist-list { animation: vRise .32s var(--ease-out); }
 .wk-shifts .sec-h, .week-box .sec-h { display: flex; align-items: baseline; justify-content: space-between; }
 .wk-shifts .sec-h { margin: 0; }
 .wk-shifts .sec-h small, .week-box .sec-h small { font-size: 12.5px; font-weight: 500; color: var(--ink-3); }
+.wk-shifts { cursor: pointer; transition: transform .15s; }
+.wk-shifts:active { transform: scale(.985); }
+.wk-shifts .sec-h small { display: inline-flex; align-items: center; gap: 2px; }
+.wk-shifts .sec-h small .ic { width: 14px; height: 14px; stroke-width: 2.2; }
 .wk-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; margin-top: 12px; }
 .wks { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 0; }
 .wks-c { position: relative; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: var(--sc); background: color-mix(in srgb, var(--sc) 14%, transparent); transition: background .2s, color .2s; }
