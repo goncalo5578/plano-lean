@@ -1199,7 +1199,6 @@
       h += `</div></div></section>`;
     }
     if (r.month) h += `<div class="note">${ic('info')}<div>Fruta, legumes, carne e peixe frescos aguentam poucos dias: congela-os ou compra-os semana a semana.</div></div>`;
-    h += `<p class="cap">Inclui as trocas de refeições feitas para esse período. Temperos (alho, cebola, limão, ervas, especiarias, vinagre, molho de soja, tomate pelado) não estão na lista.</p>`;
     $view.innerHTML = h;
   }
 
