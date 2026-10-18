@@ -108,6 +108,47 @@
     return [...MEALS[slot].filter(m => !r.removed[m.id]).map(m => r.edits[m.id] || m), ...r.custom.filter(m => m.slot === slot)];
   }
   const mealById = id => R().edits[id] || R().custom.find(m => m.id === id) || ALL_MEALS.find(m => m.id === id);
+  // ================= Fotos das receitas (só no telemóvel, em IndexedDB; não pesam no resto dos dados) =================
+  const PHOTO_URL = {}; // id da receita → endereço da foto já carregada
+  let photoDB = null;
+  const idb = () => (photoDB ||= new Promise((ok, ko) => {
+    const r = indexedDB.open('pulso', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('fotos');
+    r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
+  }));
+  async function loadPhotos() {
+    try {
+      const db = await idb();
+      await new Promise(ok => {
+        const tx = db.transaction('fotos'), req = tx.objectStore('fotos').openCursor();
+        req.onsuccess = () => { const c = req.result; if (!c) return; PHOTO_URL[c.key] = URL.createObjectURL(c.value); c.continue(); };
+        tx.oncomplete = ok; tx.onerror = ok;
+      });
+    } catch (e) { /* sem IndexedDB: ficam as imagens por defeito */ }
+  }
+  async function setPhoto(id, blob) {
+    const db = await idb();
+    await new Promise((ok, ko) => { const tx = db.transaction('fotos', 'readwrite'); const st = tx.objectStore('fotos'); blob ? st.put(blob, id) : st.delete(id); tx.oncomplete = ok; tx.onerror = () => ko(tx.error); });
+    if (PHOTO_URL[id]) URL.revokeObjectURL(PHOTO_URL[id]);
+    if (blob) PHOTO_URL[id] = URL.createObjectURL(blob); else delete PHOTO_URL[id];
+  }
+  // Reduz a foto (máx. 720 px) para ocupar pouco espaço no telemóvel
+  async function shrinkPhoto(file) {
+    let src;
+    try { src = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+    catch (e) { src = await new Promise((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ko; im.src = URL.createObjectURL(file); }); }
+    const w0 = src.width, h0 = src.height, k = Math.min(1, 720 / Math.max(w0, h0));
+    const cv = document.createElement('canvas'); cv.width = Math.round(w0 * k); cv.height = Math.round(h0 * k);
+    cv.getContext('2d').drawImage(src, 0, 0, cv.width, cv.height);
+    return new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.82));
+  }
+  // Imagem de cada refeição: a tua foto, ou um degradé com o ícone do tipo de refeição
+  const SLOT_GRAD = { pa: ['#ffd36b', '#f59f00'], lm: ['#8ce99a', '#2f9e44'], almoco: ['#ffa94d', '#e8590c'], lanche: ['#faa2c1', '#d6336c'], jantar: ['#91a7ff', '#4c5fd5'] };
+  const imgVars = slot => `--g1:${SLOT_GRAD[slot][0]};--g2:${SLOT_GRAD[slot][1]}`;
+  const mealPic = (id, slot, cls = 'm-pic') => PHOTO_URL[id]
+    ? `<span class="${cls} has-photo"><img src="${PHOTO_URL[id]}" alt=""></span>`
+    : `<span class="${cls}" style="${imgVars(slot)}">${cls === 'm-pic' ? ic(SLOT_IC[slot]) : ''}</span>`;
+
   const dayState = k => (S.days[k] ||= { swaps: {}, done: {}, agua: 0 });
   const peekDay = k => S.days[k] || { swaps: {}, done: {}, agua: 0 };
   const lmOn = k => { const v = peekDay(k).lm; return v === undefined ? S.profile.lmSempre === true : v; };
@@ -479,10 +520,11 @@
       let extra = '';
       if (!m.fora && m.src) { const [k2, s2] = m.src.split('|'); extra = `<span class="lo">${ic('box')}Sobras do ${whenTxt(curDay, k2, s2)}</span>`; }
       else if (!m.fora && m.dests.length) extra = `<span class="lo">${ic('pot')}Fazer ×${m.dests.length + 1} · ${m.dests.map(([k2, s2]) => whenTxt(curDay, k2, s2)).join(' e ')}</span>`;
-      // cada refeição num cartão: ícone com a cor da refeição, visto à direita
-      h += `<div class="row tap meal-row mrow ${done ? 'done' : ''}" data-act="meal" data-slot="${id}" style="--slc:${SLOT_COL[id]}">
-        <span class="m-ic">${ic(SLOT_IC[id])}</span>
-        <div class="row-main">
+      // cada refeição num cartão: imagem à esquerda com recorte na diagonal e faixa; o texto acompanha o recorte
+      const mid = m.fora ? null : m.meal.id;
+      h += `<div class="row tap meal-row mrow ${done ? 'done' : ''}" data-act="meal" data-slot="${id}">
+        ${mealPic(mid, id)}${mealPic(mid, id, 'm-band')}
+        <div class="row-main"><span class="m-shape" aria-hidden="true"></span>
           <div class="over">${m.slot.n} · ${m.slot.t}</div>
           <div class="ttl">${m.fora ? 'Outra refeição' : esc(m.meal.n)}</div>
           <div class="sub num">${m.fora ? `Fora do plano · ~${m.fora} kcal` : `${n0(m.tot.kcal)} kcal &nbsp;${macroLine(m.tot)}`}</div>
@@ -504,7 +546,26 @@
       </section>`;
     // O conteúdo do dia fica num "palco" para poder deslizar de lado ao mudar de dia (a barra dos dias fica parada)
     $view.innerHTML = `${strip}<div class="day-stage"><div class="day-pane">${h}</div></div>`;
+    fitMealCards();
   }
+  // Cartões das refeições: o texto segue o recorte (shape-outside) e fica centrado na altura do cartão.
+  // O cartão cresce se o texto não couber (ex.: nome comprido + "Sobras do…").
+  function fitMealCards(root = $view) {
+    for (const c of root.querySelectorAll('.mrow')) {
+      const m = c.querySelector('.row-main'), sh = m.querySelector('.m-shape');
+      let H = 104, pad = 12;
+      for (let k = 0; k < 5; k++) {
+        c.style.height = H + 'px'; sh.style.height = H + 'px';
+        m.style.paddingTop = pad + 'px'; sh.style.marginTop = -pad + 'px';
+        const h = m.lastElementChild.getBoundingClientRect().bottom - m.getBoundingClientRect().top - pad;
+        const needH = Math.max(104, Math.ceil(h + 20)), next = Math.max(8, Math.round((needH - h) / 2));
+        if (needH === H && Math.abs(next - pad) < 1) break;
+        H = needH; pad = next;
+      }
+    }
+  }
+  if (document.fonts) document.fonts.ready.then(() => fitMealCards());
+  window.addEventListener('resize', () => fitMealCards());
 
   function mealSheet(slotId) {
     return () => {
@@ -562,6 +623,7 @@
           <button class="row tap" data-act="fora" data-slot="${slotId}" data-kcal="${o.kcal}"><div class="row-main"><div class="ttl">${o.n} <span class="num" style="color:var(--ink-3);font-weight:500">· ~${o.kcal} kcal</span></div><div class="sub">${o.d}</div></div></button>`).join('')}</div>
           <p class="cap">Não precisa de ser exato. Se puderes, escolhe algo com proteína (carne, peixe, ovos, iogurte).</p>`;
       }
+      if (!m.fora) h += `<div class="group-label">Foto</div>${photoRow(m.meal.id, slotId)}`;
       h += `<div class="btn-stack">
         ${m.fora ? '' : `<button class="btn primary press" data-act="done" data-slot="${slotId}">${done ? 'Desmarcar' : ic('check') + ' Marcar como comido'}</button>`}
         ${mode === 'alts' ? '' : `<button class="btn secondary press" data-act="mode" data-v="alts">${ic('swap')} Trocar refeição</button>`}
@@ -606,6 +668,7 @@
       ? { id: meal.id, slot: slotOfMeal(meal.id), n: meal.n, prep: meal.prep || '', m: meal.m ? 1 : 0, i: meal.i.map(it => ({ f: it.f, g: Array.isArray(it.g) ? it.g[0] : it.g })), isNew: false }
       : { id: null, slot: slot || 'almoco', n: '', prep: '', m: 0, i: [], isNew: true };
     rDraft.pickFor = pickFor; rDraft.view = 'edit';
+    if (PHOTO_URL[DRAFT_PHOTO]) { URL.revokeObjectURL(PHOTO_URL[DRAFT_PHOTO]); delete PHOTO_URL[DRAFT_PHOTO]; }
     openSheet(editorSheet);
   }
   function syncDraftFromDom() {
@@ -674,14 +737,41 @@
       <div class="group-label">Preparação</div>
       <div class="list"><textarea id="r_prep" rows="4" placeholder="Passos, separados por pontos. Ex.: Grelhar o frango. Cozer o arroz.">${esc(d.prep)}</textarea></div>
       <div class="list" style="margin-top:12px"><label class="form-row" style="cursor:pointer"><span>Boa para marmita</span><input id="r_m" type="checkbox" class="sw-in" ${d.m ? 'checked' : ''}><span class="switch"></span></label></div>
+      <div class="group-label">Foto</div>${photoRow(d.id || DRAFT_PHOTO, d.slot)}
       <p class="cap err" id="r_err"></p>
       <div class="btn-stack"><button class="btn primary press" data-act="rsave">Guardar receita</button>
         ${d.isNew ? '' : '<button class="btn danger press" data-act="rdelete">Eliminar receita</button>'}
         <button class="btn secondary press" data-act="close">Cancelar</button></div>
       <p class="cap">As quantidades de hidratos ajustam-se sozinhas à meta de cada dia.</p>`;
   }
+  // ---- Foto da receita ----
+  const DRAFT_PHOTO = '__nova'; // receita nova ainda sem id: a foto fica à espera até guardar
+  function photoRow(id, slot) {
+    const has = !!PHOTO_URL[id];
+    return `<div class="list"><label class="row tap photo-row"><span class="ph-thumb">${mealPic(id, slot)}</span>
+      <div class="row-main"><div class="ttl" style="font-weight:500">${has ? 'Mudar foto' : 'Adicionar foto'}</div><div class="sub">${has ? 'Aparece no Hoje em vez da cor da refeição' : 'Da galeria ou da câmara'}</div></div>${ic('chevR', 'chev')}
+      <input type="file" accept="image/*" hidden data-photo="${id}"></label>
+      ${has ? `<button class="row tap" data-act="photodel" data-id="${id}"><div class="row-main"><div class="ttl" style="font-weight:500;color:var(--danger)">Remover foto</div></div></button>` : ''}</div>`;
+  }
+  async function onPhotoPicked(el) {
+    const file = el.files && el.files[0], id = el.dataset.photo;
+    if (!file) return;
+    try {
+      const blob = await shrinkPhoto(file);
+      if (id === DRAFT_PHOTO) {
+        if (PHOTO_URL[DRAFT_PHOTO]) URL.revokeObjectURL(PHOTO_URL[DRAFT_PHOTO]);
+        rDraft.photoBlob = blob; PHOTO_URL[DRAFT_PHOTO] = URL.createObjectURL(blob);
+      } else await setPhoto(id, blob);
+      syncDraftFromDom(); paintSheet(); render(); toast('Foto guardada');
+    } catch (err) { toast('Não deu para usar esta foto'); }
+  }
+  function removePhoto(id) {
+    if (id === DRAFT_PHOTO) { delete rDraft.photoBlob; if (PHOTO_URL[id]) URL.revokeObjectURL(PHOTO_URL[id]); delete PHOTO_URL[id]; syncDraftFromDom(); paintSheet(); return; }
+    setPhoto(id, null).then(() => { syncDraftFromDom(); paintSheet(); render(); toast('Foto removida'); }).catch(() => {});
+  }
   function onRecipeInput(e) {
     const el = e.target;
+    if (el.dataset && el.dataset.photo !== undefined) { if (e.type === 'change') onPhotoPicked(el); return; }
     if (el.id === 'f_q') {
       sheetEl.querySelector('#f_list').innerHTML = foodListHTML(el.value);
       clearTimeout(offTimer); offTimer = setTimeout(() => searchOFF(el.value), 450);
@@ -788,6 +878,9 @@
       else { id = 'u_' + Date.now().toString(36); r.custom.push({ id, slot: d.slot, ...meal }); }
     }
     if (d.pickFor && d.pickFor.slot === d.slot) dayState(d.pickFor.k).swaps[d.slot] = id;
+    // a foto acompanha a receita (nova, ou receita do plano que mudou de refeição e ganhou outro id)
+    const photo = d.photoBlob ? Promise.resolve(d.photoBlob) : d.id && id !== d.id && PHOTO_URL[d.id] ? fetch(PHOTO_URL[d.id]).then(x => x.blob()) : null;
+    if (photo) photo.then(b => setPhoto(id, b)).then(() => { if (PHOTO_URL[DRAFT_PHOTO]) { URL.revokeObjectURL(PHOTO_URL[DRAFT_PHOTO]); delete PHOTO_URL[DRAFT_PHOTO]; } render(); }).catch(() => {});
     save(); closeSheet(); render(); toast(d.isNew ? 'Receita criada' : 'Receita guardada');
   }
   function deleteRecipe() {
@@ -797,6 +890,7 @@
       onOk: () => {
         const r = R();
         if (builtinSlot(d.id)) { r.removed[d.id] = true; delete r.edits[d.id]; } else r.custom = r.custom.filter(m => m.id !== d.id);
+        if (PHOTO_URL[d.id]) setPhoto(d.id, null).catch(() => {});
         save(); render(); toast('Receita eliminada');
       } });
   }
@@ -1352,8 +1446,11 @@
     if (Object.keys(pn.t).length) out.PN = pn;
     S.profile.shifts = out; save(); toast('Horários guardados');
   }
-  function exportData() {
-    const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' });
+  const blobToData = b => new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); });
+  async function exportData() {
+    const photos = {};
+    for (const id of Object.keys(PHOTO_URL)) if (id !== DRAFT_PHOTO) { try { photos[id] = await blobToData(await (await fetch(PHOTO_URL[id])).blob()); } catch (e) { /* ignora esta foto */ } }
+    const blob = new Blob([JSON.stringify(Object.keys(photos).length ? { ...S, photos } : S, null, 1)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = `pulso-${todayKey()}.json`;
     document.body.appendChild(a); a.click(); a.remove();
@@ -1364,7 +1461,9 @@
     file.text().then(t => {
       const d = JSON.parse(t);
       if (!d || !d.profile) throw new Error('formato');
+      const photos = d.photos || {}; delete d.photos;
       S = { ...blank(), ...d, profile: { ...DEFAULT_PROFILE, ...d.profile } }; save(); applyTheme(); toast('Dados importados');
+      return Promise.all(Object.entries(photos).map(([id, url]) => fetch(url).then(x => x.blob()).then(b => setPhoto(id, b)).catch(() => {}))).then(() => render());
     }).catch(() => toast('Ficheiro inválido'));
   }
 
@@ -1458,6 +1557,7 @@
     if (a === 'confirm-ok') { const f = pendingConfirm; pendingConfirm = null; closeSheet(); if (f) f(); return; }
     if (a === 'wdate') { toggleWCal(false); return selectWDate(b.dataset.k); }
     if (a === 'wother') return toggleWCal();
+    if (a === 'photodel') return removePhoto(b.dataset.id);
     if (a === 'wcalday') { selectWDate(b.dataset.k); return toggleWCal(false); }
     if (a === 'wcalnav') { const d = fromKey(wcalMonth); wcalMonth = keyOf(new Date(d.getFullYear(), d.getMonth() + +b.dataset.d, 1)); return renderWCal(); }
     const slot = b.dataset.slot;
@@ -1737,5 +1837,6 @@
     syncCal().catch(() => {});
   });
   syncCal().catch(() => {});
+  loadPhotos().then(() => { if (Object.keys(PHOTO_URL).length) render(); });
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
