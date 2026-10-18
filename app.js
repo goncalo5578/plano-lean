@@ -520,17 +520,19 @@
       let extra = '';
       if (!m.fora && m.src) { const [k2, s2] = m.src.split('|'); extra = `<span class="lo">${ic('box')}Sobras do ${whenTxt(curDay, k2, s2)}</span>`; }
       else if (!m.fora && m.dests.length) extra = `<span class="lo">${ic('pot')}Fazer ×${m.dests.length + 1} · ${m.dests.map(([k2, s2]) => whenTxt(curDay, k2, s2)).join(' e ')}</span>`;
-      // cada refeição num cartão: imagem à esquerda com recorte na diagonal e faixa; o texto acompanha o recorte
+      // cada refeição num cartão: imagem à esquerda com recorte na diagonal e faixa; o texto acompanha o recorte.
+      // Tocar na imagem marca como comido; o resto do cartão (com a seta) abre a receita.
       const mid = m.fora ? null : m.meal.id;
       h += `<div class="row tap meal-row mrow ${done ? 'done' : ''}" data-act="meal" data-slot="${id}">
         ${mealPic(mid, id)}${mealPic(mid, id, 'm-band')}
+        <button class="m-tap" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="${done ? 'Desmarcar' : 'Marcar'} ${m.slot.n} como comido"><span class="m-done">${ic('check')}</span></button>
         <div class="row-main"><span class="m-shape" aria-hidden="true"></span>
           <div class="over">${m.slot.n} · ${m.slot.t}</div>
           <div class="ttl">${m.fora ? 'Outra refeição' : esc(m.meal.n)}</div>
           <div class="sub num">${m.fora ? `Fora do plano · ~${m.fora} kcal` : `${n0(m.tot.kcal)} kcal &nbsp;${macroLine(m.tot)}`}</div>
           ${extra}
         </div>
-        <button class="check ${done ? 'on' : ''}" data-act="done" data-slot="${id}" aria-pressed="${done}" aria-label="Marcar ${m.slot.n} como comido">${ic('check')}</button></div>`;
+        ${ic('chevR', 'chev-r')}</div>`;
     }
     if (!lmOn(curDay)) h += `<button class="row tap add-row" data-act="lmadd">${ic('plus')}<div class="row-main"><div class="ttl">Juntar lanche da manhã</div><div class="sub">Só hoje · as outras refeições ajustam-se</div></div></button>`;
     h += `</div>`;
