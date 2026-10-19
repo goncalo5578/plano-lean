@@ -1192,3 +1192,8 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .ask-card h3 { margin: 0 4px 4px; font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
 .ask-card p { margin: 0 4px; font-size: 14.5px; color: var(--ink-2); }
 .ask-card .btn-stack { margin-top: 16px; }
+
+/* Partilhar receita: ícone ao lado do nome */
+.ms-cap.has-share { right: 64px; }
+.ms-share { position: absolute; right: 14px; bottom: 16px; z-index: 3; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: rgba(0, 0, 0, .34); color: #fff; }
+.ms-share .ic { width: 19px; height: 19px; stroke-width: 2; }

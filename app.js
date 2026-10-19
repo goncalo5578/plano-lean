@@ -704,7 +704,8 @@
       let h = `<div class="ms-hero">
         ${mealPic(mid, slotId, 'ms-pic')}
         ${m.fora ? '' : `<label class="ms-photo">${ic('camera')}${hasPhoto(mid) ? 'Mudar foto' : 'Foto'}<input type="file" accept="image/*" hidden data-photo="${mid}"></label>`}
-        <div class="ms-cap"><div class="over">${m.slot.n} · ${m.slot.t}${m.meal.m ? ` <span class="ms-tag">${ic('box')}Marmita</span>` : ''}</div><h2>${esc(m.meal.n)}</h2></div>
+        <div class="ms-cap ${m.fora ? '' : 'has-share'}"><div class="over">${m.slot.n} · ${m.slot.t}${m.meal.m ? ` <span class="ms-tag">${ic('box')}Marmita</span>` : ''}</div><h2>${esc(m.meal.n)}</h2></div>
+        ${m.fora ? '' : `<button type="button" class="ms-share press" data-act="rshare" data-id="${mid}" aria-label="Partilhar receita">${ic('share')}</button>`}
       </div>`;
       if (m.fora) h += `<div class="note" style="margin:0 0 12px">${ic('info')}<div>Registaste outra refeição (~${m.fora} kcal). <button class="link" data-act="unfora" data-slot="${slotId}">Desfazer</button></div></div>`;
 
@@ -879,7 +880,8 @@
         ${mealPic(pid, slot0, 'ms-pic')}
         <label class="ms-photo">${ic('camera')}${has ? 'Mudar foto' : 'Foto'}<input type="file" accept="image/*" hidden data-photo="${pid}"></label>
         ${has ? `<button type="button" class="ms-photo ms-photo-del press" data-act="photodel" data-id="${pid}">${ic('trash')}Remover</button>` : ''}
-        <div class="ms-cap"><div class="over">${d.isNew ? 'Nova receita' : 'Editar receita'}</div><h2 id="r_title">${esc(d.n) || 'Receita sem nome'}</h2></div>
+        <div class="ms-cap ${d.isNew ? '' : 'has-share'}"><div class="over">${d.isNew ? 'Nova receita' : 'Editar receita'}</div><h2 id="r_title">${esc(d.n) || 'Receita sem nome'}</h2></div>
+        ${d.isNew ? '' : `<button type="button" class="ms-share press" data-act="rshare" data-id="${d.id}" aria-label="Partilhar receita">${ic('share')}</button>`}
       </div>
       ${sec('Nome', `<div class="list"><div class="row r-name"><input id="r_n" type="text" autocomplete="off" value="${esc(d.n)}" placeholder="Frango com arroz" aria-label="Nome da receita"></div></div>`)}
       ${sec('Refeição <small>podes escolher várias</small>', `<div class="r-slots" role="group" aria-label="Refeições onde aparece">${SLOTS.map(sl => { const on = d.slots.includes(sl.id); return `<button type="button" class="r-chip press ${on ? 'on' : ''}" style="${imgVars(sl.id)}" data-act="rslot" data-v="${sl.id}" aria-pressed="${on}">${ic(on ? 'check' : SLOT_IC[sl.id])}${sl.n}</button>`; }).join('')}</div>`)}
@@ -898,6 +900,84 @@
   }
   // ---- Foto da receita ----
   const DRAFT_PHOTO = '__nova'; // receita nova ainda sem id: a foto fica à espera até guardar
+  // ---- Partilhar receitas: tudo vai dentro do link (comprimido); quem abre o link pode juntar a receita às suas ----
+  const b64u = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+  const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), ch => ch.charCodeAt(0));
+  async function packShare(obj) {
+    const st = new Blob([JSON.stringify(obj)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return b64u(new Uint8Array(await new Response(st).arrayBuffer()));
+  }
+  async function unpackShare(s) {
+    const st = new Blob([unb64u(s)]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return JSON.parse(await new Response(st).text());
+  }
+  // foto pequena para caber no link (320×200)
+  async function sharePhoto(id) {
+    const url = PHOTO_URL[id] || THUMB[id]; if (!url) return null;
+    const img = await new Promise((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ko; im.src = url; });
+    const cv = document.createElement('canvas'); cv.width = 320; cv.height = 200;
+    const k = Math.max(320 / img.width, 200 / img.height), w = img.width * k, h = img.height * k;
+    cv.getContext('2d').drawImage(img, (320 - w) / 2, (200 - h) / 2, w, h);
+    return cv.toDataURL('image/jpeg', 0.6);
+  }
+  async function shareRecipe(id) {
+    const m = mealById(id); if (!m) return;
+    const foods = {};
+    for (const it of m.i) if (!FOODS[it.f] && R().foods[it.f]) foods[it.f] = R().foods[it.f];
+    let ph = null; try { ph = await sharePhoto(id); } catch (e) { /* vai sem foto */ }
+    const data = { v: 1, n: m.n, m: m.m ? 1 : 0, prep: m.prep || '', s: slotsOfMeal(id), i: m.i, foods, ...(ph ? { ph } : {}) };
+    let url;
+    try { url = `${location.origin}${location.pathname}#receita=${await packShare(data)}`; } catch (e) { return toast('Este telemóvel não deixa partilhar daqui'); }
+    if (navigator.share) { try { await navigator.share({ title: m.n, text: `Receita: ${m.n}`, url }); } catch (e) { /* cancelado */ } return; }
+    try { await navigator.clipboard.writeText(url); toast('Link copiado'); } catch (e) { toast('Não deu para copiar o link'); }
+  }
+  let shared = null; // receita recebida por link, à espera de confirmação
+  async function checkShared() {
+    const mm = location.hash.match(/^#receita=([\w-]+)/); if (!mm) return;
+    history.replaceState(history.state, '', location.pathname + location.search); // tira a receita do endereço
+    try { shared = await unpackShare(mm[1]); } catch (e) { return toast('Este link de receita não está completo'); }
+    if (!shared || !shared.n || !Array.isArray(shared.i)) { shared = null; return; }
+    openSheet(sharedSheet);
+  }
+  function sharedSheet() {
+    const d = shared; if (!d) return '';
+    const fd = f => (d.foods && d.foods[f]) || food(f);
+    const items = d.i.map(it => ({ f: it.f, g: Array.isArray(it.g) ? it.g[0] : it.g }));
+    const t = { kcal: 0, p: 0, c: 0, f: 0 }; for (const it of items) { const F = fd(it.f); for (const k in t) t[k] += F[k] * it.g / 100; }
+    const slots = (d.s || []).filter(s => SLOTS.some(x => x.id === s)), slot0 = slots[0] || 'almoco', col = SLOT_GRAD[slot0][1];
+    const sec = (title, body) => `<section class="ms-sec" style="--slc:${col}"><h3>${title}</h3>${body}</section>`;
+    return `<div class="ms-hero">
+        ${d.ph ? `<span class="ms-pic has-photo"><img src="${d.ph}" alt=""></span>` : `<span class="ms-pic" style="${imgVars(slot0)}">${ic(SLOT_IC[slot0])}</span>`}
+        <div class="ms-cap"><div class="over">Receita partilhada${d.m ? ` <span class="ms-tag">${ic('box')}Marmita</span>` : ''}</div><h2>${esc(d.n)}</h2></div>
+      </div>
+      <section class="card ms-macros">${recMacros(t)}</section>
+      ${sec('Ingredientes <small>1 dose</small>', `<div class="list">${items.map(it => `<div class="row ing"><div class="row-main">${esc(fd(it.f).n)}</div><div class="q num">${qty(it.f, Math.round(it.g))}</div></div>`).join('')}</div>`)}
+      ${d.prep ? sec('Preparação', `<div class="list"><ol class="steps">${steps(d.prep)}</ol></div>`) : ''}
+      <p class="cap" style="margin:12px 4px 0">Fica nas tuas receitas em: ${(slots.length ? slots : [slot0]).map(s => SLOTS.find(x => x.id === s).n.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' e $1')}.</p>
+      <div class="btn-stack"><button class="btn primary press" data-act="rimport">${ic('plus')} Adicionar às minhas receitas</button>
+        <button class="btn secondary press" data-act="close">Agora não</button></div>`;
+  }
+  async function importShared() {
+    const d = shared; if (!d) return closeSheet();
+    const r = R(), fmap = {};
+    // alimentos criados por quem partilhou: reaproveita se já existir um igual, senão cria
+    for (const [fid, F] of Object.entries(d.foods || {})) {
+      if (FOODS[fid]) continue;
+      const same = Object.entries(r.foods).find(([, x]) => x.n === F.n && x.kcal === F.kcal);
+      if (same) fmap[fid] = same[0];
+      else { const nid = 'uf_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); r.foods[nid] = { n: F.n, cat: F.cat || 'Outros', kcal: +F.kcal || 0, p: +F.p || 0, c: +F.c || 0, f: +F.f || 0 }; fmap[fid] = nid; }
+    }
+    const items = d.i.filter(it => FOODS[it.f] || fmap[it.f] || r.foods[it.f]).map(it => ({ f: fmap[it.f] || it.f, g: it.g, ...(it.r ? { r: it.r } : {}) }));
+    const sig = JSON.stringify(items.map(x => [x.f, x.g]));
+    if (r.custom.some(x => x.n === d.n && JSON.stringify(x.i.map(y => [y.f, y.g])) === sig)) { shared = null; closeSheet(); return toast('Já tens esta receita'); }
+    let slots = (d.s || []).filter(s => SLOTS.some(x => x.id === s)); if (!slots.length) slots = ['almoco'];
+    const id = 'u_' + Date.now().toString(36);
+    r.custom.push({ id, slot: slots[0], slots, n: String(d.n).slice(0, 80), m: d.m ? 1 : 0, prep: String(d.prep || ''), i: items });
+    save();
+    if (d.ph) { try { await setPhoto(id, await (await fetch(d.ph)).blob()); } catch (e) { /* fica sem foto */ } }
+    shared = null; closeSheet(); render(); toast('Receita adicionada às tuas receitas');
+  }
+  window.addEventListener('hashchange', checkShared);
   // ---- Recortar a foto: moldura fixa (16:10); arrastar para mover, dedos / roda / barra para aumentar ou diminuir ----
   const CROP_W = 960, CROP_H = 600;
   let cropEl = null, cropDone = null;
@@ -1893,6 +1973,8 @@
     if (a === 'wdate') { toggleWCal(false); return selectWDate(b.dataset.k); }
     if (a === 'wother') return toggleWCal();
     if (a === 'photodel') return removePhoto(b.dataset.id);
+    if (a === 'rshare') return shareRecipe(b.dataset.id);
+    if (a === 'rimport') return importShared();
     if (a === 'doses') { msDoses = Math.max(1, Math.min(8, msDoses + +b.dataset.d)); paintSheet(); return; }
     if (a === 'wcalday') { selectWDate(b.dataset.k); return toggleWCal(false); }
     if (a === 'wcalnav') { const d = fromKey(wcalMonth); wcalMonth = keyOf(new Date(d.getFullYear(), d.getMonth() + +b.dataset.d, 1)); return renderWCal(); }
@@ -2172,5 +2254,6 @@
   });
   syncCal().catch(() => {});
   loadPhotos().then(changed => { if (changed) render(); });
+  checkShared();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
