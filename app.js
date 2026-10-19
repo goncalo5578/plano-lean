@@ -471,7 +471,7 @@
       sheetBody = document.createElement('div'); sheetBody.className = 'sheet-in'; sheetEl.appendChild(sheetBody);
       smartHTML(sheetBody);
       document.body.append(backEl, sheetEl);
-      backEl.addEventListener('click', closeSheet);
+      backEl.addEventListener('click', userClose);
       sheetEl.addEventListener('click', onSheetClick);
       sheetEl.addEventListener('submit', onSheetSubmit);
       sheetEl.addEventListener('input', onRecipeInput);
@@ -501,7 +501,7 @@
         if (!wasDrag) return; // foi só scroll do conteúdo
         sheetEl.style.willChange = '';
         sheetEl.style.transition = ''; sheetEl.style.transform = ''; backEl.style.transition = ''; backEl.style.opacity = '';
-        if (dy > 110) closeSheet(); else barTo(true); // não fechou: volta ao sítio e a barra volta a escurecer
+        if (dy > 110) userClose(); else barTo(true); // não fechou: volta ao sítio e a barra volta a escurecer
       });
     }
     sheetFresh = true; paintSheet(); sheetFresh = false;
@@ -528,6 +528,36 @@
       <div class="btn-stack"><button class="btn ${okCls} press" data-act="confirm-ok">${ok}</button>
       <button class="btn secondary press" data-act="close">Cancelar</button></div>`, { noClose: true });
   }
+  // ---- Sair de uma receita com alterações por guardar: pergunta primeiro ----
+  let askEl = null;
+  const draftSig = d => JSON.stringify({ n: d.n.trim(), p: d.prep.trim(), m: !!d.m, s: [...d.slots].sort(), i: d.i.map(x => [x.f, x.g]), f: !!d.photoBlob });
+  function editorDirty() {
+    if (!sheetOpen() || sheetRender !== editorSheet || !rDraft) return false;
+    syncDraftFromDom();
+    return draftSig(rDraft) !== rDraft.sig0;
+  }
+  function userClose() {
+    if (askEl) return;
+    if (!editorDirty()) return closeSheet();
+    askEl = document.createElement('div');
+    askEl.className = 'ask'; askEl.setAttribute('role', 'alertdialog');
+    askEl.innerHTML = `<div class="ask-card"><h3>Sair sem guardar?</h3><p>${rDraft.isNew ? 'A receita nova perde-se.' : 'As alterações a esta receita perdem-se.'}</p>
+      <div class="btn-stack"><button class="btn primary press" data-ask="stay">Continuar a editar</button><button class="btn danger press" data-ask="leave">Sair sem guardar</button></div></div>`;
+    askEl.addEventListener('click', e => {
+      const b = e.target.closest('[data-ask]');
+      if (b && b.dataset.ask === 'leave') { closeAsk(); closeSheet(); }
+      else if (b || e.target === askEl) closeAsk();
+    });
+    document.body.appendChild(askEl);
+    requestAnimationFrame(() => askEl && askEl.classList.add('open'));
+    barTo(true); syncGuard();
+  }
+  function closeAsk() {
+    if (!askEl) return;
+    const el = askEl; askEl = null;
+    el.classList.remove('open'); setTimeout(() => el.remove(), 220);
+    syncGuard();
+  }
   function closeSheet() {
     if (typeof stopScan === 'function') stopScan();
     if (!sheetEl) return;
@@ -537,7 +567,7 @@
     document.body.style.overflow = '';
     setTimeout(() => { if (!sheetEl.classList.contains('open')) { backEl.hidden = sheetEl.hidden = true; } }, 380);
   }
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (askEl) closeAsk(); else userClose(); } });
 
   // ================= HOJE =================
   function dayTitle(k) {
@@ -783,7 +813,7 @@
     rDraft = meal
       ? { id: meal.id, slots: slotsOfMeal(meal.id), n: meal.n, prep: meal.prep || '', m: meal.m ? 1 : 0, i: meal.i.map(it => ({ f: it.f, g: Array.isArray(it.g) ? it.g[0] : it.g })), isNew: false }
       : { id: null, slots: [slot || 'almoco'], n: '', prep: '', m: 0, i: [], isNew: true };
-    rDraft.pickFor = pickFor; rDraft.view = 'edit';
+    rDraft.pickFor = pickFor; rDraft.view = 'edit'; rDraft.sig0 = draftSig(rDraft);
     if (PHOTO_URL[DRAFT_PHOTO]) { URL.revokeObjectURL(PHOTO_URL[DRAFT_PHOTO]); delete PHOTO_URL[DRAFT_PHOTO]; }
     openSheet(editorSheet);
   }
@@ -1865,7 +1895,7 @@
     if (stp) { if (e.detail === 0) stepWeight(+stp.dataset.step); return; } // teclado
     const b = e.target.closest('[data-act]'); if (!b) return;
     const a = b.dataset.act;
-    if (a === 'close') { pendingConfirm = null; return closeSheet(); }
+    if (a === 'close') { pendingConfirm = null; return userClose(); }
     if (a === 'confirm-ok') { const f = pendingConfirm; pendingConfirm = null; closeSheet(); if (f) f(); return; }
     if (a === 'wdate') { toggleWCal(false); return selectWDate(b.dataset.k); }
     if (a === 'wother') return toggleWCal();
@@ -2010,6 +2040,7 @@
     if (sub && subParent) d++;
     if (sub && recCat) d++;
     if (cropEl) d++;
+    if (askEl) d++;
     if (sheetOpen()) {
       d++;
       if (sheetEl.dataset.mode) d++;
@@ -2031,10 +2062,11 @@
   }
   function backStep() {
     if (cropEl) return closeCrop(null);
+    if (askEl) return closeAsk();
     if (sheetOpen()) {
       if (sheetRender === editorSheet && rDraft && rDraft.view !== 'edit') { stopScan(); rDraft.view = rDraft.view === 'food' ? 'edit' : 'food'; paintSheet(); sheetBody.scrollTop = 0; return; }
       if (sheetEl.dataset.mode) { delete sheetEl.dataset.mode; paintSheet(); return; }
-      pendingConfirm = null; closeSheet(); return;
+      pendingConfirm = null; userClose(); return;
     }
     if (tab === 'perfil' && recCat) { recCat = null; render('pop'); window.scrollTo(0, 0); return; }
     if (sub && subParent) { sub = subParent; subParent = null; render('pop'); window.scrollTo(0, 0); return; }
