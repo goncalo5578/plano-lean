@@ -1715,12 +1715,10 @@
           </div>${ic('chevR', 'chev-r')}</div>`; }).join('')}</div></section>
         <div class="fab-wrap"><button class="fab-add" data-act="rnew" data-slot="${catSlot.id}">${ic('plus')}<span>Nova receita</span></button></div>`;
     } else if (id === 'refeicoes') {
-      const r = R(), changed = Object.keys(r.edits).length + Object.keys(r.removed).length;
       h = `<div class="btn-stack" style="margin-top:4px"><button class="btn primary press" data-act="rnew" data-slot="almoco">${ic('plus')} Nova receita</button></div>
         <section class="meal-box rcat-box"><h2 class="sec-h">Refeições</h2><div class="mcards">${SLOTS.map((sl, i) => { const n = mealsOf(sl.id).length; return `
           <button class="row tap rcat-row ${i === SLOTS.length - 1 ? 'm-last' : ''}" data-act="rcat" data-slot="${sl.id}"><span class="rc-pic" style="${imgVars(sl.id)}">${ic(SLOT_IC[sl.id] || 'apple')}</span><div class="row-main"><div class="ttl">${sl.n}</div><div class="sub">${n} ${n === 1 ? 'receita' : 'receitas'}</div></div>${ic('chevR', 'chev-r')}</button>`; }).join('')}</div></section>
-` +
-        (changed ? `<div class="btn-stack"><button class="btn secondary press" data-act="rreset">Repor as receitas originais</button></div>` : '');
+`;
     } else if (id === 'calendario') {
       const c = S.cal || {};
       if (!c.url) {
@@ -1857,10 +1855,6 @@
         return;
       case 'redit': openEditor(mealById(b.dataset.id)); return;
       case 'rnew': openEditor(null, b.dataset.slot); return;
-      case 'rreset':
-        askConfirm({ title: 'Repor as receitas originais?', ok: 'Repor', text: 'As receitas do plano que editaste ou eliminaste voltam ao original. As que criaste ficam.',
-          onOk: () => { const r = R(); r.edits = {}; r.removed = {}; save(); render(); toast('Receitas repostas'); } });
-        return;
       case 'lmadd': dayState(curDay).lm = true; save(); toast('Lanche da manhã adicionado'); break;
       case 'resetturnos': S.profile.shifts = {}; save(); toast('Horários repostos'); break;
       case 'reset':
