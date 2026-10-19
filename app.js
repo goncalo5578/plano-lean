@@ -231,9 +231,8 @@
   }
   const baseKcal = o => Math.round(sumItems(o.i.map(it => ({ f: it.f, g: Array.isArray(it.g) ? it.g[0] : it.g }))).kcal);
   function recipeTags(o) {
-    const own = R().custom.some(m => m.id === o.id);
     const sl = slotsOfMeal(o.id), multi = sl.length > 1 ? sl.map(s => SLOTS.find(x => x.id === s).n.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' e $1') : '';
-    return [`~${baseKcal(o)} kcal`, o.m ? '<span class="mk-m">Marmita</span>' : '', multi, own ? 'criada por ti' : ''].filter(Boolean).join(' · ');
+    return [`~${baseKcal(o)} kcal`, o.m ? '<span class="mk-m">Marmita</span>' : '', multi].filter(Boolean).join(' · ');
   }
   function mealIdAt(k, slot, depth = 0) {
     const src = depth < 3 && sourceOf(k, slot);
