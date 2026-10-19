@@ -164,15 +164,6 @@
     saveThumbs();
   }
   // Reduz a foto (máx. 720 px) para ocupar pouco espaço no telemóvel
-  async function shrinkPhoto(file) {
-    let src;
-    try { src = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
-    catch (e) { src = await new Promise((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ko; im.src = URL.createObjectURL(file); }); }
-    const w0 = src.width, h0 = src.height, k = Math.min(1, 720 / Math.max(w0, h0));
-    const cv = document.createElement('canvas'); cv.width = Math.round(w0 * k); cv.height = Math.round(h0 * k);
-    cv.getContext('2d').drawImage(src, 0, 0, cv.width, cv.height);
-    return new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.82));
-  }
   // Imagem de cada refeição: a tua foto, ou um degradé com o ícone do tipo de refeição
   const SLOT_GRAD = { pa: ['#ffd36b', '#f59f00'], lm: ['#8ce99a', '#2f9e44'], almoco: ['#ffa94d', '#e8590c'], lanche: ['#faa2c1', '#d6336c'], jantar: ['#91a7ff', '#4c5fd5'] };
   const imgVars = slot => `--g1:${SLOT_GRAD[slot][0]};--g2:${SLOT_GRAD[slot][1]}`;
@@ -878,11 +869,91 @@
   }
   // ---- Foto da receita ----
   const DRAFT_PHOTO = '__nova'; // receita nova ainda sem id: a foto fica à espera até guardar
+  // ---- Recortar a foto: moldura fixa (16:10); arrastar para mover, dedos / roda / barra para aumentar ou diminuir ----
+  const CROP_W = 960, CROP_H = 600;
+  let cropEl = null, cropDone = null;
+  function closeCrop(blob) {
+    if (!cropEl) return;
+    const el = cropEl, done = cropDone; cropEl = null; cropDone = null;
+    el.classList.remove('open'); setTimeout(() => el.remove(), 260);
+    syncGuard();
+    done(blob || null);
+  }
+  async function cropPhoto(file) {
+    let src;
+    try { src = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+    catch (e) { src = await new Promise((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ko; im.src = URL.createObjectURL(file); }); }
+    const W = src.width, H = src.height;
+    return new Promise(resolve => {
+      const el = document.createElement('div');
+      el.className = 'crop'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Ajustar foto');
+      el.innerHTML = `<div class="crop-top"><button type="button" class="crop-no press" data-c="no">Cancelar</button><b>Ajustar foto</b><button type="button" class="crop-ok press" data-c="ok">Usar</button></div>
+        <div class="crop-stage"><canvas class="crop-cv"></canvas><div class="crop-frame"></div></div>
+        <div class="crop-bar">${ic('minus')}<input type="range" min="1" max="4" step="0.01" value="1" aria-label="Aumentar ou diminuir a foto">${ic('plus')}</div>
+        <p class="crop-tip">Arrasta para mover · junta ou afasta os dedos para diminuir ou aumentar</p>`;
+      document.body.appendChild(el);
+      cropEl = el; cropDone = resolve;
+      const stage = el.querySelector('.crop-stage'), cv = el.querySelector('.crop-cv'), frame = el.querySelector('.crop-frame'), range = el.querySelector('input');
+      const ctx = cv.getContext('2d');
+      let sw = 0, sh = 0, fw = 0, fh = 0, z = 1, tx = 0, ty = 0;
+      const base = () => Math.max(fw / W, fh / H);
+      const clamp = () => {
+        z = Math.min(4, Math.max(1, z));
+        const S = base() * z, mx = Math.max(0, (W * S - fw) / 2), my = Math.max(0, (H * S - fh) / 2);
+        tx = Math.min(mx, Math.max(-mx, tx)); ty = Math.min(my, Math.max(-my, ty));
+      };
+      const draw = () => {
+        clamp(); range.value = z;
+        const dpr = window.devicePixelRatio || 1, S = base() * z;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, sw, sh);
+        ctx.drawImage(src, sw / 2 + tx - (W * S) / 2, sh / 2 + ty - (H * S) / 2, W * S, H * S);
+      };
+      const layout = () => {
+        const r = stage.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+        sw = r.width; sh = r.height; cv.width = Math.round(sw * dpr); cv.height = Math.round(sh * dpr);
+        fw = Math.min(sw - 32, 560); fh = fw / (CROP_W / CROP_H);
+        if (fh > sh - 32) { fh = sh - 32; fw = fh * (CROP_W / CROP_H); }
+        Object.assign(frame.style, { width: fw + 'px', height: fh + 'px', left: (sw - fw) / 2 + 'px', top: (sh - fh) / 2 + 'px' });
+        draw();
+      };
+      requestAnimationFrame(() => { el.classList.add('open'); layout(); });
+      window.addEventListener('resize', layout);
+      syncGuard();
+      // arrastar com um dedo; com dois, aumentar/diminuir e mover pelo meio dos dedos
+      const pts = new Map();
+      let last = null;
+      const state = () => { const p = [...pts.values()]; if (p.length === 1) return { x: p[0].x, y: p[0].y, d: 0 }; const [a1, b1] = p; return { x: (a1.x + b1.x) / 2, y: (a1.y + b1.y) / 2, d: Math.hypot(a1.x - b1.x, a1.y - b1.y) }; };
+      stage.addEventListener('pointerdown', e => { try { stage.setPointerCapture(e.pointerId); } catch (err) { /* sem captura: continua na mesma */ } pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); last = state(); });
+      stage.addEventListener('pointermove', e => {
+        if (!pts.has(e.pointerId)) return;
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const s = state();
+        if (last) { tx += s.x - last.x; ty += s.y - last.y; if (s.d && last.d) { const k = s.d / last.d, z0 = z; z *= k; clamp(); const kk = z / z0; tx *= kk; ty *= kk; } }
+        last = s; draw();
+      });
+      const up = e => { pts.delete(e.pointerId); last = pts.size ? state() : null; };
+      stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
+      stage.addEventListener('wheel', e => { e.preventDefault(); const z0 = z; z *= Math.exp(-e.deltaY * 0.0015); clamp(); tx *= z / z0; ty *= z / z0; draw(); }, { passive: false });
+      range.addEventListener('input', () => { const z0 = z; z = +range.value; tx *= z / z0; ty *= z / z0; draw(); });
+      el.addEventListener('click', e => {
+        const b = e.target.closest('[data-c]'); if (!b) return;
+        window.removeEventListener('resize', layout);
+        if (b.dataset.c === 'no') return closeCrop(null);
+        const S = base() * z, left = fw / 2 + tx - (W * S) / 2, top = fh / 2 + ty - (H * S) / 2;
+        const out = document.createElement('canvas'); out.width = CROP_W; out.height = CROP_H;
+        const o = out.getContext('2d'); o.imageSmoothingQuality = 'high';
+        o.drawImage(src, -left / S, -top / S, fw / S, fh / S, 0, 0, CROP_W, CROP_H);
+        out.toBlob(blob => closeCrop(blob), 'image/jpeg', 0.84);
+      });
+    });
+  }
   async function onPhotoPicked(el) {
     const file = el.files && el.files[0], id = el.dataset.photo;
     if (!file) return;
+    el.value = ''; // deixa escolher a mesma foto outra vez
     try {
-      const blob = await shrinkPhoto(file);
+      const blob = await cropPhoto(file);
+      if (!blob) return; // cancelado
       if (id === DRAFT_PHOTO) {
         if (PHOTO_URL[DRAFT_PHOTO]) URL.revokeObjectURL(PHOTO_URL[DRAFT_PHOTO]);
         rDraft.photoBlob = blob; PHOTO_URL[DRAFT_PHOTO] = URL.createObjectURL(blob);
@@ -1938,6 +2009,7 @@
     if (sub) d++;
     if (sub && subParent) d++;
     if (sub && recCat) d++;
+    if (cropEl) d++;
     if (sheetOpen()) {
       d++;
       if (sheetEl.dataset.mode) d++;
@@ -1958,6 +2030,7 @@
     }
   }
   function backStep() {
+    if (cropEl) return closeCrop(null);
     if (sheetOpen()) {
       if (sheetRender === editorSheet && rDraft && rDraft.view !== 'edit') { stopScan(); rDraft.view = rDraft.view === 'food' ? 'edit' : 'food'; paintSheet(); sheetBody.scrollTop = 0; return; }
       if (sheetEl.dataset.mode) { delete sheetEl.dataset.mode; paintSheet(); return; }
