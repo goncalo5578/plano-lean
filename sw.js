@@ -1,7 +1,8 @@
 // Cache offline. Mudar a versão sempre que os ficheiros forem alterados.
-const VERSION = 'plano-lean-v158';
+const VERSION = 'plano-lean-v159';
 const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'data.js', 'manifest.webmanifest',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'];
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png',
+  ...['lm1', 'lm6', 'lm7', 'pa2', 'pa3', 'pa4'].map(id => `img/receitas/${id}.jpg`)];
 
 // Pedir sempre ao servidor (o GitHub Pages manda guardar 10 min em cache, o que atrasava as atualizações).
 // 'no-cache' revalida: se o ficheiro não mudou, o servidor responde "igual" e é rápido.

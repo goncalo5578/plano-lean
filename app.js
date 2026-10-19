@@ -168,7 +168,9 @@
   const SLOT_GRAD = { pa: ['#ffd36b', '#f59f00'], lm: ['#8ce99a', '#2f9e44'], almoco: ['#ffa94d', '#e8590c'], lanche: ['#faa2c1', '#d6336c'], jantar: ['#91a7ff', '#4c5fd5'] };
   const imgVars = slot => `--g1:${SLOT_GRAD[slot][0]};--g2:${SLOT_GRAD[slot][1]}`;
   // cartões usam a miniatura (já está em memória no arranque); a imagem grande dos detalhes usa a foto inteira
-  const photoSrc = (id, big) => (big ? PHOTO_URL[id] || THUMB[id] : THUMB[id] || PHOTO_URL[id]);
+  // fotos que vêm com a app (img/receitas/<id>.jpg); a tua foto tem prioridade
+  const DEFAULT_PHOTOS = new Set(['lm1', 'lm6', 'lm7', 'pa2', 'pa3', 'pa4']);
+  const photoSrc = (id, big) => (big ? PHOTO_URL[id] || THUMB[id] : THUMB[id] || PHOTO_URL[id]) || (DEFAULT_PHOTOS.has(id) ? `img/receitas/${id}.jpg` : null);
   const mealPic = (id, slot, cls = 'm-pic') => id && photoSrc(id, cls === 'ms-pic')
     ? `<span class="${cls} has-photo"><img src="${photoSrc(id, cls === 'ms-pic')}" alt=""></span>`
     : `<span class="${cls}" style="${imgVars(slot)}">${cls !== 'm-band' ? ic(SLOT_IC[slot]) : ''}</span>`;
@@ -703,7 +705,7 @@
       // Imagem grande (a tua foto ou a cor da refeição); aqui não mostra se já foi comida
       let h = `<div class="ms-hero">
         ${mealPic(mid, slotId, 'ms-pic')}
-        ${m.fora ? '' : `<label class="ms-photo">${ic('camera')}${hasPhoto(mid) ? 'Mudar foto' : 'Foto'}<input type="file" accept="image/*" hidden data-photo="${mid}"></label>`}
+        ${m.fora ? '' : `<label class="ms-photo">${ic('camera')}${photoSrc(mid) ? 'Mudar foto' : 'Foto'}<input type="file" accept="image/*" hidden data-photo="${mid}"></label>`}
         <div class="ms-cap ${m.fora ? '' : 'has-share'}"><div class="over">${m.slot.n} · ${m.slot.t}${m.meal.m ? ` <span class="ms-tag">${ic('box')}Marmita</span>` : ''}</div><h2>${esc(m.meal.n)}</h2></div>
         ${m.fora ? '' : `<button type="button" class="ms-share press" data-act="rshare" data-id="${mid}" aria-label="Partilhar receita">${ic('share')}</button>`}
       </div>`;
@@ -736,7 +738,7 @@
         const g = scale(it.g), hint = nd === 1 && cook[it.f] ? `cozinhar ${qty(it.f, cook[it.f])}` : unitHint(it.f, g);
         return `<div class="row ing"><div class="row-main">${esc(food(it.f).n)}</div><div class="q num">${qty(it.f, g)}${hint ? `<small>${hint}</small>` : ''}</div></div>`;
       }).join('')}</div>`);
-      if (!m.src) h += sec('Preparação', `<div class="list"><ol class="steps">${steps(m.meal.prep)}</ol></div>`);
+      if (!m.src && m.meal.prep) h += sec('Preparação', `<div class="list"><ol class="steps">${steps(m.meal.prep)}</ol></div>`);
 
       // Cozinhar a dobrar
       if (!m.src && !m.fora && (slotId === 'almoco' || slotId === 'jantar')) {
@@ -913,7 +915,7 @@
   }
   // foto pequena para caber no link (320×200)
   async function sharePhoto(id) {
-    const url = PHOTO_URL[id] || THUMB[id]; if (!url) return null;
+    const url = photoSrc(id, true); if (!url) return null;
     const img = await new Promise((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ko; im.src = url; });
     const cv = document.createElement('canvas'); cv.width = 320; cv.height = 200;
     const k = Math.max(320 / img.width, 200 / img.height), w = img.width * k, h = img.height * k;
