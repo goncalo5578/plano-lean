@@ -245,6 +245,7 @@
     return `${slot === 'almoco' ? 'almoço' : 'jantar'} ${day}`;
   }
 
+  const MAX_KCAL = { pa: 350 }; // teto de calorias por refeição
   function dayPlan(k) {
     const st = peekDay(k), type = dayType(k), t = type === 'T' ? 1 : 0;
     const T = targets();
@@ -254,12 +255,26 @@
       const items = m.i.map(it => ({ f: it.f, r: it.r, g: Array.isArray(it.g) ? it.g[t] : it.g })).filter(it => it.g > 0);
       return { slot: { ...s, ...slotInfo(k, s.id, t) }, meal: m, items, src: sourceOf(k, s.id), dests: destsOf(k, s.id), fora: (st.fora || {})[s.id] };
     }).sort((a, b) => sortTime(a.slot.t).localeCompare(sortTime(b.slot.t)));
-    // Ajusta os hidratos (role c) para bater nas calorias alvo do dia
-    const all = meals.flatMap(m => m.items);
-    const base = sumItems(all).kcal;
-    const carbK = sumItems(all.filter(i => i.r === 'c')).kcal;
-    const factor = carbK > 0 ? Math.min(1.7, Math.max(0.6, 1 + (goal - base) / carbK)) : 1;
-    for (const it of all) if (it.r === 'c') it.g = roundG(it.f, it.g * factor);
+    // Ajusta os hidratos (role c) para bater nas calorias alvo do dia. Refeições com teto (MAX_KCAL, ex.: pequeno-almoço
+    // até 350 kcal) não passam dele: ficam no máximo e o que falta vai para os hidratos das outras refeições
+    const all = meals.flatMap(m => m.items), isC = i => i.r === 'c';
+    const bk = m => sumItems(m.items).kcal, ckOf = m => sumItems(m.items.filter(isC)).kcal;
+    const clampF = f => Math.min(1.7, Math.max(0.6, f));
+    const fac = new Map(), fixed = new Set();
+    for (let pass = 0; pass < 3; pass++) {
+      const free = meals.filter(m => !fixed.has(m));
+      const fixedK = meals.filter(m => fixed.has(m)).reduce((s, m) => s + bk(m) + ckOf(m) * (fac.get(m) - 1), 0);
+      const fb = free.reduce((s, m) => s + bk(m), 0), fc = free.reduce((s, m) => s + ckOf(m), 0);
+      const f = fc > 0 ? clampF(1 + (goal - fixedK - fb) / fc) : 1;
+      let changed = false;
+      for (const m of free) {
+        const cap = MAX_KCAL[m.slot.id] && MAX_KCAL[m.slot.id] - 10, b = bk(m), ck = ckOf(m); // −10: margem para os arredondamentos (fatias, colheres)
+        if (cap && ck > 0 && b + ck * (f - 1) > cap) { fac.set(m, clampF(1 + (cap - b) / ck)); fixed.add(m); changed = true; }
+        else fac.set(m, f);
+      }
+      if (!changed) break;
+    }
+    for (const m of meals) { const f = fac.get(m) || 1; for (const it of m.items) if (isC(it)) it.g = roundG(it.f, it.g * f); }
     for (const m of meals) m.tot = sumItems(m.items);
     const tot = sumItems(all);
     const doneMeals = meals.filter(m => st.done[m.slot.id] && !m.fora);
