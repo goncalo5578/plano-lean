@@ -110,10 +110,11 @@
   const builtinSlot = id => Object.keys(MEALS).find(sl => MEALS[sl].some(m => m.id === id));
   const slotsOfCustom = m => (m.slots && m.slots.length ? m.slots : [m.slot]);
   // refeições onde a receita aparece (uma receita tua pode servir para várias, ex.: almoço e jantar)
-  const slotsOfMeal = id => { const b = builtinSlot(id); if (b) return [b]; const c = R().custom.find(m => m.id === id); return c ? slotsOfCustom(c) : []; };
+  const slotsOfMeal = id => { const b = builtinSlot(id); if (b) return [b, ...(MEALS[b].find(m => m.id === id).also || [])]; const c = R().custom.find(m => m.id === id); return c ? slotsOfCustom(c) : []; };
   function mealsOf(slot) {
     const r = R();
-    return [...MEALS[slot].filter(m => !r.removed[m.id]).map(m => r.edits[m.id] || m), ...r.custom.filter(m => slotsOfCustom(m).includes(slot))];
+    const also = Object.values(MEALS).flat().filter(m => (m.also || []).includes(slot)); // receitas da app de outra refeição que também servem para esta
+    return [...[...MEALS[slot], ...also].filter(m => !r.removed[m.id]).map(m => r.edits[m.id] || m), ...r.custom.filter(m => slotsOfCustom(m).includes(slot))];
   }
   const mealById = id => R().edits[id] || R().custom.find(m => m.id === id) || ALL_MEALS.find(m => m.id === id);
   // ================= Fotos das receitas (só no telemóvel, em IndexedDB; não pesam no resto dos dados) =================
@@ -169,7 +170,7 @@
   const imgVars = slot => `--g1:${SLOT_GRAD[slot][0]};--g2:${SLOT_GRAD[slot][1]}`;
   // cartões usam a miniatura (já está em memória no arranque); a imagem grande dos detalhes usa a foto inteira
   // fotos que vêm com a app (img/receitas/<id>.jpg); a tua foto tem prioridade
-  const DEFAULT_PHOTOS = new Set(['lm1', 'lm6', 'lm7', 'pa2', 'pa3', 'pa4']);
+  const DEFAULT_PHOTOS = new Set(['lm6', 'lm7', 'pa2', 'pa3', 'pa4', 'pa7']);
   const photoSrc = (id, big) => (big ? PHOTO_URL[id] || THUMB[id] : THUMB[id] || PHOTO_URL[id]) || (DEFAULT_PHOTOS.has(id) ? `img/receitas/${id}.jpg` : null);
   const mealPic = (id, slot, cls = 'm-pic') => id && photoSrc(id, cls === 'ms-pic')
     ? `<span class="${cls} has-photo"><img src="${photoSrc(id, cls === 'ms-pic')}" alt=""></span>`
@@ -1182,7 +1183,7 @@
     const empty = leaving.find(s => mealsOf(s).length <= 1);
     if (empty) return showErr('r_err', `É a única receita de ${SLOTS.find(s => s.id === empty).n.toLowerCase()}: tem de ficar lá.`);
     let id = d.id;
-    if (bslot && slots.length === 1 && slots[0] === bslot) r.edits[id] = { id, ...meal };
+    if (bslot && slots.slice().sort().join() === slotsOfMeal(id).slice().sort().join()) r.edits[id] = { id, ...meal };
     else {
       if (bslot) { r.removed[id] = true; delete r.edits[id]; id = null; } // receita do plano mudada de refeição: passa a ser tua
       if (id) { const c = r.custom.find(m => m.id === id); Object.assign(c, meal, { slot: slots[0], slots }); }

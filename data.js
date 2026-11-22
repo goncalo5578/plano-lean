@@ -1,6 +1,6 @@
 // Base de dados do plano. Valores nutricionais por 100 g (aprox., tabelas INSA/USDA).
 // Pesos de arroz, massa, quinoa, aveia e carnes/peixes são em CRU.
-// g: número fixo, ou [descanso, treino]. m: 1 = aguenta bem numa marmita.
+// g: número fixo, ou [descanso, treino]. m: 1 = aguenta bem numa marmita. also: outras refeições onde a receita também aparece.
 // role: p = proteína, c = hidratos (ajustados automaticamente às calorias alvo), f = gordura, v = legumes/fruta.
 
 const FOODS = {
@@ -35,6 +35,7 @@ const FOODS = {
   claras:       { n: 'Claras de ovo', kcal: 52, p: 10.9, c: 0.7, f: 0.2, cat: 'Laticínios e ovos' },
   skyr:         { n: 'Skyr / iogurte grego magro natural', kcal: 63, p: 11, c: 4, f: 0.2, cat: 'Laticínios e ovos' },
   leite:        { n: 'Leite meio-gordo', kcal: 47, p: 3.3, c: 4.8, f: 1.6, cat: 'Laticínios e ovos' },
+  leiteMG:      { n: 'Leite meio-gordo (Milbona)', kcal: 45, p: 3.2, c: 4.7, f: 1.5, cat: 'Laticínios e ovos' },
   leiteSL:      { n: 'Leite meio-gordo sem lactose (Milbona)', kcal: 45, p: 3.1, c: 4.5, f: 1.6, cat: 'Laticínios e ovos' },
   skyrMorango:  { n: 'Skyr de morango (Milbona)', kcal: 56, p: 8.9, c: 4.5, f: 0.2, cat: 'Laticínios e ovos' },
   iogurteNat:   { n: 'Iogurte natural (Milbona)', kcal: 75, p: 5, c: 4.7, f: 3.8, cat: 'Laticínios e ovos' },
@@ -53,6 +54,7 @@ const FOODS = {
   sopa:         { n: 'Sopa de legumes caseira', kcal: 35, p: 1.2, c: 5.5, f: 1, cat: 'Legumes', u: [300, 'prato'] },
 
   azeite:       { n: 'Azeite', kcal: 884, p: 0, c: 0, f: 100, cat: 'Gorduras', u: [10, 'c. sopa'] },
+  manteigaMagra: { n: 'Manteiga magra (Mimosa)', kcal: 379, p: 0.2, c: 3.3, f: 41, cat: 'Gorduras' },
   abacate:      { n: 'Abacate', kcal: 160, p: 2, c: 8.5, f: 14.7, cat: 'Gorduras' },
   amendoas:     { n: 'Amêndoas', kcal: 579, p: 21, c: 22, f: 50, cat: 'Gorduras' },
   nozes:        { n: 'Nozes', kcal: 654, p: 15, c: 14, f: 65, cat: 'Gorduras' },
@@ -106,8 +108,6 @@ const FORA = [
 
 const MEALS = {
   lm: [
-    { id: 'lm1', n: 'Skyr de morango', m: 1, prep: '',
-      i: [{ f: 'skyrMorango', g: 150 }] },
     { id: 'lm6', n: 'Bolachas de milho', m: 1, prep: '4 bolachas.',
       i: [{ f: 'bolachaMilho', g: 32, r: 'c' }] },
     { id: 'lm7', n: 'Maçã', m: 1, prep: '',
@@ -123,7 +123,10 @@ const MEALS = {
     { id: 'pa4', n: 'Panquecas de aveia e banana com leite',
       prep: 'Triturar aveia, ovo, claras e metade da banana. Cozinhar em frigideira antiaderente. Servir com o resto da banana. Leite à parte.',
       i: [{ f: 'aveia', g: 25, r: 'c' }, { f: 'ovo', g: 55 }, { f: 'claras', g: 100 }, { f: 'banana', g: 50 }, { f: 'leiteSL', g: 150 }] },
-    { id: 'pa5', n: 'Overnight oats de skyr e frutos vermelhos', m: 1, prep: 'Na véspera, misturar num frasco a aveia, o skyr, o leite e a chia. Pôr os frutos vermelhos e as nozes partidas por cima e guardar no frigorífico. De manhã é só levar.', i: [{ f: 'aveia', g: 35, r: 'c' }, { f: 'skyr', g: 170, r: 'p' }, { f: 'leite', g: 80 }, { f: 'frutosVerm', g: 100 }, { f: 'chia', g: 10 }, { f: 'nozes', g: 10 }] },
+    { id: 'pa7', n: 'Torradas com manteiga e leite',
+      prep: 'Torrar o pão e barrar com a manteiga. Leite à parte. Dica: barra com o pão ainda quente, porque espalha melhor e chega metade da manteiga.',
+      i: [{ f: 'paoForma', g: 60, r: 'c' }, { f: 'manteigaMagra', g: 15 }, { f: 'leiteMG', g: 250 }] },
+    { id: 'pa5', n: 'Overnight oats de skyr e frutos vermelhos', m: 1, also: ['lanche'], prep: 'Na véspera, misturar num frasco a aveia, o skyr, o leite e a chia. Pôr os frutos vermelhos e as nozes partidas por cima e guardar no frigorífico. De manhã é só levar.', i: [{ f: 'aveia', g: 35, r: 'c' }, { f: 'skyr', g: 170, r: 'p' }, { f: 'leite', g: 80 }, { f: 'frutosVerm', g: 100 }, { f: 'chia', g: 10 }, { f: 'nozes', g: 10 }] },
   ],
   almoco: [
     { id: 'al1', n: 'Frango grelhado com arroz e legumes salteados', m: 1,
@@ -189,13 +192,13 @@ const MEALS = {
 
 // Rotação base da semana (índices das opções em cada refeição). 0 = segunda-feira.
 const WEEK = [
-  { pa: 'pa2', lm: 'lm1', almoco: 'al1', lanche: 'la3', jantar: 'ja1' },
+  { pa: 'pa2', lm: 'lm6', almoco: 'al1', lanche: 'la3', jantar: 'ja1' },
   { pa: 'pa3', lm: 'lm6', almoco: 'al3', lanche: 'la1', jantar: 'ja2' },
   { pa: 'pa5', lm: 'lm7', almoco: 'al4', lanche: 'la5', jantar: 'ja3' },
-  { pa: 'pa4', lm: 'lm1', almoco: 'al7', lanche: 'la4', jantar: 'ja6' },
+  { pa: 'pa7', lm: 'lm6', almoco: 'al7', lanche: 'la4', jantar: 'ja6' },
   { pa: 'pa3', lm: 'lm6', almoco: 'al5', lanche: 'la2', jantar: 'ja5' },
   { pa: 'pa4', lm: 'lm7', almoco: 'al9', lanche: 'la6', jantar: 'ja8' },
-  { pa: 'pa2', lm: 'lm1', almoco: 'al8', lanche: 'la1', jantar: 'ja7' },
+  { pa: 'pa7', lm: 'lm6', almoco: 'al8', lanche: 'la1', jantar: 'ja7' },
 ];
 
 // Equivalências para trocas livres (mesma quantidade de hidratos/proteína/gordura aprox.)
