@@ -1,5 +1,5 @@
 // Cache offline. Mudar a versão sempre que os ficheiros forem alterados.
-const VERSION = 'plano-lean-v162';
+const VERSION = 'plano-lean-v163';
 const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'data.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png',
   ...['lm6', 'lm7', 'pa2', 'pa3', 'pa4', 'pa7', 'al1', 'al2', 'al4', 'al10', 'ja1', 'ja3', 'ja8'].map(id => `img/receitas/${id}.jpg`)];
