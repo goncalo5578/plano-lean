@@ -132,7 +132,7 @@ const MEALS = {
     { id: 'pa7', n: 'Torradas com manteiga e leite',
       prep: 'Torrar o pão e barrar com a manteiga. Leite à parte. Dica: barra com o pão ainda quente, porque espalha melhor e chega metade da manteiga.',
       i: [{ f: 'paoForma', g: 60, r: 'c' }, { f: 'manteigaMagra', g: 15 }, { f: 'leiteMG', g: 250 }] },
-    { id: 'pa5', n: 'Overnight oats de skyr e frutos vermelhos', m: 1, also: ['lanche'], prep: 'Na véspera, misturar num frasco a aveia, o skyr, o leite e a chia. Pôr os frutos vermelhos e as nozes partidas por cima e guardar no frigorífico. De manhã é só levar.', i: [{ f: 'aveia', g: 35, r: 'c' }, { f: 'skyr', g: 170, r: 'p' }, { f: 'leite', g: 80 }, { f: 'frutosVerm', g: 100 }, { f: 'chia', g: 10 }, { f: 'nozes', g: 10 }] },
+    { id: 'pa5', n: 'Overnight oats de skyr e frutos vermelhos', m: 1, prep: 'Na véspera, misturar num frasco a aveia, o skyr, o leite e a chia. Pôr os frutos vermelhos e as nozes partidas por cima e guardar no frigorífico. De manhã é só levar.', i: [{ f: 'aveia', g: 35, r: 'c' }, { f: 'skyr', g: 170, r: 'p' }, { f: 'leite', g: 80 }, { f: 'frutosVerm', g: 100 }, { f: 'chia', g: 10 }, { f: 'nozes', g: 10 }] },
   ],
   almoco: [
     { id: 'al1', n: 'Frango grelhado com arroz e legumes salteados', m: 1, also: ['jantar'],
@@ -155,21 +155,9 @@ const MEALS = {
       i: [{ f: 'arroz', g: 60, r: 'c' }, { f: 'atumOleo', g: 80, r: 'p' }, { f: 'legumes', g: 100 }] },
   ],
   lanche: [
-    { id: 'la1', n: 'Skyr com maçã e nozes',
-      treino: '+ bolachas de arroz nos dias de treino (1–2 h antes)',
-      prep: 'Maçã às fatias com canela por cima do skyr. Nozes partidas.',
-      i: [{ f: 'skyr', g: 170, r: 'p' }, { f: 'maca', g: 150 }, { f: 'nozes', g: 15 }, { f: 'bolachaArroz', g: [0, 25], r: 'c' }] },
-    { id: 'la2', n: 'Tosta de fiambre de peru e queijo fresco + laranja', m: 1,
-      prep: 'Pão integral com um fio de azeite, fiambre, queijo fresco e tomate. Laranja à parte.',
-      i: [{ f: 'pao', g: [40, 70], r: 'c' }, { f: 'azeite', g: 5 }, { f: 'fiambre', g: 50, r: 'p' }, { f: 'queijoFresco', g: 60, r: 'p' }, { f: 'laranja', g: 150 }] },
-    { id: 'la3', n: 'Batido de proteína com banana',
-      prep: 'Bater leite, whey, banana e manteiga de amendoim. Sem whey: trocar por 200 g de skyr e bater na mesma.',
-      i: [{ f: 'whey', g: 25, r: 'p' }, { f: 'leite', g: 250 }, { f: 'banana', g: [80, 120], r: 'c' }, { f: 'aveia', g: [0, 15], r: 'c' }, { f: 'manteigaAm', g: 10 }] },
-    { id: 'la4', n: 'Cottage com pêra e bolachas de arroz', m: 1,
-      prep: 'Cottage com a pêra aos cubos, canela e as nozes partidas. Bolachas de arroz à parte.',
-      i: [{ f: 'cottage', g: 150, r: 'p' }, { f: 'pera', g: 150 }, { f: 'nozes', g: 10 }, { f: 'bolachaArroz', g: [8, 32], r: 'c' }] },
-    { id: 'la5', n: 'Atum com tomate, bolachas de arroz e maçã', m: 1, prep: 'Atum escorrido com tomate cherry, orégãos e um fio de azeite numa caixa. Bolachas de arroz e maçã à parte.', i: [{ f: 'atum', g: 80, r: 'p' }, { f: 'bolachaArroz', g: [16, 40], r: 'c' }, { f: 'salada', g: 100 }, { f: 'azeite', g: 5 }, { f: 'maca', g: 150 }] },
-    { id: 'la6', n: 'Ovos cozidos com queijo fresco e pêra', m: 1, prep: 'Ovos cozidos (feitos na véspera) com queijo fresco, sal e orégãos. Uma pêra à parte.', i: [{ f: 'ovo', g: 110, r: 'p' }, { f: 'queijoFresco', g: 50, r: 'p' }, { f: 'pera', g: 150 }, { f: 'bolachaArroz', g: [0, 24], r: 'c' }] },
+    { id: 'la7', n: 'Iogurte natural com aveia, fruta e proteína',
+      prep: 'Misturar a proteína no iogurte até ficar cremoso. Por cima, a aveia e a fruta às rodelas.',
+      i: [{ f: 'iogurteNat', g: 150 }, { f: 'aveia', g: 20, r: 'c' }, { f: 'banana', g: 60 }, { f: 'whey', g: 10, r: 'p' }] },
   ],
   jantar: [
     { id: 'ja1', n: 'Pescada no forno com batata e legumes', also: ['almoco'],
@@ -187,13 +175,13 @@ const MEALS = {
 
 // Rotação base da semana (índices das opções em cada refeição). 0 = segunda-feira.
 const WEEK = [
-  { pa: 'pa2', lm: 'lm6', almoco: 'al1', lanche: 'la3', jantar: 'ja1' },
-  { pa: 'pa3', lm: 'lm6', almoco: 'al11', lanche: 'la1', jantar: 'ja8' },
-  { pa: 'pa5', lm: 'lm7', almoco: 'al4', lanche: 'la5', jantar: 'ja3' },
-  { pa: 'pa7', lm: 'lm6', almoco: 'al10', lanche: 'la4', jantar: 'ja9' },
-  { pa: 'pa3', lm: 'lm6', almoco: 'al2', lanche: 'la2', jantar: 'ja8' },
-  { pa: 'pa4', lm: 'lm7', almoco: 'al4', lanche: 'la6', jantar: 'ja9' },
-  { pa: 'pa7', lm: 'lm6', almoco: 'al1', lanche: 'la1', jantar: 'ja3' },
+  { pa: 'pa2', lm: 'lm6', almoco: 'al1', lanche: 'la7', jantar: 'ja1' },
+  { pa: 'pa3', lm: 'lm6', almoco: 'al11', lanche: 'la7', jantar: 'ja8' },
+  { pa: 'pa5', lm: 'lm7', almoco: 'al4', lanche: 'la7', jantar: 'ja3' },
+  { pa: 'pa7', lm: 'lm6', almoco: 'al10', lanche: 'la7', jantar: 'ja9' },
+  { pa: 'pa3', lm: 'lm6', almoco: 'al2', lanche: 'la7', jantar: 'ja8' },
+  { pa: 'pa4', lm: 'lm7', almoco: 'al4', lanche: 'la7', jantar: 'ja9' },
+  { pa: 'pa7', lm: 'lm6', almoco: 'al1', lanche: 'la7', jantar: 'ja3' },
 ];
 
 // Equivalências para trocas livres (mesma quantidade de hidratos/proteína/gordura aprox.)
