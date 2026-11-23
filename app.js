@@ -170,7 +170,7 @@
   const imgVars = slot => `--g1:${SLOT_GRAD[slot][0]};--g2:${SLOT_GRAD[slot][1]}`;
   // cartões usam a miniatura (já está em memória no arranque); a imagem grande dos detalhes usa a foto inteira
   // fotos que vêm com a app (img/receitas/<id>.jpg); a tua foto tem prioridade
-  const DEFAULT_PHOTOS = new Set(['lm6', 'lm7', 'pa2', 'pa3', 'pa4', 'pa7', 'al1', 'al2', 'al4', 'al10', 'ja1', 'ja3', 'ja8', 'al12']);
+  const DEFAULT_PHOTOS = new Set(['lm6', 'lm7', 'pa2', 'pa3', 'pa4', 'pa7', 'al1', 'al2', 'al4', 'al10', 'ja1', 'ja3', 'ja8', 'al12', 'la7', 'pa5']);
   const photoSrc = (id, big) => (big ? PHOTO_URL[id] || THUMB[id] : THUMB[id] || PHOTO_URL[id]) || (DEFAULT_PHOTOS.has(id) ? `img/receitas/${id}.jpg` : null);
   const mealPic = (id, slot, cls = 'm-pic') => id && photoSrc(id, cls === 'ms-pic')
     ? `<span class="${cls} has-photo"><img src="${photoSrc(id, cls === 'ms-pic')}" alt=""></span>`
